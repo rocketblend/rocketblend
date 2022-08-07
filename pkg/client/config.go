@@ -19,8 +19,14 @@ type Rocketfile struct {
 
 type WrongFileTypeError struct{}
 
+type NoRocketfileTypeError struct{}
+
 func (m *WrongFileTypeError) Error() string {
-	return "File isn't a .rocketfile"
+	return "File isn't a .blend file"
+}
+
+func (m *NoRocketfileTypeError) Error() string {
+	return "No .rocketfile file found"
 }
 
 func LoadConfig(path string) (*Rocketfile, error) {
@@ -43,17 +49,35 @@ func LoadConfig(path string) (*Rocketfile, error) {
 	var rocketfile Rocketfile
 	json.Unmarshal([]byte(byteValue), &rocketfile)
 
-	// Convert relative path to absolute path
-	rocketfile.BlendFile = filepath.Join(filepath.Dir(path), rocketfile.BlendFile)
-
 	// Validate contents.
-	fmt.Println(rocketfile)
 
 	return &rocketfile, nil
 }
 
-func RunConfig(rocketfile *Rocketfile) error {
-	cmd := exec.Command("explorer", rocketfile.BlendFile)
+func FindConfig(path string) (*Rocketfile, error) {
+	fileExtension := filepath.Ext(path)
+	if fileExtension != ".blend" {
+		return nil, &WrongFileTypeError{}
+	}
+
+	// Find .rocketfile file in the same directory as the .blend file
+	dir := filepath.Dir(path)
+	rocketfilePath := filepath.Join(dir, ".rocketfile")
+
+	rocketfile, err := LoadConfig(rocketfilePath)
+	if err != nil {
+		return nil, err
+	}
+
+	return rocketfile, nil
+}
+
+func RunConfig(blendFilePath string, rocketfile *Rocketfile) error {
+	args := fmt.Sprintf("%s %s", blendFilePath, rocketfile.Args)
+
+	fmt.Println(args)
+
+	cmd := exec.Command("explorer", args)
 	err := cmd.Run()
 
 	if err != nil {

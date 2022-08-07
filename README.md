@@ -26,6 +26,10 @@ An in-depth paragraph about your project and overview of use.
 code blocks for commands
 ```
 
+### Building
+
+For launcher use `go build -ldflags -H=windowsgui` as it hide the console window.
+
 ## Help
 
 Any advise for common problems or issues.

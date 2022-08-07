@@ -1,6 +1,7 @@
 package launcher
 
 import (
+	"fmt"
 	"log"
 	"os"
 
@@ -8,12 +9,12 @@ import (
 )
 
 func Launch() {
-	var path string = "./.rocketfile"
-
-	if len(os.Args) > 1 {
-		path = os.Args[1]
+	if len(os.Args) == 1 {
+		fmt.Println("No file specified")
+		os.Exit(1)
 	}
 
+	path := os.Args[1]
 	err := LoadAndOpenConfig(path)
 	if err != nil {
 		log.Fatal(err)
@@ -21,12 +22,12 @@ func Launch() {
 }
 
 func LoadAndOpenConfig(path string) error {
-	rocketConfig, err := client.LoadConfig(path)
+	rocketConfig, err := client.FindConfig(path)
 	if err != nil {
 		return err
 	}
 
-	err = client.RunConfig(rocketConfig)
+	err = client.RunConfig(path, rocketConfig)
 	if err != nil {
 		return err
 	}
