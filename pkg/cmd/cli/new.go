@@ -1,12 +1,14 @@
-/*
-Copyright © 2022 NAME HERE <EMAIL ADDRESS>
-*/
-package cmd
+package cli
 
 import (
 	"fmt"
 
 	"github.com/spf13/cobra"
+)
+
+var (
+	projectName string
+	path        string
 )
 
 // newCmd represents the new command
@@ -21,6 +23,13 @@ var newCmd = &cobra.Command{
 
 func init() {
 	rootCmd.AddCommand(newCmd)
+
+	newCmd.Flags().StringVarP(&projectName, "name", "n", "", "Name of the project")
+	if err := newCmd.MarkFlagRequired("name"); err != nil {
+		fmt.Println(err)
+	}
+
+	newCmd.Flags().StringVarP(&path, "path", "p", "", "Path to create the project at")
 
 	// Here you will define your flags and configuration settings.
 

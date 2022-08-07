@@ -1,12 +1,14 @@
-/*
-Copyright © 2022 NAME HERE <EMAIL ADDRESS>
-*/
-package cmd
+package cli
 
 import (
 	"fmt"
 
 	"github.com/spf13/cobra"
+)
+
+var (
+	filePath    string
+	blenderArgs string
 )
 
 // openCmd represents the open command
@@ -21,6 +23,13 @@ var openCmd = &cobra.Command{
 
 func init() {
 	rootCmd.AddCommand(openCmd)
+
+	openCmd.Flags().StringVarP(&filePath, "file", "f", ".rocket", "The path to the rocketfile to open")
+	openCmd.Flags().StringVarP(&blenderArgs, "args", "a", "", "Arguments to pass to blender")
+
+	// if err := openCmd.MarkFlagRequired("file"); err != nil {
+	// 	fmt.Println(err)
+	// }
 
 	// Here you will define your flags and configuration settings.
 

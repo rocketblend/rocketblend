@@ -1,22 +1,22 @@
-/*
-Copyright © 2022 NAME HERE <EMAIL ADDRESS>
-*/
-package cmd
+package cli
 
 import (
 	"os"
 
 	"github.com/spf13/cobra"
 
-	"github.com/rocketblend/rocketblend/cmd/local"
-	"github.com/rocketblend/rocketblend/cmd/remote"
+	"github.com/rocketblend/rocketblend/pkg/cmd/cli/local"
+	"github.com/rocketblend/rocketblend/pkg/cmd/cli/remote"
 )
+
+const verison = "0.0.1"
 
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
-	Use:   "rocketblend",
-	Short: "Verison manager for blender.",
-	Long: `RocketBlend is a CLI tool for Blender manages verisons of blender,
+	Use:     "rocketblend-cli",
+	Version: verison,
+	Short:   "Verison manager for blender.",
+	Long: `RocketBlend-Cli is a CLI tool for Blender manages verisons of blender,
 allowing users to quickly switch between verisons.`,
 	// Uncomment the following line if your bare application
 	// has an action associated with it:
@@ -38,6 +38,8 @@ func addSubcommandPalettes() {
 }
 
 func init() {
+	rootCmd.SetVersionTemplate("{{.Version}}\n")
+
 	// Here you will define your flags and configuration settings.
 	// Cobra supports persistent flags, which, if defined here,
 	// will be global for your application.
