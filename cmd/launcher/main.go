@@ -1,7 +1,9 @@
 package main
 
-import "fmt"
+import (
+	"github.com/rocketblend/rocketblend/pkg/cmd/launcher"
+)
 
 func main() {
-	fmt.Println("Hello, world!")
+	launcher.Launch()
 }
