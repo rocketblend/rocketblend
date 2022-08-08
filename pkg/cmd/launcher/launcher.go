@@ -21,16 +21,26 @@ func Launch() {
 	}
 }
 
-func LoadAndOpenConfig(path string) error {
-	rocketConfig, err := client.FindConfig(path)
+func LoadAndOpenConfig(path string) (err error) {
+	rocketConfig, err := client.GetBlendConfig(path)
 	if err != nil {
-		return err
+		return
 	}
 
-	err = client.RunConfig(path, rocketConfig)
+	localConfig, err := client.GetLocalConfig()
 	if err != nil {
-		return err
+		return
 	}
 
-	return nil
+	buildPath, err := client.FindBuildPathFromHash(localConfig, rocketConfig.GetString("build"))
+	if err != nil {
+		return
+	}
+
+	err = client.Open(buildPath, path, rocketConfig.GetString("args"))
+	if err != nil {
+		return
+	}
+
+	return
 }

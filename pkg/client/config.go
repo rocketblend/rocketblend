@@ -1,60 +1,44 @@
 package client
 
 import (
-	"encoding/json"
 	"fmt"
-	"io"
-	"os"
 	"os/exec"
 	"path/filepath"
+
+	"github.com/spf13/viper"
 )
 
-type Rocketfile struct {
-	Version   string `json:"version"`
-	BlendFile string `json:"blendfile"`
-	Build     string `json:"build"`
-	Name      string `json:"name"`
-	Args      string `json:"args"`
-}
+const (
+	configType string = "json"
+	configName string = "rocketfile"
+)
 
 type WrongFileTypeError struct{}
-
-type NoRocketfileTypeError struct{}
 
 func (m *WrongFileTypeError) Error() string {
 	return "File isn't a .blend file"
 }
 
-func (m *NoRocketfileTypeError) Error() string {
-	return "No .rocketfile file found"
+func LoadViperConfig(path string) (rocketfileViper *viper.Viper, err error) {
+	rocketfileViper = viper.New()
+	rocketfileViper.SetConfigFile(configType)
+	rocketfileViper.SetConfigName(configName)
+	rocketfileViper.AddConfigPath(path)
+
+	err = rocketfileViper.ReadInConfig()
+	if err != nil {
+		return
+	}
+
+	return
 }
 
-func LoadConfig(path string) (*Rocketfile, error) {
-	fileExtension := filepath.Ext(path)
-	if fileExtension != ".rocketfile" {
-		return nil, &WrongFileTypeError{}
-	}
-
-	jsonFile, err := os.Open(path)
-	if err != nil {
-		return nil, err
-	}
-	defer jsonFile.Close()
-
-	byteValue, err := io.ReadAll(jsonFile)
-	if err != nil {
-		return nil, err
-	}
-
-	var rocketfile Rocketfile
-	json.Unmarshal([]byte(byteValue), &rocketfile)
-
-	// Validate contents.
-
-	return &rocketfile, nil
+func SaveViperConfig(rocketfileViper *viper.Viper) (err error) {
+	err = rocketfileViper.WriteConfig()
+	return
 }
 
-func FindConfig(path string) (*Rocketfile, error) {
+func GetBlendConfig(path string) (rocketfileViper *viper.Viper, err error) {
 	fileExtension := filepath.Ext(path)
 	if fileExtension != ".blend" {
 		return nil, &WrongFileTypeError{}
@@ -62,23 +46,24 @@ func FindConfig(path string) (*Rocketfile, error) {
 
 	// Find .rocketfile file in the same directory as the .blend file
 	dir := filepath.Dir(path)
-	rocketfilePath := filepath.Join(dir, ".rocketfile")
-
-	rocketfile, err := LoadConfig(rocketfilePath)
+	rocketfileViper, err = LoadViperConfig(dir)
 	if err != nil {
-		return nil, err
+		return
 	}
 
-	return rocketfile, nil
+	err = SaveViperConfig(rocketfileViper)
+	if err != nil {
+		return
+	}
+
+	return
 }
 
-func RunConfig(blendFilePath string, rocketfile *Rocketfile) error {
-	args := fmt.Sprintf("%s %s", blendFilePath, rocketfile.Args)
+func Open(buildPath string, blendPath string, args string) (err error) {
+	combinedArgs := fmt.Sprintf("%s %s", blendPath, args)
 
-	fmt.Println(args)
-
-	cmd := exec.Command("explorer", args)
-	err := cmd.Run()
+	cmd := exec.Command(buildPath, combinedArgs)
+	err = cmd.Run()
 
 	if err != nil {
 		return err
