@@ -1,6 +1,6 @@
 # RocketBlend
 
-Simple overview of use/purpose.
+Tools to manage blender versions and blend files.
 
 ## Description
 
