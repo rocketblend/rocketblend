@@ -1,6 +1,6 @@
 # RocketBlend
 
-Tools to manage blender versions and blend files.
+Tool to manage blender versions and blend files.
 
 ## Description
 

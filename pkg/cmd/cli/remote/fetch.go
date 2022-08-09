@@ -1,8 +1,9 @@
 package remote
 
 import (
-	"fmt"
+	"log"
 
+	"github.com/rocketblend/rocketblend/pkg/client"
 	"github.com/spf13/cobra"
 )
 
@@ -12,7 +13,12 @@ var fetchCmd = &cobra.Command{
 	Short: "Pulls details about avaiable versions of blender from the remote repositories",
 	Long:  ``,
 	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println("fetch called")
+		err := client.FetchAvailableBuilds()
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		log.Println("Fetch complete")
 	},
 }
 
