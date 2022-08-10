@@ -1,4 +1,4 @@
-package client
+package rocketfile
 
 import (
 	"fmt"
@@ -39,6 +39,7 @@ func GetBlendConfig(path string) (rocketfileViper *viper.Viper, err error) {
 		return nil, &WrongFileTypeError{}
 	}
 
+	// Move to init.
 	// Find .rocketfile file in the same directory as the .blend file
 	dir := filepath.Dir(path)
 	rocketfileViper, err = LoadViperConfig(dir)
@@ -60,4 +61,8 @@ func Open(buildPath string, blendPath string, args string) (err error) {
 	}
 
 	return nil
+}
+
+func init() {
+	println("Loading rocketfile config")
 }

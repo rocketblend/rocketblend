@@ -6,6 +6,7 @@ import (
 	"os"
 
 	"github.com/rocketblend/rocketblend/pkg/client"
+	"github.com/rocketblend/rocketblend/pkg/rocketfile"
 )
 
 func Launch() {
@@ -22,7 +23,7 @@ func Launch() {
 }
 
 func LoadAndOpenConfig(path string) (err error) {
-	rocketConfig, err := client.GetBlendConfig(path)
+	rocketConfig, err := rocketfile.GetBlendConfig(path)
 	if err != nil {
 		return
 	}
@@ -32,7 +33,7 @@ func LoadAndOpenConfig(path string) (err error) {
 		return
 	}
 
-	err = client.Open(buildPath, path, rocketConfig.GetString("args"))
+	err = rocketfile.Open(buildPath, path, rocketConfig.GetString("args"))
 	if err != nil {
 		return
 	}

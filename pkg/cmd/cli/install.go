@@ -3,6 +3,7 @@ package cli
 import (
 	"fmt"
 	"path/filepath"
+	"strings"
 
 	"github.com/rocketblend/rocketblend/pkg/client"
 	"github.com/rocketblend/rocketblend/pkg/client/installer"
@@ -33,10 +34,12 @@ var installCmd = &cobra.Command{
 			fmt.Printf("Error installing build: %s\n", err)
 		}
 
+		// Possibly strip extension from build name on remote.
+		name := strings.TrimSuffix(build.Name, filepath.Ext(build.Name))
 		install := client.Install{
-			Name:    build.Name,
+			Name:    name,
 			Hash:    build.Hash,
-			Path:    installationDir,
+			Path:    filepath.Join(installationDir, name),
 			Version: build.Version.String(),
 		}
 

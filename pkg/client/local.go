@@ -86,6 +86,8 @@ func init() {
 	configViper.SetDefault("installationDir", installationDir)
 	configViper.SetDefault("installed", []Install{})
 
+	println("Loading config main...")
+
 	if err := configViper.ReadInConfig(); err != nil {
 		if _, ok := err.(viper.ConfigFileNotFoundError); ok {
 			fmt.Println("No config file found, creating one...")
@@ -167,7 +169,7 @@ func GetAvilableBuilds() []Available {
 		temp.Hash = installed.Hash
 		temp.Name = installed.Name
 		temp.Version, _ = semver.Parse(installed.Version)
-		temp.Uri, _ = uri.Parse(installed.Path)
+		temp.Uri = uri.File(installed.Path)
 		available = append(available, temp)
 	}
 
