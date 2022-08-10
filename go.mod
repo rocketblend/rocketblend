@@ -3,6 +3,7 @@ module github.com/rocketblend/rocketblend
 go 1.19
 
 require (
+	github.com/blang/semver/v4 v4.0.0
 	github.com/spf13/cobra v1.5.0
 	github.com/spf13/viper v1.12.0
 )

@@ -33,11 +33,6 @@ func LoadViperConfig(path string) (rocketfileViper *viper.Viper, err error) {
 	return
 }
 
-func SaveViperConfig(rocketfileViper *viper.Viper) (err error) {
-	err = rocketfileViper.WriteConfig()
-	return
-}
-
 func GetBlendConfig(path string) (rocketfileViper *viper.Viper, err error) {
 	fileExtension := filepath.Ext(path)
 	if fileExtension != ".blend" {
@@ -47,11 +42,6 @@ func GetBlendConfig(path string) (rocketfileViper *viper.Viper, err error) {
 	// Find .rocketfile file in the same directory as the .blend file
 	dir := filepath.Dir(path)
 	rocketfileViper, err = LoadViperConfig(dir)
-	if err != nil {
-		return
-	}
-
-	err = SaveViperConfig(rocketfileViper)
 	if err != nil {
 		return
 	}

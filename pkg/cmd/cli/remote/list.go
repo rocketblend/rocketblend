@@ -3,6 +3,7 @@ package remote
 import (
 	"fmt"
 
+	"github.com/rocketblend/rocketblend/pkg/client"
 	"github.com/spf13/cobra"
 )
 
@@ -12,7 +13,10 @@ var listCmd = &cobra.Command{
 	Short: "Lists all remote repositories",
 	Long:  ``,
 	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println("list called")
+		remotes := client.GetRemotes()
+		for _, remote := range remotes {
+			fmt.Println(remote)
+		}
 	},
 }
 

@@ -3,7 +3,7 @@ package client
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"os/user"
 	"path/filepath"
@@ -29,7 +29,7 @@ type Response struct {
 type Install struct {
 	Path    string `json:"path"`
 	Name    string `json:"name"`
-	Verison string `json:"verison"`
+	Version string `json:"version"`
 	Hash    string `json:"hash"`
 }
 
@@ -46,18 +46,15 @@ func (m *buildNotFound) Error() string {
 }
 
 const (
-	DefaultRemote string = "http://localhost:3000"
+	DefaultRemote string = "http://127.0.0.1:3000/builds/"
 	AppName       string = "rocketblend"
 	ConfigName    string = "config"
 	ConfigType    string = "json"
 )
 
 var (
-	configViper    = viper.New()
-	availableViper = viper.New()
-
-	currentConfig  Config
-	availableCache []Build
+	configViper = viper.New()
+	//currentConfig Config
 )
 
 func init() {
@@ -90,47 +87,64 @@ func init() {
 		}
 	}
 
-	err = configViper.Unmarshal(&currentConfig)
-	if err != nil {
-		panic("Unable to decode config into struct")
-	}
+	// err = configViper.Unmarshal(&currentConfig)
+	// if err != nil {
+	// 	panic("Unable to decode config into struct")
+	// }
 
-	fmt.Println(currentConfig)
+	// fmt.Println(currentConfig)
 }
 
-func FetchAvailableBuilds() error {
-	response, err := http.Get("http://localhost:3000/builds")
+func GetRemotes() []string {
+	return configViper.GetStringSlice("remotes")
+}
+
+func GetInstalledBuilds() []Install {
+	installs := []Install{}
+	configViper.UnmarshalKey("installed", &installs)
+	return installs
+}
+
+func FetchAvailableBuildsFromRemote(url string) ([]Build, error) {
+	response, err := http.Get(url)
 
 	if err != nil {
 		fmt.Print(err.Error())
 	}
 
-	responseData, err := ioutil.ReadAll(response.Body)
+	responseData, err := io.ReadAll(response.Body)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	var responseObject Response
 	json.Unmarshal(responseData, &responseObject)
 
-	availableCache = responseObject.Data
-
-	return nil
+	return responseObject.Data, nil
 }
 
-func FindBuildPathFromHash(hash string) (buildPath string, err error) {
-	fmt.Println(currentConfig.Installed)
+func FetchAvailableBuilds() ([]Build, error) {
+	remotes := configViper.GetStringSlice("remotes")
+	availableBuilds := []Build{}
 
-	for i := range currentConfig.Installed {
-		if currentConfig.Installed[i].Hash == hash {
-			buildPath = currentConfig.Installed[i].Path
-			break
+	for _, remote := range remotes {
+		builds, err := FetchAvailableBuildsFromRemote(remote)
+		if err != nil {
+			return nil, err
+		}
+
+		availableBuilds = append(availableBuilds, builds...)
+	}
+
+	return availableBuilds, nil
+}
+
+func FindBuildPathFromHash(hash string) (string, error) {
+	for _, build := range GetInstalledBuilds() {
+		if build.Hash == hash {
+			return build.Path, nil
 		}
 	}
 
-	if buildPath == "" {
-		err = &buildNotFound{}
-	}
-
-	return
+	return "", &buildNotFound{}
 }
