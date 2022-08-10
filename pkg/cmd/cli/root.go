@@ -5,7 +5,6 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/rocketblend/rocketblend/pkg/cmd/cli/local"
 	"github.com/rocketblend/rocketblend/pkg/cmd/cli/remote"
 )
 
@@ -33,7 +32,6 @@ func Execute() {
 }
 
 func addSubcommandPalettes() {
-	rootCmd.AddCommand(local.LocalCmd)
 	rootCmd.AddCommand(remote.RemoteCmd)
 }
 

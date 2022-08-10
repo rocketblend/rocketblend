@@ -4,12 +4,16 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"os/user"
 	"path/filepath"
+	"sort"
 	"time"
 
+	"github.com/blang/semver/v4"
 	"github.com/spf13/viper"
+	"go.lsp.dev/uri"
 )
 
 type Build struct {
@@ -31,6 +35,13 @@ type Install struct {
 	Name    string `json:"name"`
 	Version string `json:"version"`
 	Hash    string `json:"hash"`
+}
+
+type Available struct {
+	Hash    string
+	Name    string
+	Uri     uri.URI
+	Version semver.Version
 }
 
 type Config struct {
@@ -95,6 +106,10 @@ func init() {
 	// fmt.Println(currentConfig)
 }
 
+func GetInstallationDir() string {
+	return configViper.GetString("installationDir")
+}
+
 func GetRemotes() []string {
 	return configViper.GetStringSlice("remotes")
 }
@@ -123,7 +138,7 @@ func FetchAvailableBuildsFromRemote(url string) ([]Build, error) {
 	return responseObject.Data, nil
 }
 
-func FetchAvailableBuilds() ([]Build, error) {
+func FetchAvailableBuildsFromRemotes() ([]Build, error) {
 	remotes := configViper.GetStringSlice("remotes")
 	availableBuilds := []Build{}
 
@@ -139,7 +154,61 @@ func FetchAvailableBuilds() ([]Build, error) {
 	return availableBuilds, nil
 }
 
-func FindBuildPathFromHash(hash string) (string, error) {
+func GetAvilableBuilds() []Available {
+	builds, err := FetchAvailableBuildsFromRemotes()
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	available := []Available{}
+	installed := GetInstalledBuilds()
+	for _, installed := range installed {
+		temp := Available{}
+		temp.Hash = installed.Hash
+		temp.Name = installed.Name
+		temp.Version, _ = semver.Parse(installed.Version)
+		temp.Uri, _ = uri.Parse(installed.Path)
+		available = append(available, temp)
+	}
+
+	for _, build := range builds {
+		isExisting := false
+		for _, existing := range available {
+			if build.Hash == existing.Hash {
+				isExisting = true
+				break
+			}
+		}
+
+		if !isExisting {
+			temp := Available{}
+			temp.Hash = build.Hash
+			temp.Name = build.Name
+			temp.Version, _ = semver.Parse(build.Version)
+			temp.Uri, _ = uri.Parse(build.DownloadUrl)
+			available = append(available, temp)
+		}
+	}
+
+	sort.SliceStable(available, func(i, j int) bool {
+		return available[i].Version.GT(available[j].Version)
+	})
+
+	return available
+}
+
+func FindAvailableBuildFromHash(hash string) *Available {
+	available := GetAvilableBuilds()
+	for _, build := range available {
+		if build.Hash == hash {
+			return &build
+		}
+	}
+
+	return nil
+}
+
+func FindInstalledBuildPathFromHash(hash string) (string, error) {
 	for _, build := range GetInstalledBuilds() {
 		if build.Hash == hash {
 			return build.Path, nil
@@ -147,4 +216,11 @@ func FindBuildPathFromHash(hash string) (string, error) {
 	}
 
 	return "", &buildNotFound{}
+}
+
+func AddInstall(install Install) {
+	installed := GetInstalledBuilds()
+	installed = append(installed, install)
+	configViper.Set("installed", installed)
+	configViper.WriteConfig()
 }

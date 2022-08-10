@@ -27,7 +27,7 @@ func LoadAndOpenConfig(path string) (err error) {
 		return
 	}
 
-	buildPath, err := client.FindBuildPathFromHash(rocketConfig.GetString("build"))
+	buildPath, err := client.FindInstalledBuildPathFromHash(rocketConfig.GetString("build"))
 	if err != nil {
 		return
 	}
