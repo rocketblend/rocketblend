@@ -10,10 +10,6 @@ type (
 		Remove(hash string) error
 	}
 
-	Installer interface {
-		Download(url string) error
-	}
-
 	Config struct {
 	}
 

@@ -21,7 +21,7 @@ func NewScribbleRepository(driver *scribble.Driver) *ScribbleRepository {
 func (r *ScribbleRepository) FindAll(req FindRequest) ([]*Install, error) {
 	var installs []*Install
 
-	records, err := r.driver.ReadAll("installs")
+	records, err := r.driver.ReadAll(r.collection)
 	if err != nil {
 		return nil, err
 	}
