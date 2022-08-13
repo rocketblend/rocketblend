@@ -54,7 +54,7 @@ func Open(buildPath string, blendPath string, args string) (err error) {
 	combinedArgs := fmt.Sprintf("%s %s", blendPath, args)
 
 	cmd := exec.Command(buildPath, combinedArgs)
-	err = cmd.Run()
+	err = cmd.Start()
 
 	if err != nil {
 		return err

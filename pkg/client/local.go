@@ -112,8 +112,20 @@ func GetInstallationDir() string {
 	return configViper.GetString("installationDir")
 }
 
+func SetInstallationDir(dir string) {
+	configViper.Set("installationDir", dir)
+	configViper.WriteConfig()
+}
+
 func GetRemotes() []string {
 	return configViper.GetStringSlice("remotes")
+}
+
+func AddRemote(url string) {
+	remotes := configViper.GetStringSlice("remotes")
+	remotes = append(remotes, url)
+	configViper.Set("remotes", remotes)
+	configViper.WriteConfig()
 }
 
 func GetInstalledBuilds() []Install {
@@ -122,11 +134,17 @@ func GetInstalledBuilds() []Install {
 	return installs
 }
 
+func AddInstall(install Install) {
+	installed := GetInstalledBuilds()
+	installed = append(installed, install)
+	configViper.Set("installed", installed)
+	configViper.WriteConfig()
+}
+
 func FetchAvailableBuildsFromRemote(url string) ([]Build, error) {
 	response, err := http.Get(url)
-
 	if err != nil {
-		fmt.Print(err.Error())
+		return nil, err
 	}
 
 	responseData, err := io.ReadAll(response.Body)
@@ -218,11 +236,4 @@ func FindInstalledBuildPathFromHash(hash string) (string, error) {
 	}
 
 	return "", &buildNotFound{}
-}
-
-func AddInstall(install Install) {
-	installed := GetInstalledBuilds()
-	installed = append(installed, install)
-	configViper.Set("installed", installed)
-	configViper.WriteConfig()
 }
