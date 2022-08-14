@@ -1,6 +1,8 @@
 package downloader
 
 import (
+	"path/filepath"
+
 	"github.com/rocketblend/rocketblend/pkg/downloader"
 )
 
@@ -26,11 +28,14 @@ func NewConfig(dir string) Config {
 	}
 }
 
-func (s *Service) Download(url string) error {
-	err := downloader.DownloadFile(s.conf.DownloadDir, url)
+func (s *Service) Download(url string) (string, error) {
+	name := filepath.Base(url)
+	path := filepath.Join(s.conf.DownloadDir, name)
+
+	err := downloader.DownloadFile(path, url)
 	if err != nil {
-		return err
+		return "", err
 	}
 
-	return nil
+	return path, nil
 }

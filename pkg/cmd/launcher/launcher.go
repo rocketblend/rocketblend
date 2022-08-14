@@ -5,8 +5,7 @@ import (
 	"log"
 	"os"
 
-	"github.com/rocketblend/rocketblend/pkg/client"
-	"github.com/rocketblend/rocketblend/pkg/rocketfile"
+	"github.com/rocketblend/rocketblend/pkg/blendfile"
 )
 
 func Launch() {
@@ -15,28 +14,13 @@ func Launch() {
 		os.Exit(1)
 	}
 
-	path := os.Args[1]
-	err := LoadAndOpenConfig(path)
+	srv := blendfile.NewService(blendfile.NewConfig(os.Args[2.]))
+	blend, err := srv.Load(os.Args[1])
 	if err != nil {
 		log.Fatal(err)
 	}
-}
 
-func LoadAndOpenConfig(path string) (err error) {
-	rocketConfig, err := rocketfile.GetBlendConfig(path)
-	if err != nil {
-		return
+	if err = srv.Open(blend); err != nil {
+		log.Fatal(err)
 	}
-
-	buildPath, err := client.FindInstalledBuildPathFromHash(rocketConfig.GetString("build"))
-	if err != nil {
-		return
-	}
-
-	err = rocketfile.Open(buildPath, path, rocketConfig.GetString("args"))
-	if err != nil {
-		return
-	}
-
-	return
 }

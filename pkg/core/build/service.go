@@ -28,7 +28,7 @@ func NewConfig() Config {
 	return Config{}
 }
 
-func (s *Service) Fetch(req FetchRequest) ([]*Build, error) {
+func (s *Service) FetchAll(req FetchRequest) ([]*Build, error) {
 	var availableBuilds []*Build
 
 	for _, remote := range req.Remotes {
@@ -41,4 +41,8 @@ func (s *Service) Fetch(req FetchRequest) ([]*Build, error) {
 	}
 
 	return availableBuilds, nil
+}
+
+func (s *Service) Find(hash string) (*Build, error) {
+	return nil, nil
 }
