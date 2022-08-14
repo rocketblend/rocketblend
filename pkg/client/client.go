@@ -2,6 +2,8 @@ package client
 
 import (
 	"fmt"
+	"os"
+	"path/filepath"
 	"sort"
 
 	"github.com/blang/semver/v4"
@@ -29,7 +31,7 @@ type (
 
 	BuildService interface {
 		FetchAll(req build.FetchRequest) ([]*build.Build, error)
-		Find(hash string) (*build.Build, error)
+		Find(remotes []*remote.Remote, hash string) (*build.Build, error)
 	}
 
 	DownloadService interface {
@@ -61,6 +63,10 @@ func NewClient(conf Config) (*Client, error) {
 		return nil, err
 	}
 
+	if err := os.MkdirAll(conf.InstallationDir, os.ModePerm); err != nil {
+		return nil, fmt.Errorf("failed to create installation directory: %w", err)
+	}
+
 	client := &Client{
 		install:    NewInstallService(db),
 		remote:     NewRemoteService(db),
@@ -73,10 +79,28 @@ func NewClient(conf Config) (*Client, error) {
 	return client, nil
 }
 
-func LoadConfig() Config {
-	// Viper config
-	var conf Config
-	return conf
+func LoadConfig() (*Config, error) {
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return nil, fmt.Errorf("cannot find user home directory: %v", err)
+	}
+
+	appDir := filepath.Join(home, fmt.Sprintf(".%s", "rocketblend"))
+	conf := Config{
+		InstallationDir: filepath.Join(appDir, "installations"),
+		DBDir:           filepath.Join(appDir, "data"),
+	}
+
+	return &conf, nil
+}
+
+func (c *Client) FindInstall(hash string) (*install.Install, error) {
+	ints, err := c.install.FindByHash(hash)
+	if err != nil {
+		return nil, err
+	}
+
+	return ints, nil
 }
 
 func (c *Client) AddInstall(install *install.Install) error {
@@ -89,16 +113,21 @@ func (c *Client) AddInstall(install *install.Install) error {
 }
 
 func (c *Client) InstallBuild(hash string) error {
-	inst, err := c.install.FindByHash(hash)
+	// inst, err := c.install.FindByHash(hash)
+	// if err != nil {
+	// 	return err
+	// }
+
+	// if inst != nil {
+	// 	return fmt.Errorf("already installed")
+	// }
+
+	remotes, err := c.remote.FindAll()
 	if err != nil {
 		return err
 	}
 
-	if inst != nil {
-		return fmt.Errorf("already installed")
-	}
-
-	build, err := c.build.Find(hash)
+	build, err := c.build.Find(remotes, hash)
 	if err != nil {
 		return err
 	}
@@ -120,7 +149,7 @@ func (c *Client) InstallBuild(hash string) error {
 		Hash:    hash,
 		Name:    build.Name,
 		Version: build.Version,
-		Path:    dir,
+		Path:    filepath.Join(c.conf.InstallationDir, build.Name),
 	})
 	if err != nil {
 		return err
@@ -150,19 +179,17 @@ func (c *Client) GetAvilableBuilds(platform string, tag string) ([]*Available, e
 		return nil, err
 	}
 
-	insts, err := c.install.FindAll(install.FindRequest{})
-	if err != nil {
-		return nil, err
-	}
+	var insts []*install.Install
+	//insts, _ = c.install.FindAll(install.FindRequest{})
 
 	var available []*Available
 	for _, inst := range insts {
-		var t *Available
+		var t Available
 		t.Hash = inst.Hash
 		t.Name = inst.Name
 		t.Version, _ = semver.Parse(inst.Version)
 		t.Uri = uri.File(inst.Path)
-		available = append(available, t)
+		available = append(available, &t)
 	}
 
 	for _, b := range builds {
@@ -175,12 +202,12 @@ func (c *Client) GetAvilableBuilds(platform string, tag string) ([]*Available, e
 		}
 
 		if !isExisting {
-			var t *Available
+			var t Available
 			t.Hash = b.Hash
 			t.Name = b.Name
 			t.Version, _ = semver.Parse(b.Version)
 			t.Uri, _ = uri.Parse(b.DownloadUrl)
-			available = append(available, t)
+			available = append(available, &t)
 		}
 	}
 

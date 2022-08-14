@@ -1,6 +1,7 @@
 package downloader
 
 import (
+	"fmt"
 	"path/filepath"
 
 	"github.com/rocketblend/rocketblend/pkg/downloader"
@@ -34,7 +35,7 @@ func (s *Service) Download(url string) (string, error) {
 
 	err := downloader.DownloadFile(path, url)
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("failed to download %s: %s", url, err)
 	}
 
 	return path, nil

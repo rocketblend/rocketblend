@@ -3,7 +3,7 @@ package remote
 import (
 	"fmt"
 
-	"github.com/rocketblend/rocketblend/pkg/cmd/cli/client"
+	"github.com/rocketblend/rocketblend/pkg/client"
 	"github.com/spf13/cobra"
 )
 
@@ -19,7 +19,7 @@ func NewListCommand(client *client.Client) *cobra.Command {
 			}
 
 			for _, remote := range remotes {
-				fmt.Println(remote)
+				fmt.Printf("(%s) %s\n", remote.Name, remote.URL)
 			}
 		},
 	}

@@ -1,7 +1,15 @@
 package main
 
-import "github.com/rocketblend/rocketblend/pkg/cmd/cli"
+import (
+	"fmt"
+	"os"
+
+	"github.com/rocketblend/rocketblend/pkg/cmd/cli"
+)
 
 func main() {
-	cli.Execute()
+	if err := cli.Execute(); err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
 }

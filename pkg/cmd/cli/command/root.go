@@ -1,7 +1,7 @@
 package command
 
 import (
-	"github.com/rocketblend/rocketblend/pkg/cmd/cli/client"
+	"github.com/rocketblend/rocketblend/pkg/client"
 	"github.com/rocketblend/rocketblend/pkg/cmd/cli/command/remote"
 
 	"github.com/spf13/cobra"

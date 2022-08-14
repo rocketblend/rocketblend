@@ -3,7 +3,7 @@ package command
 import (
 	"fmt"
 
-	"github.com/rocketblend/rocketblend/pkg/cmd/cli/client"
+	"github.com/rocketblend/rocketblend/pkg/client"
 	"github.com/spf13/cobra"
 )
 

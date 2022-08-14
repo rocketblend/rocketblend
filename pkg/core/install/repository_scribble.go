@@ -2,6 +2,7 @@ package install
 
 import (
 	"encoding/json"
+	"fmt"
 
 	"github.com/rocketblend/rocketblend/pkg/scribble"
 )
@@ -38,12 +39,12 @@ func (r *ScribbleRepository) FindAll(req FindRequest) ([]*Install, error) {
 }
 
 func (r *ScribbleRepository) FindByHash(hash string) (*Install, error) {
-	var install *Install
-	if err := r.driver.Read(r.collection, hash, install); err != nil {
-		return nil, err
+	install := Install{}
+	if err := r.driver.Read(r.collection, hash, &install); err != nil {
+		return nil, fmt.Errorf("install not found: %s", hash)
 	}
 
-	return install, nil
+	return &install, nil
 }
 
 func (r *ScribbleRepository) Create(i *Install) error {

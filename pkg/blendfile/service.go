@@ -12,11 +12,10 @@ import (
 
 type (
 	InstallService interface {
-		FindByHash(hash string) (*install.Install, error)
+		FindInstall(hash string) (*install.Install, error)
 	}
 
 	Config struct {
-		ARGS string
 	}
 
 	Service struct {
@@ -25,15 +24,10 @@ type (
 	}
 )
 
-func NewService(conf Config) *Service {
+func NewService(conf Config, s InstallService) *Service {
 	return &Service{
 		conf: conf,
-	}
-}
-
-func NewConfig(args string) Config {
-	return Config{
-		ARGS: args,
+		srv:  s,
 	}
 }
 
@@ -48,19 +42,19 @@ func (s *Service) Load(path string) (*BlendFile, error) {
 		return nil, fmt.Errorf("failed to read rocketfile: %s", err)
 	}
 
-	var rkt *RocketFile
+	var rkt RocketFile
 	if err := json.Unmarshal(c, &rkt); err != nil {
 		return nil, fmt.Errorf("failed to unmarshal rocketfile: %s", err)
 	}
 
-	inst, err := s.srv.FindByHash(rkt.Build)
+	inst, err := s.srv.FindInstall(rkt.Build)
 	if err != nil {
 		return nil, fmt.Errorf("failed to find build: %s", err)
 	}
 
 	return &BlendFile{
 		Path:  path,
-		Build: inst.Path,
+		Build: filepath.Join(inst.Path, "blender.exe"), // TODO: use correct for platform.
 		ARGS:  rkt.ARGS,
 	}, nil
 }
@@ -74,8 +68,9 @@ func (s *Service) Create(file *BlendFile) (*BlendFile, error) {
 }
 
 func (s *Service) Open(file *BlendFile) error {
-	args := fmt.Sprintf("%s %s", file.ARGS, s.conf.ARGS)
+	args := fmt.Sprintf("%s %s", file.Path, file.ARGS)
 	cmd := exec.Command(file.Build, args)
+
 	if err := cmd.Run(); err != nil {
 		return fmt.Errorf("failed to open blend file: %s", err)
 	}
