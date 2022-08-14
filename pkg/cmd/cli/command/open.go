@@ -13,14 +13,14 @@ func NewOpenCommand(srv *client.Client) *cobra.Command {
 
 	c := &cobra.Command{
 		Use:   "open",
-		Short: "Opens a rocketfile",
+		Short: "Opens a project",
 		Long:  ``,
 		Run: func(cmd *cobra.Command, args []string) {
 			fmt.Println("open called")
 		},
 	}
 
-	c.Flags().StringVarP(&filePath, "file", "f", ".rocket", "The path to the rocketfile to open")
+	c.Flags().StringVarP(&filePath, "file", "f", "", "The path to the .blendfile to open")
 	c.Flags().StringVarP(&blenderArgs, "args", "a", "", "Arguments to pass to blender")
 
 	return c

@@ -12,8 +12,8 @@ func NewCreateCommand(srv *client.Client) *cobra.Command {
 	var path string
 
 	c := &cobra.Command{
-		Use:   "create",
-		Short: "Creates a new rocketfile",
+		Use:   "new",
+		Short: "Creates a new project",
 		Long:  ``,
 		Run: func(cmd *cobra.Command, args []string) {
 			fmt.Println("create called")
