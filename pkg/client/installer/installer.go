@@ -3,8 +3,8 @@ package installer
 import (
 	"fmt"
 
-	"github.com/rocketblend/rocketblend/pkg/archiver"
 	"github.com/rocketblend/rocketblend/pkg/downloader"
+	"github.com/rocketblend/rocketblend/vendor/github.com/mholt/archiver/v3"
 )
 
 func Install(fileUrl string, downloadDir string) error {

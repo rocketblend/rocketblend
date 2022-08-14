@@ -9,7 +9,11 @@ import (
 type HttpClient struct {
 }
 
-func (r *HttpClient) Fetch(remote string, platform string, tag string) ([]Build, error) {
+func NewHttpClient() *HttpClient {
+	return &HttpClient{}
+}
+
+func (r *HttpClient) Fetch(remote string, platform string, tag string) ([]*Build, error) {
 	response, err := http.Get(remote)
 	if err != nil {
 		return nil, err

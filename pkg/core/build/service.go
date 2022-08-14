@@ -24,6 +24,10 @@ func NewService(conf Config, http Http) *Service {
 	return srv
 }
 
+func NewConfig() Config {
+	return Config{}
+}
+
 func (s *Service) Fetch(req FetchRequest) ([]*Build, error) {
 	var availableBuilds []*Build
 

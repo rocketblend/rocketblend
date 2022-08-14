@@ -1,6 +1,7 @@
 package client
 
 import (
+	"github.com/rocketblend/rocketblend/pkg/core/build"
 	"github.com/rocketblend/rocketblend/pkg/core/install"
 	"github.com/rocketblend/rocketblend/pkg/core/remote"
 	"github.com/rocketblend/rocketblend/pkg/scribble"
@@ -20,8 +21,16 @@ type (
 		Remove(name string) error
 	}
 
+	BuildService interface {
+		Fetch(req build.FetchRequest) ([]*build.Build, error)
+	}
+
 	DownloadService interface {
 		Download(url string) error
+	}
+
+	ArchiverService interface {
+		Extract(path string) error
 	}
 
 	Config struct {
@@ -32,7 +41,9 @@ type (
 	Client struct {
 		install    InstallService
 		remote     RemoteService
+		build      BuildService
 		downloader DownloadService
+		archiver   ArchiverService
 	}
 )
 
@@ -45,7 +56,9 @@ func NewClient(conf Config) (*Client, error) {
 	client := &Client{
 		install:    NewInstallService(db),
 		remote:     NewRemoteService(db),
+		build:      NewBuildService(),
 		downloader: NewDownloaderService(conf.InstallationDir),
+		archiver:   NewArchiverService(true),
 	}
 
 	return client, nil
@@ -59,6 +72,14 @@ func LoadConfig() Config {
 
 func (c *Client) InstallBuild(hash string) error {
 	return nil
+}
+
+func (c *Client) RemoveInstall(hash string) error {
+	return nil
+}
+
+func (c *Client) GetAvilableBuilds() ([]*build.Build, error) {
+	return nil, nil
 }
 
 func (c *Client) GetRemotes() ([]*remote.Remote, error) {

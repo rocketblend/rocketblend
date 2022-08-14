@@ -27,6 +27,6 @@ type (
 	}
 
 	Response struct {
-		Data []Build `json:"data"`
+		Data []*Build `json:"data"`
 	}
 )
