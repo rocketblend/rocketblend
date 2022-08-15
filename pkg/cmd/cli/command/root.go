@@ -22,6 +22,7 @@ allowing users to quickly switch between verisons.`,
 	openCmd := NewOpenCommand(srv)
 	createCmd := NewCreateCommand(srv)
 	listCmd := NewListCommand(srv)
+	exploreCmd := NewExploreCommand(srv)
 	installCmd := NewInstallCommand(srv)
 
 	remoteCmd := remote.NewCommand(srv)
@@ -32,6 +33,7 @@ allowing users to quickly switch between verisons.`,
 		createCmd,
 		listCmd,
 		installCmd,
+		exploreCmd,
 		remoteCmd,
 	)
 

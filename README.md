@@ -28,7 +28,7 @@ code blocks for commands
 
 ### Building
 
-For launcher use `go build -ldflags -H=windowsgui` as it hide the console window.
+For launcher use `go build -ldflags -H=windowsgui ./cmd/launcher` as it hide the console window.
 
 ## Help
 
