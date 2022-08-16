@@ -4,10 +4,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"sort"
-
-	"github.com/blang/semver/v4"
-	"go.lsp.dev/uri"
 
 	"github.com/rocketblend/rocketblend/pkg/core/build"
 	"github.com/rocketblend/rocketblend/pkg/core/install"
@@ -162,7 +158,16 @@ func (c *Client) RemoveInstall(hash string) error {
 	return fmt.Errorf("not implemented")
 }
 
-func (c *Client) GetAvilableBuilds(platform string, tag string) ([]*Available, error) {
+func (c *Client) FindAllInstalls() ([]*install.Install, error) {
+	ints, err := c.install.FindAll(install.FindRequest{})
+	if err != nil {
+		return nil, err
+	}
+
+	return ints, nil
+}
+
+func (c *Client) FetchRemoteBuilds(platform string) ([]*build.Build, error) {
 	re, err := c.remote.FindAll()
 	if err != nil {
 		return nil, err
@@ -171,7 +176,6 @@ func (c *Client) GetAvilableBuilds(platform string, tag string) ([]*Available, e
 	req := build.FetchRequest{
 		Remotes:  re,
 		Platform: platform,
-		Tag:      tag,
 	}
 
 	builds, err := c.build.FetchAll(req)
@@ -179,43 +183,7 @@ func (c *Client) GetAvilableBuilds(platform string, tag string) ([]*Available, e
 		return nil, err
 	}
 
-	var insts []*install.Install
-	//insts, _ = c.install.FindAll(install.FindRequest{})
-
-	var available []*Available
-	for _, inst := range insts {
-		var t Available
-		t.Hash = inst.Hash
-		t.Name = inst.Name
-		t.Version, _ = semver.Parse(inst.Version)
-		t.Uri = uri.File(inst.Path)
-		available = append(available, &t)
-	}
-
-	for _, b := range builds {
-		isExisting := false
-		for _, existing := range available {
-			if b.Hash == existing.Hash {
-				isExisting = true
-				break
-			}
-		}
-
-		if !isExisting {
-			var t Available
-			t.Hash = b.Hash
-			t.Name = b.Name
-			t.Version, _ = semver.Parse(b.Version)
-			t.Uri, _ = uri.Parse(b.DownloadUrl)
-			available = append(available, &t)
-		}
-	}
-
-	sort.SliceStable(available, func(i, j int) bool {
-		return available[i].Version.GT(available[j].Version)
-	})
-
-	return available, nil
+	return builds, nil
 }
 
 func (c *Client) GetRemotes() ([]*remote.Remote, error) {

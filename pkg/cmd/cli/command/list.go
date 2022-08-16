@@ -12,16 +12,16 @@ func NewListCommand(srv *client.Client) *cobra.Command {
 
 	c := &cobra.Command{
 		Use:   "list",
-		Short: "List all the versions of blender that are available",
+		Short: "List all the versions currently installed",
 		Long:  ``,
 		Run: func(cmd *cobra.Command, args []string) {
-			build, err := srv.GetAvilableBuilds("windows", filterTag)
+			installs, err := srv.FindAllInstalls()
 			if err != nil {
-				fmt.Printf("Error getting available builds: %v\n", err)
+				fmt.Printf("Error finding blender installs: %v\n", err)
 			}
 
-			for _, build := range build {
-				fmt.Printf("(%s)\t%s\t\t%s\n", build.Hash, build.Name, build.Uri)
+			for _, install := range installs {
+				fmt.Printf("(%s)\t%s\t\t%s\n", install.Hash, install.Name, install.Path)
 			}
 		},
 	}
