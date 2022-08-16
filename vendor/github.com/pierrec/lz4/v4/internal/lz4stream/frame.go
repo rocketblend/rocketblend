@@ -77,16 +77,16 @@ func (f *Frame) isLegacy() bool {
 	return f.Magic == frameMagicLegacy
 }
 
-func (f *Frame) ParseHeaders(src io.Reader) error {
+func (f *Frame) InitR(src io.Reader, num int) (chan []byte, error) {
 	if f.Magic > 0 {
 		// Header already read.
-		return nil
+		return nil, nil
 	}
 
 newFrame:
 	var err error
 	if f.Magic, err = f.readUint32(src); err != nil {
-		return err
+		return nil, err
 	}
 	switch m := f.Magic; {
 	case m == frameMagic || m == frameMagicLegacy:
@@ -94,23 +94,19 @@ newFrame:
 	case m>>8 == frameSkipMagic>>8:
 		skip, err := f.readUint32(src)
 		if err != nil {
-			return err
+			return nil, err
 		}
 		if _, err := io.CopyN(ioutil.Discard, src, int64(skip)); err != nil {
-			return err
+			return nil, err
 		}
 		goto newFrame
 	default:
-		return lz4errors.ErrInvalidFrame
+		return nil, lz4errors.ErrInvalidFrame
 	}
 	if err := f.Descriptor.initR(f, src); err != nil {
-		return err
+		return nil, err
 	}
 	f.checksum.Reset()
-	return nil
-}
-
-func (f *Frame) InitR(src io.Reader, num int) (chan []byte, error) {
 	return f.Blocks.initR(f, num, src)
 }
 

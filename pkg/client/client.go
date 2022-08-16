@@ -8,7 +8,7 @@ import (
 	"github.com/rocketblend/rocketblend/pkg/core/build"
 	"github.com/rocketblend/rocketblend/pkg/core/install"
 	"github.com/rocketblend/rocketblend/pkg/core/remote"
-	"github.com/rocketblend/rocketblend/pkg/scribble"
+	"github.com/rocketblend/scribble"
 )
 
 type (

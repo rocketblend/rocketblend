@@ -1,7 +1,6 @@
 package lz4
 
 import (
-	"bytes"
 	"io"
 
 	"github.com/pierrec/lz4/v4/internal/lz4block"
@@ -41,7 +40,6 @@ type Reader struct {
 	idx     int              // size of pending data
 	handler func(int)
 	cum     uint32
-	dict    []byte
 }
 
 func (*Reader) private() {}
@@ -79,15 +77,6 @@ func (r *Reader) isNotConcurrent() bool {
 }
 
 func (r *Reader) init() error {
-	err := r.frame.ParseHeaders(r.src)
-	if err != nil {
-		return err
-	}
-	if !r.frame.Descriptor.Flags.BlockIndependence() {
-		// We can't decompress dependent blocks concurrently.
-		// Instead of throwing an error to the user, silently drop concurrency
-		r.num = 1
-	}
 	data, err := r.frame.InitR(r.src, r.num)
 	if err != nil {
 		return err
@@ -157,9 +146,9 @@ func (r *Reader) Read(buf []byte) (n int, err error) {
 }
 
 // read uncompresses the next block as follow:
-// - if buf has enough room, the block is uncompressed into it directly
-//   and the lenght of used space is returned
-// - else, the uncompress data is stored in r.data and 0 is returned
+//   - if buf has enough room, the block is uncompressed into it directly
+//     and the lenght of used space is returned
+//   - else, the uncompress data is stored in r.data and 0 is returned
 func (r *Reader) read(buf []byte) (int, error) {
 	block := r.frame.Blocks.Block
 	_, err := block.Read(r.frame, r.src, r.cum)
@@ -173,19 +162,9 @@ func (r *Reader) read(buf []byte) (int, error) {
 		direct = true
 		dst = buf
 	}
-	dst, err = block.Uncompress(r.frame, dst, r.dict, true)
+	dst, err = block.Uncompress(r.frame, dst, true)
 	if err != nil {
 		return 0, err
-	}
-	if !r.frame.Descriptor.Flags.BlockIndependence() {
-		if len(r.dict)+len(dst) > 128*1024 {
-			preserveSize := 64*1024 - len(dst)
-			if preserveSize < 0 {
-				preserveSize = 0
-			}
-			r.dict = r.dict[len(r.dict)-preserveSize:]
-		}
-		r.dict = append(r.dict, dst...)
 	}
 	r.cum += uint32(len(dst))
 	if direct {
@@ -261,17 +240,4 @@ func (r *Reader) WriteTo(w io.Writer) (n int64, err error) {
 			return
 		}
 	}
-}
-
-// ValidFrameHeader returns a bool indicating if the given bytes slice matches a LZ4 header.
-func ValidFrameHeader(in []byte) (bool, error) {
-	f := lz4stream.NewFrame()
-	err := f.ParseHeaders(bytes.NewReader(in))
-	if err == nil {
-		return true, nil
-	}
-	if err == lz4errors.ErrInvalidFrame {
-		return false, nil
-	}
-	return false, err
 }

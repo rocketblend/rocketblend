@@ -14,10 +14,11 @@ const maxStaticDictionaryMatchLen = 37
 
 const kInvalidMatch uint32 = 0xFFFFFFF
 
-/* Copyright 2013 Google Inc. All Rights Reserved.
+/*
+Copyright 2013 Google Inc. All Rights Reserved.
 
-   Distributed under MIT license.
-   See file LICENSE for detail or copy at https://opensource.org/licenses/MIT
+	Distributed under MIT license.
+	See file LICENSE for detail or copy at https://opensource.org/licenses/MIT
 */
 func hash(data []byte) uint32 {
 	var h uint32 = binary.LittleEndian.Uint32(data) * kDictHashMul32
@@ -77,7 +78,8 @@ func findAllStaticDictionaryMatches(dict *encoderDictionary, data []byte, min_le
 		var offset uint = uint(dict.buckets[hash(data)])
 		var end bool = offset == 0
 		for !end {
-			w := dict.dict_words[offset]
+			var w dictWord
+			w = dict.dict_words[offset]
 			offset++
 			var l uint = uint(w.len) & 0x1F
 			var n uint = uint(1) << dict.words.size_bits_by_length[l]
@@ -430,7 +432,8 @@ func findAllStaticDictionaryMatches(dict *encoderDictionary, data []byte, min_le
 		var offset uint = uint(dict.buckets[hash(data[1:])])
 		var end bool = offset == 0
 		for !end {
-			w := dict.dict_words[offset]
+			var w dictWord
+			w = dict.dict_words[offset]
 			offset++
 			var l uint = uint(w.len) & 0x1F
 			var n uint = uint(1) << dict.words.size_bits_by_length[l]
@@ -594,7 +597,8 @@ func findAllStaticDictionaryMatches(dict *encoderDictionary, data []byte, min_le
 			var offset uint = uint(dict.buckets[hash(data[2:])])
 			var end bool = offset == 0
 			for !end {
-				w := dict.dict_words[offset]
+				var w dictWord
+				w = dict.dict_words[offset]
 				offset++
 				var l uint = uint(w.len) & 0x1F
 				var n uint = uint(1) << dict.words.size_bits_by_length[l]
@@ -626,7 +630,8 @@ func findAllStaticDictionaryMatches(dict *encoderDictionary, data []byte, min_le
 			var offset uint = uint(dict.buckets[hash(data[5:])])
 			var end bool = offset == 0
 			for !end {
-				w := dict.dict_words[offset]
+				var w dictWord
+				w = dict.dict_words[offset]
 				offset++
 				var l uint = uint(w.len) & 0x1F
 				var n uint = uint(1) << dict.words.size_bits_by_length[l]

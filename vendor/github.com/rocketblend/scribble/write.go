@@ -41,6 +41,9 @@ func (d *Driver) Write(collection, resource string, v interface{}) error {
 		return err
 	}
 
+	// add newline to the end
+	b = append(b, byte('\n'))
+
 	// write marshaled data to the temp file
 	if err := os.WriteFile(tmpPath, b, 0644); err != nil {
 		return err

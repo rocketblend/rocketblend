@@ -2,7 +2,7 @@ package client
 
 import (
 	"github.com/rocketblend/rocketblend/pkg/core/install"
-	"github.com/rocketblend/rocketblend/pkg/scribble"
+	"github.com/rocketblend/scribble"
 )
 
 func NewInstallService(driver *scribble.Driver) *install.Service {

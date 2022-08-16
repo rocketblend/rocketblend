@@ -134,15 +134,7 @@ func (e *fastEncL2) Encode(dst *tokens, src []byte) {
 				l++
 			}
 			if nextEmit < s {
-				if false {
-					emitLiteral(dst, src[nextEmit:s])
-				} else {
-					for _, v := range src[nextEmit:s] {
-						dst.tokens[dst.n] = token(v)
-						dst.litHist[v]++
-						dst.n++
-					}
-				}
+				emitLiteral(dst, src[nextEmit:s])
 			}
 
 			dst.AddMatchLong(l, uint32(s-t-baseMatchOffset))
@@ -163,7 +155,7 @@ func (e *fastEncL2) Encode(dst *tokens, src []byte) {
 
 			// Store every second hash in-between, but offset by 1.
 			for i := s - l + 2; i < s-5; i += 7 {
-				x := load6432(src, i)
+				x := load6432(src, int32(i))
 				nextHash := hash4u(uint32(x), bTableBits)
 				e.table[nextHash] = tableEntry{offset: e.cur + i}
 				// Skip one

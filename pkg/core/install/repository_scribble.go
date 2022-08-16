@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/rocketblend/rocketblend/pkg/scribble"
+	"github.com/rocketblend/scribble"
 )
 
 type ScribbleRepository struct {
