@@ -3,7 +3,7 @@ package remote
 import (
 	"encoding/json"
 
-	"github.com/rocketblend/rocketblend/pkg/scribble"
+	"github.com/rocketblend/scribble"
 )
 
 type ScribbleRepository struct {

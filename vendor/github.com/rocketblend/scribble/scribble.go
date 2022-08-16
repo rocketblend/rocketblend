@@ -9,7 +9,7 @@ import (
 )
 
 // Version is the current version of the project
-const Version = "0.1"
+const Version = "1.1.0"
 
 // New creates a new scribble database at the desired directory location, and
 // returns a *Driver to then use for interacting with the database
@@ -26,7 +26,9 @@ func New(dir string, options *Options) (*Driver, error) {
 
 	// if no logger is provided, create a default
 	if opts.Logger == nil {
-		opts.Logger = logrus.New()
+		l := logrus.New()
+		l.Level = logrus.InfoLevel
+		opts.Logger = l
 	}
 
 	//

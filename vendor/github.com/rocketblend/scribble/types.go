@@ -15,12 +15,6 @@ type (
 		Error(string ...interface{})
 		Fatal(string ...interface{})
 		Panic(string ...interface{})
-		// FatalF(string, ...interface{})
-		// ErrorF(string, ...interface{})
-		// WarnF(string, ...interface{})
-		// InfoF(string, ...interface{})
-		// DebugF(string, ...interface{})
-		// TraceF(string, ...interface{})
 	}
 
 	// Driver is what is used to interact with the scribble database. It runs

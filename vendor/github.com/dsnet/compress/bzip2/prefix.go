@@ -32,6 +32,7 @@ const (
 //	11110    <=> 4
 //	111110   <=> 5
 //	111111   <=> 6	Invalid tree index, so should fail
+//
 var encSel, decSel = func() (e prefix.Encoder, d prefix.Decoder) {
 	var selCodes [maxNumTrees + 1]prefix.PrefixCode
 	for i := range selCodes {
@@ -149,7 +150,6 @@ func (pw *prefixWriter) WritePrefixCodes(codes []prefix.PrefixCodes, trees []pre
 // handleDegenerateCodes converts a degenerate tree into a canonical tree.
 //
 // For example, when the input is an under-subscribed tree:
-//
 //	input:  []PrefixCode{
 //		{Sym: 0, Len: 3},
 //		{Sym: 1, Len: 4},
@@ -165,7 +165,6 @@ func (pw *prefixWriter) WritePrefixCodes(codes []prefix.PrefixCodes, trees []pre
 //	}
 //
 // For example, when the input is an over-subscribed tree:
-//
 //	input:  []PrefixCode{
 //		{Sym: 0, Len: 1},
 //		{Sym: 1, Len: 3},

@@ -1,6 +1,11 @@
 Scribble
 --------
 
+[![Github tag](https://badgen.net/github/tag/rocketblend/scribble)](https://github.com/rocketblend/scribble/tags)
+[![Go Doc](https://img.shields.io/badge/go-documentation-blue.svg?style=flat-square)](https://pkg.go.dev/github.com/rocketblend/scribble)
+[![Go Report Card](https://goreportcard.com/badge/github.com/rocketblend/scribble)](https://goreportcard.com/report/github.com/rocketblend/scribble)
+[![MIT license](https://img.shields.io/badge/License-MIT-blue.svg)](https://github.com/rocketblend/scribble/blob/master/LICENSE)
+
 A tiny JSON database in Golang
 
 ### Installation

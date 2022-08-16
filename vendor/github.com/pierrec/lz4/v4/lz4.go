@@ -35,17 +35,7 @@ func CompressBlockBound(n int) int {
 //
 // An error is returned if the source data is invalid or the destination buffer is too small.
 func UncompressBlock(src, dst []byte) (int, error) {
-	return lz4block.UncompressBlock(src, dst, nil)
-}
-
-// UncompressBlockWithDict uncompresses the source buffer into the destination one using a
-// dictionary, and returns the uncompressed size.
-//
-// The destination buffer must be sized appropriately.
-//
-// An error is returned if the source data is invalid or the destination buffer is too small.
-func UncompressBlockWithDict(src, dst, dict []byte) (int, error) {
-	return lz4block.UncompressBlock(src, dst, dict)
+	return lz4block.UncompressBlock(src, dst)
 }
 
 // A Compressor compresses data into the LZ4 block format.

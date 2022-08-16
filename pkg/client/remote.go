@@ -2,7 +2,7 @@ package client
 
 import (
 	"github.com/rocketblend/rocketblend/pkg/core/remote"
-	"github.com/rocketblend/rocketblend/pkg/scribble"
+	"github.com/rocketblend/scribble"
 )
 
 func NewRemoteService(driver *scribble.Driver) *remote.Service {

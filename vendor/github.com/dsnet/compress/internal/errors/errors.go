@@ -17,7 +17,6 @@
 // recover from errors only generated from within this repository.
 //
 // Example usage:
-//
 //	func Foo() (err error) {
 //		defer errors.Recover(&err)
 //
@@ -29,6 +28,7 @@
 //			errors.Panic(errors.New("whoopsie"))
 //		}
 //	}
+//
 package errors
 
 import "strings"
