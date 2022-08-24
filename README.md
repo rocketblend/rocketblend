@@ -43,11 +43,6 @@ Coming soon.
 - Guides.
 - GUI project.
 
-## Version History
-
-* 0.1.0
-    * Initial Release
-
 ## Acknowledgments
 
 - Inspired by [Blender Launcher](https://github.com/DotBow/Blender-Launcher)
