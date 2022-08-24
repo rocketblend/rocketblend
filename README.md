@@ -6,7 +6,7 @@
 [![GitHub](https://img.shields.io/github/license/rocketblend/rocketblend)](https://github.com/rocketblend/rocketblend/blob/master/LICENSE)
 
 
-Rockeblend is collection of open source tool that provides package and verison managment for the 3D graphics software [Blender](https://www.blender.org/).
+Rockeblend is an open-source tool that provides package and version management for the 3D graphics software [Blender](https://www.blender.org/).
 
 ## Description
 
@@ -34,6 +34,14 @@ Alternative launcher for `.blend` files that utilises a `config.json` file to de
 ## Help
 
 Coming soon.
+
+## Roadmap
+- Add new CI/CD pipeine.
+- New build and packaging system.
+- MacOs and Linux support.
+- Documentation.
+- Guides.
+- GUI project.
 
 ## Version History
 
