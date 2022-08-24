@@ -1,47 +1,48 @@
 # RocketBlend
 
-Tool to manage blender versions and blend files.
+[![Github tag](https://badgen.net/github/tag/rocketblend/rocketblend)](https://github.com/rocketblend/rocketblend/tags)
+[![Go Doc](https://img.shields.io/badge/go-documentation-blue.svg?style=flat-square)](https://pkg.go.dev/github.com/rocketblend/rocketblend)
+[![Go Report Card](https://goreportcard.com/badge/github.com/rocketblend/rocketblend)](https://goreportcard.com/report/github.com/rocketblend/rocketblend)
+[![GitHub](https://img.shields.io/github/license/rocketblend/rocketblend)](https://github.com/rocketblend/rocketblend/blob/master/LICENSE)
+
+
+Rockeblend is an open-source tool that provides package and version management for the 3D graphics software [Blender](https://www.blender.org/).
 
 ## Description
 
-An in-depth paragraph about your project and overview of use.
+**Project is currently being development and is not stable.**
+
+### CLI
+Command line tool to manage packages and installed versions of Blender.
+
+### Launcher
+Alternative launcher for `.blend` files that utilises a `config.json` file to determine the correct version of Blender and packages to run. 
 
 ## Getting Started
 
 ### Dependencies
 
-* Describe any prerequisites, libraries, OS version, etc., needed before installing program.
-* ex. Windows 10
-
 ### Installing
-
-* How/where to download your program
-* Any modifications needed to be made to files/folders
 
 ### Executing program
 
-* How to run the program
-* Step-by-step bullets
-```
-code blocks for commands
-```
-
 ### Building
 
-For launcher use `go build -ldflags -H=windowsgui ./cmd/launcher` as it hide the console window.
+* `make build-cli`
+* `make build-launcher`
 
 ## Help
 
-Any advise for common problems or issues.
-```
-command to run if program contains helper info
-```
+Coming soon.
 
-## Version History
-
-* 0.1
-    * Initial Release
+## Roadmap
+- Add new CI/CD pipeine.
+- New build and packaging system.
+- MacOs and Linux support.
+- Documentation.
+- Guides.
+- GUI project.
 
 ## Acknowledgments
 
-Inspiration, code snippets, etc.
+- Inspired by [Blender Launcher](https://github.com/DotBow/Blender-Launcher)

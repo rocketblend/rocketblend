@@ -23,3 +23,9 @@ dep:
 	@go mod download
 	@go mod vendor
 	@go mod tidy
+
+build-cli:
+	@go build ./cmd/cli
+
+build-launcher:
+	@go build -ldflags -H=windowsgui ./cmd/launcher
