@@ -7,6 +7,7 @@ import (
 
 	"github.com/rocketblend/rocketblend/pkg/core/build"
 	"github.com/rocketblend/rocketblend/pkg/core/install"
+	"github.com/rocketblend/rocketblend/pkg/core/library"
 	"github.com/rocketblend/rocketblend/pkg/core/remote"
 	"github.com/rocketblend/scribble"
 )
@@ -30,6 +31,11 @@ type (
 		Find(remotes []*remote.Remote, hash string) (*build.Build, error)
 	}
 
+	LibraryService interface {
+		FetchBuild(str string) (*library.Build, error)
+		FetchPackage(str string) (*library.Package, error)
+	}
+
 	DownloadService interface {
 		Download(url string) (string, error)
 	}
@@ -47,6 +53,7 @@ type (
 		install    InstallService
 		remote     RemoteService
 		build      BuildService
+		library    LibraryService
 		downloader DownloadService
 		archiver   ArchiverService
 		conf       Config
@@ -67,6 +74,7 @@ func NewClient(conf Config) (*Client, error) {
 		install:    NewInstallService(db),
 		remote:     NewRemoteService(db),
 		build:      NewBuildService(),
+		library:    NewLibraryService(),
 		downloader: NewDownloaderService(conf.InstallationDir),
 		archiver:   NewArchiverService(true),
 		conf:       conf,
@@ -214,4 +222,22 @@ func (c *Client) RemoveRemote(name string) error {
 	}
 
 	return nil
+}
+
+func (c *Client) FetchBuild(source string) (*library.Build, error) {
+	build, err := c.library.FetchBuild(source)
+	if err != nil {
+		return nil, err
+	}
+
+	return build, nil
+}
+
+func (c *Client) FetchPackage(source string) (*library.Package, error) {
+	pack, err := c.library.FetchPackage(source)
+	if err != nil {
+		return nil, err
+	}
+
+	return pack, nil
 }

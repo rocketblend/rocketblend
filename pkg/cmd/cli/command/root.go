@@ -24,6 +24,8 @@ func NewCommand(srv *client.Client) *cobra.Command {
 	exploreCmd := NewExploreCommand(srv)
 	installCmd := NewInstallCommand(srv)
 
+	libraryCmd := NewLibraryInstallCommand(srv)
+
 	remoteCmd := remote.NewCommand(srv)
 
 	c.AddCommand(
@@ -32,6 +34,7 @@ func NewCommand(srv *client.Client) *cobra.Command {
 		createCmd,
 		listCmd,
 		installCmd,
+		libraryCmd,
 		exploreCmd,
 		remoteCmd,
 	)
