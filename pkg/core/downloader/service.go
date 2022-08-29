@@ -2,7 +2,6 @@ package downloader
 
 import (
 	"fmt"
-	"path/filepath"
 
 	"github.com/rocketblend/rocketblend/pkg/downloader"
 )
@@ -29,14 +28,15 @@ func NewConfig(dir string) Config {
 	}
 }
 
-func (s *Service) Download(url string) (string, error) {
-	name := filepath.Base(url)
-	path := filepath.Join(s.conf.DownloadDir, name)
+func (s *Service) Download(url string, path string) error {
+	if url == "" {
+		return fmt.Errorf("url is empty")
+	}
 
 	err := downloader.DownloadFile(path, url)
 	if err != nil {
-		return "", fmt.Errorf("failed to download %s: %s", url, err)
+		return fmt.Errorf("failed to download %s: %s", url, err)
 	}
 
-	return path, nil
+	return nil
 }

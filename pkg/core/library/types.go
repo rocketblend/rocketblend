@@ -8,9 +8,9 @@ type (
 	}
 
 	Build struct {
-		Args     string   `json:"args"`
-		Source   []Source `json:"source"`
-		Packages []string `json:"packages"`
+		Args     string    `json:"args"`
+		Source   []*Source `json:"source"`
+		Packages []string  `json:"packages"`
 	}
 )
 
@@ -29,3 +29,13 @@ type (
 		Path string `json:"path"`
 	}
 )
+
+func (i *Build) GetSourceForPlatform(platform string) *Source {
+	for _, s := range i.Source {
+		if s.Platform == platform {
+			return s
+		}
+	}
+
+	return nil
+}

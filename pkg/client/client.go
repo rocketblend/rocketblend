@@ -1,6 +1,7 @@
 package client
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -14,10 +15,10 @@ import (
 
 type (
 	InstallService interface {
-		FindAll(req install.FindRequest) ([]*install.Install, error)
-		FindByHash(hash string) (*install.Install, error)
+		FindAll() ([]*install.Install, error)
+		FindBySource(source string) (*install.Install, error)
 		Create(i *install.Install) error
-		Remove(hash string) error
+		Remove(source string) error
 	}
 
 	RemoteService interface {
@@ -37,11 +38,15 @@ type (
 	}
 
 	DownloadService interface {
-		Download(url string) (string, error)
+		Download(url string, path string) error
 	}
 
 	ArchiverService interface {
 		Extract(path string) error
+	}
+
+	EncoderService interface {
+		Hash(str string) string
 	}
 
 	Config struct {
@@ -56,6 +61,7 @@ type (
 		library    LibraryService
 		downloader DownloadService
 		archiver   ArchiverService
+		encoder    EncoderService
 		conf       Config
 	}
 )
@@ -77,6 +83,7 @@ func NewClient(conf Config) (*Client, error) {
 		library:    NewLibraryService(),
 		downloader: NewDownloaderService(conf.InstallationDir),
 		archiver:   NewArchiverService(true),
+		encoder:    NewEncoderService(),
 		conf:       conf,
 	}
 
@@ -91,15 +98,15 @@ func LoadConfig() (*Config, error) {
 
 	appDir := filepath.Join(home, fmt.Sprintf(".%s", "rocketblend"))
 	conf := Config{
-		InstallationDir: filepath.Join(appDir, "installations"),
-		DBDir:           filepath.Join(appDir, "data"),
+		InstallationDir: filepath.Join(appDir, "installations-2"),
+		DBDir:           filepath.Join(appDir, "data-2"),
 	}
 
 	return &conf, nil
 }
 
-func (c *Client) FindInstall(hash string) (*install.Install, error) {
-	ints, err := c.install.FindByHash(hash)
+func (c *Client) FindInstall(source string) (*install.Install, error) {
+	ints, err := c.install.FindBySource(source)
 	if err != nil {
 		return nil, err
 	}
@@ -116,7 +123,7 @@ func (c *Client) AddInstall(install *install.Install) error {
 	return nil
 }
 
-func (c *Client) InstallBuild(hash string) error {
+func (c *Client) InstallBuild(repo string) error {
 	// inst, err := c.install.FindByHash(hash)
 	// if err != nil {
 	// 	return err
@@ -126,12 +133,8 @@ func (c *Client) InstallBuild(hash string) error {
 	// 	return fmt.Errorf("already installed")
 	// }
 
-	remotes, err := c.remote.FindAll()
-	if err != nil {
-		return err
-	}
-
-	build, err := c.build.Find(remotes, hash)
+	// Fetch build from repo
+	build, err := c.library.FetchBuild(repo)
 	if err != nil {
 		return err
 	}
@@ -140,20 +143,56 @@ func (c *Client) InstallBuild(hash string) error {
 		return fmt.Errorf("invalid build")
 	}
 
-	dir, err := c.downloader.Download(build.DownloadUrl)
+	// Output directory
+	outPath := filepath.Join(c.conf.InstallationDir, repo)
+
+	// Create output directories
+	err = os.MkdirAll(outPath, os.ModePerm)
 	if err != nil {
 		return err
 	}
 
-	if err := c.archiver.Extract(dir); err != nil {
+	// build info for current platform
+	platform := "windows" // TODO: detect platform
+	source := build.GetSourceForPlatform(platform)
+	if source == nil {
+		return fmt.Errorf("no source found for platform %s", platform)
+	}
+
+	// Download URL
+	downloadURL := source.URL
+
+	// Download file path
+	name := filepath.Base(downloadURL)
+	filePath := filepath.Join(outPath, name)
+
+	// Download file to file path
+	err = c.downloader.Download(downloadURL, filePath)
+	if err != nil {
 		return err
 	}
 
+	// Extract the archived file
+	if err := c.archiver.Extract(filePath); err != nil {
+		return err
+	}
+
+	// Markshal build
+	js, err := json.Marshal(build)
+	if err != nil {
+		return err
+	}
+
+	// Write out build config.json
+	if err := os.WriteFile(filepath.Join(outPath, "config.json"), js, os.ModePerm); err != nil {
+		return err
+	}
+
+	// Add install to database
 	err = c.AddInstall(&install.Install{
-		Hash:    hash,
-		Name:    build.Name,
-		Version: build.Version,
-		Path:    filepath.Join(c.conf.InstallationDir, build.Name),
+		Id:    c.encoder.Hash(repo),
+		Path:  outPath,
+		Build: build,
 	})
 	if err != nil {
 		return err
@@ -167,7 +206,7 @@ func (c *Client) RemoveInstall(hash string) error {
 }
 
 func (c *Client) FindAllInstalls() ([]*install.Install, error) {
-	ints, err := c.install.FindAll(install.FindRequest{})
+	ints, err := c.install.FindAll()
 	if err != nil {
 		return nil, err
 	}
