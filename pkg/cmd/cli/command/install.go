@@ -12,7 +12,7 @@ func NewInstallCommand(client *client.Client) *cobra.Command {
 
 	c := &cobra.Command{
 		Use:   "install",
-		Short: "Installs a new verison of blender into the local repository",
+		Short: "Installs a new version of blender into the local repository",
 		Long:  ``,
 		Run: func(cmd *cobra.Command, args []string) {
 			if err := client.InstallBuild(build); err != nil {
