@@ -6,10 +6,8 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/rocketblend/rocketblend/pkg/core/build"
 	"github.com/rocketblend/rocketblend/pkg/core/install"
 	"github.com/rocketblend/rocketblend/pkg/core/library"
-	"github.com/rocketblend/rocketblend/pkg/core/remote"
 	"github.com/rocketblend/rocketblend/pkg/core/runtime"
 	"github.com/rocketblend/scribble"
 )
@@ -20,17 +18,6 @@ type (
 		FindByID(id string) (*install.Install, error)
 		Create(i *install.Install) error
 		Remove(id string) error
-	}
-
-	RemoteService interface {
-		FindAll() ([]*remote.Remote, error)
-		Add(remote *remote.Remote) error
-		Remove(name string) error
-	}
-
-	BuildService interface {
-		FetchAll(req build.FetchRequest) ([]*build.Build, error)
-		Find(remotes []*remote.Remote, hash string) (*build.Build, error)
 	}
 
 	LibraryService interface {
@@ -60,8 +47,6 @@ type (
 
 	Client struct {
 		install    InstallService
-		remote     RemoteService
-		build      BuildService
 		library    LibraryService
 		downloader DownloadService
 		archiver   ArchiverService
@@ -82,8 +67,6 @@ func NewClient(conf Config) (*Client, error) {
 
 	client := &Client{
 		install:    NewInstallService(db),
-		remote:     NewRemoteService(db),
-		build:      NewBuildService(),
 		library:    NewLibraryService(),
 		downloader: NewDownloaderService(conf.InstallationDir),
 		archiver:   NewArchiverService(true),
@@ -107,8 +90,8 @@ func LoadConfig() (*Config, error) {
 
 	appDir := filepath.Join(home, fmt.Sprintf(".%s", "rocketblend"))
 	conf := Config{
-		InstallationDir: filepath.Join(appDir, "installations-2"),
-		DBDir:           filepath.Join(appDir, "data-2"),
+		InstallationDir: filepath.Join(appDir, "installations"),
+		DBDir:           filepath.Join(appDir, "data"),
 		Platform:        platform,
 	}
 
@@ -223,55 +206,6 @@ func (c *Client) FindAllInstalls() ([]*install.Install, error) {
 	}
 
 	return ints, nil
-}
-
-func (c *Client) FetchRemoteBuilds(platform string) ([]*build.Build, error) {
-	re, err := c.remote.FindAll()
-	if err != nil {
-		return nil, err
-	}
-
-	req := build.FetchRequest{
-		Remotes:  re,
-		Platform: platform,
-	}
-
-	builds, err := c.build.FetchAll(req)
-	if err != nil {
-		return nil, err
-	}
-
-	return builds, nil
-}
-
-func (c *Client) GetRemotes() ([]*remote.Remote, error) {
-	remotes, err := c.remote.FindAll()
-	if err != nil {
-		return nil, err
-	}
-
-	return remotes, nil
-}
-
-func (c *Client) AddRemote(name string, url string) error {
-	remote := &remote.Remote{
-		Name: name,
-		URL:  url,
-	}
-
-	if err := c.remote.Add(remote); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func (c *Client) RemoveRemote(name string) error {
-	if err := c.remote.Remove(name); err != nil {
-		return err
-	}
-
-	return nil
 }
 
 // func (c *Client) FindOrFetchBuild(build string) (*library.Build, error) {
