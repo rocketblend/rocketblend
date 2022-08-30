@@ -10,6 +10,7 @@ import (
 	"github.com/rocketblend/rocketblend/pkg/core/install"
 	"github.com/rocketblend/rocketblend/pkg/core/library"
 	"github.com/rocketblend/rocketblend/pkg/core/remote"
+	"github.com/rocketblend/rocketblend/pkg/core/runtime"
 	"github.com/rocketblend/scribble"
 )
 
@@ -33,6 +34,8 @@ type (
 	}
 
 	LibraryService interface {
+		FindBuildByPath(path string) (*library.Build, error)
+		FindPackageByPath(path string) (*library.Build, error)
 		FetchBuild(str string) (*library.Build, error)
 		FetchPackage(str string) (*library.Package, error)
 	}
@@ -52,6 +55,7 @@ type (
 	Config struct {
 		DBDir           string
 		InstallationDir string
+		Platform        runtime.Platform
 	}
 
 	Client struct {
@@ -96,10 +100,16 @@ func LoadConfig() (*Config, error) {
 		return nil, fmt.Errorf("cannot find user home directory: %v", err)
 	}
 
+	platform := runtime.DetectPlatform()
+	if platform == runtime.Undefined {
+		return nil, fmt.Errorf("cannot detect platform")
+	}
+
 	appDir := filepath.Join(home, fmt.Sprintf(".%s", "rocketblend"))
 	conf := Config{
 		InstallationDir: filepath.Join(appDir, "installations-2"),
 		DBDir:           filepath.Join(appDir, "data-2"),
+		Platform:        platform,
 	}
 
 	return &conf, nil
@@ -155,10 +165,9 @@ func (c *Client) InstallBuild(repo string) error {
 	}
 
 	// build info for current platform
-	platform := "windows" // TODO: detect platform
-	source := build.GetSourceForPlatform(platform)
+	source := build.GetSourceForPlatform(c.conf.Platform)
 	if source == nil {
-		return fmt.Errorf("no source found for platform %s", platform)
+		return fmt.Errorf("no source found for platform %s", c.conf.Platform)
 	}
 
 	// Download URL
@@ -193,8 +202,8 @@ func (c *Client) InstallBuild(repo string) error {
 	// Add install to database
 	err = c.AddInstall(&install.Install{
 		Id:    c.encoder.Hash(repo),
+		Build: repo,
 		Path:  outPath,
-		Build: build,
 	})
 	if err != nil {
 		return err
@@ -265,13 +274,25 @@ func (c *Client) RemoveRemote(name string) error {
 	return nil
 }
 
-func (c *Client) FetchBuild(source string) (*library.Build, error) {
-	build, err := c.library.FetchBuild(source)
-	if err != nil {
-		return nil, err
-	}
+// func (c *Client) FindOrFetchBuild(build string) (*library.Build, error) {
+// 	var b *library.Build
+// 	var err error
 
-	return build, nil
+// 	install, _ := c.FindInstall(build)
+// 	if install != nil {
+// 		b, err = c.library.FindBuildByPath(install.Build)
+// 	} else {
+// 		b, err = c.library.FetchBuild(build)
+// 	}
+// 	if err != nil {
+// 		return nil, err
+// 	}
+
+// 	return b, nil
+// }
+
+func (c *Client) FindBuildByPath(build string) (*library.Build, error) {
+	return c.library.FindBuildByPath(build)
 }
 
 func (c *Client) FetchPackage(source string) (*library.Package, error) {
@@ -281,4 +302,8 @@ func (c *Client) FetchPackage(source string) (*library.Package, error) {
 	}
 
 	return pack, nil
+}
+
+func (c *Client) Platform() runtime.Platform {
+	return c.conf.Platform
 }

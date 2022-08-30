@@ -8,23 +8,27 @@ import (
 	"path/filepath"
 
 	"github.com/rocketblend/rocketblend/pkg/core/install"
+	"github.com/rocketblend/rocketblend/pkg/core/library"
+	"github.com/rocketblend/rocketblend/pkg/core/runtime"
 )
 
 type (
-	InstallService interface {
-		FindInstall(hash string) (*install.Install, error)
+	Client interface {
+		FindInstall(build string) (*install.Install, error)
+		FindBuildByPath(build string) (*library.Build, error)
+		Platform() runtime.Platform
 	}
 
 	Config struct {
 	}
 
 	Service struct {
-		conf Config
-		srv  InstallService // TODO: use client
+		conf *Config
+		srv  Client
 	}
 )
 
-func NewService(conf Config, s InstallService) *Service {
+func NewService(conf *Config, s Client) *Service {
 	return &Service{
 		conf: conf,
 		srv:  s,
@@ -47,15 +51,21 @@ func (s *Service) Load(path string) (*BlendFile, error) {
 		return nil, fmt.Errorf("failed to unmarshal rocketfile: %s", err)
 	}
 
+	// Check if the build is installed
 	inst, err := s.srv.FindInstall(rkt.Build)
 	if err != nil {
-		//TODO: download build if not found
-		return nil, fmt.Errorf("failed to find build: %s", err)
+		return nil, fmt.Errorf("failed to find install: %s", err)
+	}
+
+	// Get build information from local install
+	build, err := s.srv.FindBuildByPath(inst.Path)
+	if err != nil {
+		return nil, fmt.Errorf("failed to find build information: %s", err)
 	}
 
 	return &BlendFile{
 		Path:  path,
-		Build: inst.GetExecutableForPlatform("windows"), // TODO: use correct for platform.
+		Build: filepath.Join(inst.Path, build.GetSourceForPlatform(s.srv.Platform()).Executable),
 		ARGS:  rkt.ARGS,
 	}, nil
 }

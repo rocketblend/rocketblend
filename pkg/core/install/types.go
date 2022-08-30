@@ -1,16 +1,16 @@
 package install
 
 import (
-	"path/filepath"
-
 	"github.com/rocketblend/rocketblend/pkg/core/library"
 )
 
 type (
 	Install struct {
-		Id    string         `json:"id"`
-		Path  string         `json:"path"`
-		Build *library.Build `json:"build"`
+		Id       string `json:"id"`
+		Build    string `json:"build"`
+		Path     string `json:"path"`
+		CheckSum string `json:"checksum"`
+		//Build *library.Build `json:"build"`
 	}
 
 	Pack struct {
@@ -20,6 +20,6 @@ type (
 	}
 )
 
-func (i *Install) GetExecutableForPlatform(platform string) string {
-	return filepath.Join(i.Path, i.Build.GetSourceForPlatform(platform).Executable)
-}
+// func (i *Install) GetExecutableForPlatform(platform string) string {
+// 	return filepath.Join(i.Path, i.Build.GetSourceForPlatform(platform).Executable)
+// }
