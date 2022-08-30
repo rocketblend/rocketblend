@@ -9,10 +9,7 @@ import (
 
 type (
 	LibraryConfig struct {
-		UseProxy    bool
-		BuildFile   string
-		PackageFile string
-		ReadMeFile  string
+		UseProxy bool
 	}
 
 	Client struct {
@@ -28,17 +25,14 @@ func NewClient(conf *LibraryConfig) *Client {
 	return client
 }
 
-func NewDefaultConfig() *LibraryConfig {
+func NewClientConfig() *LibraryConfig {
 	return &LibraryConfig{
-		UseProxy:    false,
-		BuildFile:   "build.json",
-		PackageFile: "package.json",
-		ReadMeFile:  "README.md",
+		UseProxy: false,
 	}
 }
 
 func (c *Client) FetchBuild(str string) (*Build, error) {
-	rd, err := makeRequest(str, c.conf.BuildFile)
+	rd, err := makeRequest(str, BuildFile)
 	if err != nil {
 		return nil, err
 	}
@@ -50,7 +44,7 @@ func (c *Client) FetchBuild(str string) (*Build, error) {
 }
 
 func (c *Client) FetchPackage(str string) (*Package, error) {
-	rd, err := makeRequest(str, c.conf.PackageFile)
+	rd, err := makeRequest(str, PackgeFile)
 	if err != nil {
 		return nil, err
 	}
@@ -62,7 +56,7 @@ func (c *Client) FetchPackage(str string) (*Package, error) {
 }
 
 func makeRequest(str string, file string) ([]byte, error) {
-	u, err := GetSourceUrl(str)
+	u, err := GetBuildUrl(str)
 	if err != nil {
 		return nil, err
 	}

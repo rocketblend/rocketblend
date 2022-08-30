@@ -82,7 +82,7 @@ func (s *Service) Open(file *BlendFile) error {
 	args := fmt.Sprintf("%s %s", file.Path, file.ARGS)
 	cmd := exec.Command(file.Build, args)
 
-	if err := cmd.Run(); err != nil {
+	if err := cmd.Start(); err != nil {
 		return fmt.Errorf("failed to open blend file: %s", err)
 	}
 

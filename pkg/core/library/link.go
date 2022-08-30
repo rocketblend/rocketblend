@@ -17,7 +17,7 @@ func (e *hostError) Error() string {
 	return fmt.Sprintf("invalid host: %s", e.Host)
 }
 
-func GetSourceUrl(str string) (string, error) {
+func GetBuildUrl(str string) (string, error) {
 	str = addProtcol(str)
 
 	u, err := url.Parse(str)

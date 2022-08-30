@@ -119,11 +119,7 @@ func (c *Client) AddInstall(install *install.Install) error {
 
 func (c *Client) InstallBuild(repo string) error {
 	// Check if install already exists
-	inst, err := c.FindInstall(repo)
-	if err != nil {
-		return err
-	}
-
+	inst, _ := c.FindInstall(repo)
 	if inst != nil {
 		return fmt.Errorf("already installed")
 	}
@@ -177,8 +173,8 @@ func (c *Client) InstallBuild(repo string) error {
 		return err
 	}
 
-	// Write out build config.json
-	if err := os.WriteFile(filepath.Join(outPath, "config.json"), js, os.ModePerm); err != nil {
+	// Write out build.json
+	if err := os.WriteFile(filepath.Join(outPath, library.BuildFile), js, os.ModePerm); err != nil {
 		return err
 	}
 

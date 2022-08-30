@@ -5,7 +5,7 @@ import (
 	"testing"
 )
 
-func TestGetSourceUrlConversion(t *testing.T) {
+func TestGetBuildUrlConversion(t *testing.T) {
 	type args struct {
 		url string
 	}
@@ -46,7 +46,7 @@ func TestGetSourceUrlConversion(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got, _ := GetSourceUrl(tt.args.url); got != tt.want {
+			if got, _ := GetBuildUrl(tt.args.url); got != tt.want {
 				t.Errorf("NewSourceUrl() = %v, want %v", got, tt.want)
 			}
 		})
