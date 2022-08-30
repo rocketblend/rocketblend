@@ -4,10 +4,10 @@ import "fmt"
 
 type (
 	Repository interface {
-		FindAll(req FindRequest) ([]*Install, error)
-		FindByHash(hash string) (*Install, error)
+		FindAll() ([]*Install, error)
+		FindByID(id string) (*Install, error)
 		Create(i *Install) error
-		Remove(hash string) error
+		Remove(id string) error
 	}
 
 	Config struct {
@@ -35,8 +35,8 @@ func LoadConfig() Config {
 }
 
 // FindAll return all installs
-func (s *Service) FindAll(req FindRequest) ([]*Install, error) {
-	installs, err := s.repo.FindAll(req)
+func (s *Service) FindAll() ([]*Install, error) {
+	installs, err := s.repo.FindAll()
 	if err != nil {
 		return nil, fmt.Errorf("failed to find installs: %w", err)
 	}
@@ -44,9 +44,9 @@ func (s *Service) FindAll(req FindRequest) ([]*Install, error) {
 	return installs, nil
 }
 
-// FindByHash return an install by hash
-func (s *Service) FindByHash(hash string) (*Install, error) {
-	install, err := s.repo.FindByHash(hash)
+// FindById return an install by ID
+func (s *Service) FindByID(id string) (*Install, error) {
+	install, err := s.repo.FindByID(id)
 	if err != nil {
 		return nil, fmt.Errorf("failed to find install: %w", err)
 	}
@@ -62,8 +62,8 @@ func (s *Service) Create(i *Install) error {
 	return nil
 }
 
-func (s *Service) Remove(hash string) error {
-	if err := s.repo.Remove(hash); err != nil {
+func (s *Service) Remove(source string) error {
+	if err := s.repo.Remove(source); err != nil {
 		return fmt.Errorf("failed to remove install: %w", err)
 	}
 

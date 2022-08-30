@@ -2,7 +2,6 @@ package command
 
 import (
 	"github.com/rocketblend/rocketblend/pkg/client"
-	"github.com/rocketblend/rocketblend/pkg/cmd/cli/command/remote"
 
 	"github.com/spf13/cobra"
 )
@@ -10,9 +9,8 @@ import (
 func NewCommand(srv *client.Client) *cobra.Command {
 	c := &cobra.Command{
 		Use:   "rocketblend-cli",
-		Short: "Verison manager for blender.",
-		Long: `RocketBlend-Cli is a CLI tool for Blender manages verisons of blender,
-allowing users to quickly switch between verisons.`,
+		Short: "version manager for blender.",
+		Long:  `RocketBlend-Cli is a CLI tool to manage packages and installed versions of Blender.`,
 	}
 
 	c.SetVersionTemplate("{{.Version}}\n")
@@ -22,10 +20,7 @@ allowing users to quickly switch between verisons.`,
 	openCmd := NewOpenCommand(srv)
 	createCmd := NewCreateCommand(srv)
 	listCmd := NewListCommand(srv)
-	exploreCmd := NewExploreCommand(srv)
 	installCmd := NewInstallCommand(srv)
-
-	remoteCmd := remote.NewCommand(srv)
 
 	c.AddCommand(
 		removeCmd,
@@ -33,8 +28,6 @@ allowing users to quickly switch between verisons.`,
 		createCmd,
 		listCmd,
 		installCmd,
-		exploreCmd,
-		remoteCmd,
 	)
 
 	return c

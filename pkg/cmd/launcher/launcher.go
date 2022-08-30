@@ -23,7 +23,7 @@ func Launch() error {
 		return err
 	}
 
-	srv := blendfile.NewService(blendfile.Config{}, client)
+	srv := blendfile.NewService(&blendfile.Config{}, client)
 	blend, err := srv.Load(os.Args[1])
 	if err != nil {
 		return err

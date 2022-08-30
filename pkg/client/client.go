@@ -1,54 +1,56 @@
 package client
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
 
-	"github.com/rocketblend/rocketblend/pkg/core/build"
 	"github.com/rocketblend/rocketblend/pkg/core/install"
-	"github.com/rocketblend/rocketblend/pkg/core/remote"
+	"github.com/rocketblend/rocketblend/pkg/core/library"
+	"github.com/rocketblend/rocketblend/pkg/core/runtime"
 	"github.com/rocketblend/scribble"
 )
 
 type (
 	InstallService interface {
-		FindAll(req install.FindRequest) ([]*install.Install, error)
-		FindByHash(hash string) (*install.Install, error)
+		FindAll() ([]*install.Install, error)
+		FindByID(id string) (*install.Install, error)
 		Create(i *install.Install) error
-		Remove(hash string) error
+		Remove(id string) error
 	}
 
-	RemoteService interface {
-		FindAll() ([]*remote.Remote, error)
-		Add(remote *remote.Remote) error
-		Remove(name string) error
-	}
-
-	BuildService interface {
-		FetchAll(req build.FetchRequest) ([]*build.Build, error)
-		Find(remotes []*remote.Remote, hash string) (*build.Build, error)
+	LibraryService interface {
+		FindBuildByPath(path string) (*library.Build, error)
+		FindPackageByPath(path string) (*library.Build, error)
+		FetchBuild(str string) (*library.Build, error)
+		FetchPackage(str string) (*library.Package, error)
 	}
 
 	DownloadService interface {
-		Download(url string) (string, error)
+		Download(url string, path string) error
 	}
 
 	ArchiverService interface {
 		Extract(path string) error
 	}
 
+	EncoderService interface {
+		Hash(str string) string
+	}
+
 	Config struct {
 		DBDir           string
 		InstallationDir string
+		Platform        runtime.Platform
 	}
 
 	Client struct {
 		install    InstallService
-		remote     RemoteService
-		build      BuildService
+		library    LibraryService
 		downloader DownloadService
 		archiver   ArchiverService
+		encoder    EncoderService
 		conf       Config
 	}
 )
@@ -65,10 +67,10 @@ func NewClient(conf Config) (*Client, error) {
 
 	client := &Client{
 		install:    NewInstallService(db),
-		remote:     NewRemoteService(db),
-		build:      NewBuildService(),
+		library:    NewLibraryService(),
 		downloader: NewDownloaderService(conf.InstallationDir),
 		archiver:   NewArchiverService(true),
+		encoder:    NewEncoderService(),
 		conf:       conf,
 	}
 
@@ -81,22 +83,29 @@ func LoadConfig() (*Config, error) {
 		return nil, fmt.Errorf("cannot find user home directory: %v", err)
 	}
 
+	platform := runtime.DetectPlatform()
+	if platform == runtime.Undefined {
+		return nil, fmt.Errorf("cannot detect platform")
+	}
+
 	appDir := filepath.Join(home, fmt.Sprintf(".%s", "rocketblend"))
 	conf := Config{
 		InstallationDir: filepath.Join(appDir, "installations"),
 		DBDir:           filepath.Join(appDir, "data"),
+		Platform:        platform,
 	}
 
 	return &conf, nil
 }
 
-func (c *Client) FindInstall(hash string) (*install.Install, error) {
-	ints, err := c.install.FindByHash(hash)
+func (c *Client) FindInstall(repo string) (*install.Install, error) {
+	id := c.encoder.Hash(repo)
+	install, err := c.install.FindByID(id)
 	if err != nil {
 		return nil, err
 	}
 
-	return ints, nil
+	return install, nil
 }
 
 func (c *Client) AddInstall(install *install.Install) error {
@@ -108,22 +117,15 @@ func (c *Client) AddInstall(install *install.Install) error {
 	return nil
 }
 
-func (c *Client) InstallBuild(hash string) error {
-	// inst, err := c.install.FindByHash(hash)
-	// if err != nil {
-	// 	return err
-	// }
-
-	// if inst != nil {
-	// 	return fmt.Errorf("already installed")
-	// }
-
-	remotes, err := c.remote.FindAll()
-	if err != nil {
-		return err
+func (c *Client) InstallBuild(repo string) error {
+	// Check if install already exists
+	inst, _ := c.FindInstall(repo)
+	if inst != nil {
+		return fmt.Errorf("already installed")
 	}
 
-	build, err := c.build.Find(remotes, hash)
+	// Fetch build from repo
+	build, err := c.library.FetchBuild(repo)
 	if err != nil {
 		return err
 	}
@@ -132,20 +134,55 @@ func (c *Client) InstallBuild(hash string) error {
 		return fmt.Errorf("invalid build")
 	}
 
-	dir, err := c.downloader.Download(build.DownloadUrl)
+	// Output directory
+	outPath := filepath.Join(c.conf.InstallationDir, repo)
+
+	// Create output directories
+	err = os.MkdirAll(outPath, os.ModePerm)
 	if err != nil {
 		return err
 	}
 
-	if err := c.archiver.Extract(dir); err != nil {
+	// build info for current platform
+	source := build.GetSourceForPlatform(c.conf.Platform)
+	if source == nil {
+		return fmt.Errorf("no source found for platform %s", c.conf.Platform)
+	}
+
+	// Download URL
+	downloadURL := source.URL
+
+	// Download file path
+	name := filepath.Base(downloadURL)
+	filePath := filepath.Join(outPath, name)
+
+	// Download file to file path
+	err = c.downloader.Download(downloadURL, filePath)
+	if err != nil {
 		return err
 	}
 
+	// Extract the archived file
+	if err := c.archiver.Extract(filePath); err != nil {
+		return err
+	}
+
+	// Markshal build
+	js, err := json.Marshal(build)
+	if err != nil {
+		return err
+	}
+
+	// Write out build.json
+	if err := os.WriteFile(filepath.Join(outPath, library.BuildFile), js, os.ModePerm); err != nil {
+		return err
+	}
+
+	// Add install to database
 	err = c.AddInstall(&install.Install{
-		Hash:    hash,
-		Name:    build.Name,
-		Version: build.Version,
-		Path:    filepath.Join(c.conf.InstallationDir, build.Name),
+		Id:    c.encoder.Hash(repo),
+		Build: repo,
+		Path:  outPath,
 	})
 	if err != nil {
 		return err
@@ -159,7 +196,7 @@ func (c *Client) RemoveInstall(hash string) error {
 }
 
 func (c *Client) FindAllInstalls() ([]*install.Install, error) {
-	ints, err := c.install.FindAll(install.FindRequest{})
+	ints, err := c.install.FindAll()
 	if err != nil {
 		return nil, err
 	}
@@ -167,51 +204,36 @@ func (c *Client) FindAllInstalls() ([]*install.Install, error) {
 	return ints, nil
 }
 
-func (c *Client) FetchRemoteBuilds(platform string) ([]*build.Build, error) {
-	re, err := c.remote.FindAll()
+// func (c *Client) FindOrFetchBuild(build string) (*library.Build, error) {
+// 	var b *library.Build
+// 	var err error
+
+// 	install, _ := c.FindInstall(build)
+// 	if install != nil {
+// 		b, err = c.library.FindBuildByPath(install.Build)
+// 	} else {
+// 		b, err = c.library.FetchBuild(build)
+// 	}
+// 	if err != nil {
+// 		return nil, err
+// 	}
+
+// 	return b, nil
+// }
+
+func (c *Client) FindBuildByPath(build string) (*library.Build, error) {
+	return c.library.FindBuildByPath(build)
+}
+
+func (c *Client) FetchPackage(source string) (*library.Package, error) {
+	pack, err := c.library.FetchPackage(source)
 	if err != nil {
 		return nil, err
 	}
 
-	req := build.FetchRequest{
-		Remotes:  re,
-		Platform: platform,
-	}
-
-	builds, err := c.build.FetchAll(req)
-	if err != nil {
-		return nil, err
-	}
-
-	return builds, nil
+	return pack, nil
 }
 
-func (c *Client) GetRemotes() ([]*remote.Remote, error) {
-	remotes, err := c.remote.FindAll()
-	if err != nil {
-		return nil, err
-	}
-
-	return remotes, nil
-}
-
-func (c *Client) AddRemote(name string, url string) error {
-	remote := &remote.Remote{
-		Name: name,
-		URL:  url,
-	}
-
-	if err := c.remote.Add(remote); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func (c *Client) RemoveRemote(name string) error {
-	if err := c.remote.Remove(name); err != nil {
-		return err
-	}
-
-	return nil
+func (c *Client) Platform() runtime.Platform {
+	return c.conf.Platform
 }

@@ -19,7 +19,7 @@ func NewScribbleRepository(driver *scribble.Driver) *ScribbleRepository {
 	}
 }
 
-func (r *ScribbleRepository) FindAll(req FindRequest) ([]*Install, error) {
+func (r *ScribbleRepository) FindAll() ([]*Install, error) {
 	var installs []*Install
 
 	records, err := r.driver.ReadAll(r.collection)
@@ -38,25 +38,25 @@ func (r *ScribbleRepository) FindAll(req FindRequest) ([]*Install, error) {
 	return installs, nil
 }
 
-func (r *ScribbleRepository) FindByHash(hash string) (*Install, error) {
+func (r *ScribbleRepository) FindByID(id string) (*Install, error) {
 	install := Install{}
-	if err := r.driver.Read(r.collection, hash, &install); err != nil {
-		return nil, fmt.Errorf("install not found: %s", hash)
+	if err := r.driver.Read(r.collection, id, &install); err != nil {
+		return nil, fmt.Errorf("install not found: %s", id)
 	}
 
 	return &install, nil
 }
 
 func (r *ScribbleRepository) Create(i *Install) error {
-	if err := r.driver.Write(r.collection, i.Hash, i); err != nil {
+	if err := r.driver.Write(r.collection, i.Id, i); err != nil {
 		return err
 	}
 
 	return nil
 }
 
-func (r *ScribbleRepository) Remove(hash string) error {
-	if err := r.driver.Delete(r.collection, hash); err != nil {
+func (r *ScribbleRepository) Remove(source string) error {
+	if err := r.driver.Delete(r.collection, source); err != nil {
 		return err
 	}
 
