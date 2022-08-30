@@ -21,7 +21,7 @@ func NewListCommand(srv *client.Client) *cobra.Command {
 			}
 
 			for _, install := range installs {
-				fmt.Printf("%s - %s\n", install.Path, install.Build)
+				fmt.Printf("%s\n", install.Path)
 			}
 		},
 	}

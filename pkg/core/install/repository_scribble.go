@@ -38,10 +38,10 @@ func (r *ScribbleRepository) FindAll() ([]*Install, error) {
 	return installs, nil
 }
 
-func (r *ScribbleRepository) FindBySource(source string) (*Install, error) {
+func (r *ScribbleRepository) FindByID(id string) (*Install, error) {
 	install := Install{}
-	if err := r.driver.Read(r.collection, source, &install); err != nil {
-		return nil, fmt.Errorf("install not found: %s", source)
+	if err := r.driver.Read(r.collection, id, &install); err != nil {
+		return nil, fmt.Errorf("install not found: %s", id)
 	}
 
 	return &install, nil

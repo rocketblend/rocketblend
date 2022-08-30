@@ -20,7 +20,6 @@ type (
 	}
 )
 
-func (i *Install) GetExecutablePath() string {
-	// Replace with platform specific path
-	return filepath.Join(i.Path, "")
+func (i *Install) GetExecutableForPlatform(platform string) string {
+	return filepath.Join(i.Path, i.Build.GetSourceForPlatform(platform).Executable)
 }

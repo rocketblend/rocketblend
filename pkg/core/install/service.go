@@ -5,9 +5,9 @@ import "fmt"
 type (
 	Repository interface {
 		FindAll() ([]*Install, error)
-		FindBySource(source string) (*Install, error)
+		FindByID(id string) (*Install, error)
 		Create(i *Install) error
-		Remove(source string) error
+		Remove(id string) error
 	}
 
 	Config struct {
@@ -44,9 +44,9 @@ func (s *Service) FindAll() ([]*Install, error) {
 	return installs, nil
 }
 
-// FindBySource return an install by source
-func (s *Service) FindBySource(source string) (*Install, error) {
-	install, err := s.repo.FindBySource(source)
+// FindById return an install by ID
+func (s *Service) FindByID(id string) (*Install, error) {
+	install, err := s.repo.FindByID(id)
 	if err != nil {
 		return nil, fmt.Errorf("failed to find install: %w", err)
 	}

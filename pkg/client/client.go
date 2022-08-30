@@ -16,9 +16,9 @@ import (
 type (
 	InstallService interface {
 		FindAll() ([]*install.Install, error)
-		FindBySource(source string) (*install.Install, error)
+		FindByID(id string) (*install.Install, error)
 		Create(i *install.Install) error
-		Remove(source string) error
+		Remove(id string) error
 	}
 
 	RemoteService interface {
@@ -105,13 +105,14 @@ func LoadConfig() (*Config, error) {
 	return &conf, nil
 }
 
-func (c *Client) FindInstall(source string) (*install.Install, error) {
-	ints, err := c.install.FindBySource(source)
+func (c *Client) FindInstall(repo string) (*install.Install, error) {
+	id := c.encoder.Hash(repo)
+	install, err := c.install.FindByID(id)
 	if err != nil {
 		return nil, err
 	}
 
-	return ints, nil
+	return install, nil
 }
 
 func (c *Client) AddInstall(install *install.Install) error {
@@ -124,14 +125,15 @@ func (c *Client) AddInstall(install *install.Install) error {
 }
 
 func (c *Client) InstallBuild(repo string) error {
-	// inst, err := c.install.FindByHash(hash)
-	// if err != nil {
-	// 	return err
-	// }
+	// Check if install already exists
+	inst, err := c.FindInstall(repo)
+	if err != nil {
+		return err
+	}
 
-	// if inst != nil {
-	// 	return fmt.Errorf("already installed")
-	// }
+	if inst != nil {
+		return fmt.Errorf("already installed")
+	}
 
 	// Fetch build from repo
 	build, err := c.library.FetchBuild(repo)

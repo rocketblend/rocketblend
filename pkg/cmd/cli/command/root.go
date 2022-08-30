@@ -2,7 +2,6 @@ package command
 
 import (
 	"github.com/rocketblend/rocketblend/pkg/client"
-	"github.com/rocketblend/rocketblend/pkg/cmd/cli/command/remote"
 
 	"github.com/spf13/cobra"
 )
@@ -21,12 +20,7 @@ func NewCommand(srv *client.Client) *cobra.Command {
 	openCmd := NewOpenCommand(srv)
 	createCmd := NewCreateCommand(srv)
 	listCmd := NewListCommand(srv)
-	exploreCmd := NewExploreCommand(srv)
 	installCmd := NewInstallCommand(srv)
-
-	libraryCmd := NewLibraryInstallCommand(srv)
-
-	remoteCmd := remote.NewCommand(srv)
 
 	c.AddCommand(
 		removeCmd,
@@ -34,9 +28,6 @@ func NewCommand(srv *client.Client) *cobra.Command {
 		createCmd,
 		listCmd,
 		installCmd,
-		libraryCmd,
-		exploreCmd,
-		remoteCmd,
 	)
 
 	return c

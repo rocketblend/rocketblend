@@ -20,7 +20,7 @@ type (
 
 	Service struct {
 		conf Config
-		srv  InstallService
+		srv  InstallService // TODO: use client
 	}
 )
 
@@ -49,12 +49,13 @@ func (s *Service) Load(path string) (*BlendFile, error) {
 
 	inst, err := s.srv.FindInstall(rkt.Build)
 	if err != nil {
+		//TODO: download build if not found
 		return nil, fmt.Errorf("failed to find build: %s", err)
 	}
 
 	return &BlendFile{
 		Path:  path,
-		Build: filepath.Join(inst.Path, "blender.exe"), // TODO: use correct for platform.
+		Build: inst.GetExecutableForPlatform("windows"), // TODO: use correct for platform.
 		ARGS:  rkt.ARGS,
 	}, nil
 }
