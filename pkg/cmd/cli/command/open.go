@@ -8,20 +8,25 @@ import (
 )
 
 func NewOpenCommand(srv *client.Client) *cobra.Command {
-	var filePath string
-	var blenderArgs string
+	var project string
+	var build string
+	var arguments string
 
 	c := &cobra.Command{
 		Use:   "open",
-		Short: "Opens a project",
+		Short: "Opens blender with the specified version",
 		Long:  ``,
 		Run: func(cmd *cobra.Command, args []string) {
-			fmt.Println("open called")
+			if err := srv.OpenProject(project, build, arguments); err != nil {
+				fmt.Printf("error trying to open blender: %v\n", err)
+				return
+			}
 		},
 	}
 
-	c.Flags().StringVarP(&filePath, "file", "f", "", "The path to the .blendfile to open")
-	c.Flags().StringVarP(&blenderArgs, "args", "a", "", "Arguments to pass to blender")
+	c.Flags().StringVarP(&build, "build", "b", "", "Build reference override")
+	c.Flags().StringVarP(&project, "project", "p", "", "The path to a .blendfile")
+	c.Flags().StringVarP(&arguments, "args", "a", "", "Pass through arguments for blender")
 
 	return c
 }

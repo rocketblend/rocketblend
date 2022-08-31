@@ -10,9 +10,10 @@ type (
 	}
 
 	Build struct {
-		Args     string    `json:"args"`
-		Source   []*Source `json:"source"`
-		Packages []string  `json:"packages"`
+		Reference string    `json:"reference"`
+		Args      string    `json:"args"`
+		Source    []*Source `json:"source"`
+		Packages  []string  `json:"packages"`
 	}
 )
 
