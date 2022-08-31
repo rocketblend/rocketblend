@@ -13,7 +13,12 @@ func NewRemoveCommand(srv *client.Client) *cobra.Command {
 		Short: "Removes a version of blender from the local repository",
 		Long:  ``,
 		Run: func(cmd *cobra.Command, args []string) {
-			fmt.Println("remove called")
+			if err := srv.RemoveInstall(args[0]); err != nil {
+				fmt.Printf("Error removing build: %v\n", err)
+				return
+			}
+
+			fmt.Printf("Build %s removed\n", args[0])
 		},
 	}
 

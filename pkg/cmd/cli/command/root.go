@@ -21,6 +21,7 @@ func NewCommand(srv *client.Client) *cobra.Command {
 	createCmd := NewCreateCommand(srv)
 	listCmd := NewListCommand(srv)
 	installCmd := NewInstallCommand(srv)
+	addCmd := NewAddCommand(srv)
 
 	c.AddCommand(
 		removeCmd,
@@ -28,6 +29,7 @@ func NewCommand(srv *client.Client) *cobra.Command {
 		createCmd,
 		listCmd,
 		installCmd,
+		addCmd,
 	)
 
 	return c

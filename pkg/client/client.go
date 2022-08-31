@@ -98,8 +98,8 @@ func LoadConfig() (*Config, error) {
 	return &conf, nil
 }
 
-func (c *Client) FindInstall(repo string) (*install.Install, error) {
-	id := c.encoder.Hash(repo)
+func (c *Client) FindInstall(ref string) (*install.Install, error) {
+	id := c.encoder.Hash(ref)
 	install, err := c.install.FindByID(id)
 	if err != nil {
 		return nil, err
@@ -108,8 +108,18 @@ func (c *Client) FindInstall(repo string) (*install.Install, error) {
 	return install, nil
 }
 
-func (c *Client) AddInstall(install *install.Install) error {
-	err := c.install.Create(install)
+func (c *Client) AddInstall(path string) error {
+	build, err := c.library.FindBuildByPath(path)
+	if err != nil {
+		return err
+	}
+
+	i, _ := c.FindInstall(build.Reference)
+	if i != nil {
+		return fmt.Errorf("build already installed")
+	}
+
+	err = c.install.Create(c.newInstall(build.Reference, path))
 	if err != nil {
 		return err
 	}
@@ -117,15 +127,15 @@ func (c *Client) AddInstall(install *install.Install) error {
 	return nil
 }
 
-func (c *Client) InstallBuild(repo string) error {
+func (c *Client) InstallBuild(ref string) error {
 	// Check if install already exists
-	inst, _ := c.FindInstall(repo)
+	inst, _ := c.FindInstall(ref)
 	if inst != nil {
 		return fmt.Errorf("already installed")
 	}
 
-	// Fetch build from repo
-	build, err := c.library.FetchBuild(repo)
+	// Fetch build from ref
+	build, err := c.library.FetchBuild(ref)
 	if err != nil {
 		return err
 	}
@@ -135,7 +145,7 @@ func (c *Client) InstallBuild(repo string) error {
 	}
 
 	// Output directory
-	outPath := filepath.Join(c.conf.InstallationDir, repo)
+	outPath := filepath.Join(c.conf.InstallationDir, ref)
 
 	// Create output directories
 	err = os.MkdirAll(outPath, os.ModePerm)
@@ -179,11 +189,7 @@ func (c *Client) InstallBuild(repo string) error {
 	}
 
 	// Add install to database
-	err = c.AddInstall(&install.Install{
-		Id:    c.encoder.Hash(repo),
-		Build: repo,
-		Path:  outPath,
-	})
+	err = c.install.Create(c.newInstall(ref, outPath))
 	if err != nil {
 		return err
 	}
@@ -236,4 +242,20 @@ func (c *Client) FetchPackage(source string) (*library.Package, error) {
 
 func (c *Client) Platform() runtime.Platform {
 	return c.conf.Platform
+}
+
+func (c *Client) newInstall(ref string, path string) *install.Install {
+	return &install.Install{
+		Id:    c.encoder.Hash(ref),
+		Build: ref,
+		Path:  path,
+	}
+}
+
+func (c *Client) OpenProject(file string, ref string, args string) error {
+	return fmt.Errorf("not implemented")
+}
+
+func (c *Client) CreateProject(name string, path string, ref string) error {
+	return fmt.Errorf("not implemented")
 }

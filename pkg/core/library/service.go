@@ -1,5 +1,7 @@
 package library
 
+import "fmt"
+
 type (
 	Http interface {
 		FetchBuild(str string) (*Build, error)
@@ -48,6 +50,11 @@ func (s *Service) FetchBuild(str string) (*Build, error) {
 	b, err := s.http.FetchBuild(str)
 	if err != nil {
 		return nil, err
+	}
+
+	// Create validators for the build configurations.
+	if b.Reference != str {
+		return nil, fmt.Errorf("build reference %s does not match %s", b.Reference, str)
 	}
 
 	return b, nil
