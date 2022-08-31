@@ -15,7 +15,7 @@ type ScribbleRepository struct {
 func NewScribbleRepository(driver *scribble.Driver) *ScribbleRepository {
 	return &ScribbleRepository{
 		driver:     driver,
-		collection: "addon",
+		collection: "addons",
 	}
 }
 
