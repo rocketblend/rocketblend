@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/rocketblend/rocketblend/pkg/core/addon"
 	"github.com/rocketblend/rocketblend/pkg/core/install"
 	"github.com/rocketblend/rocketblend/pkg/core/library"
 	"github.com/rocketblend/rocketblend/pkg/core/runtime"
@@ -20,9 +21,16 @@ type (
 		Remove(id string) error
 	}
 
+	AddonService interface {
+		FindAll() ([]*addon.Addon, error)
+		FindByID(id string) (*addon.Addon, error)
+		Create(i *addon.Addon) error
+		Remove(id string) error
+	}
+
 	LibraryService interface {
 		FindBuildByPath(path string) (*library.Build, error)
-		FindPackageByPath(path string) (*library.Build, error)
+		FindPackageByPath(path string) (*library.Package, error)
 		FetchBuild(str string) (*library.Build, error)
 		FetchPackage(str string) (*library.Package, error)
 	}
@@ -47,6 +55,7 @@ type (
 
 	Client struct {
 		install    InstallService
+		addon      AddonService
 		library    LibraryService
 		downloader DownloadService
 		archiver   ArchiverService
@@ -67,6 +76,7 @@ func NewClient(conf Config) (*Client, error) {
 
 	client := &Client{
 		install:    NewInstallService(db),
+		addon:      NewAddonService(db),
 		library:    NewLibraryService(),
 		downloader: NewDownloaderService(conf.InstallationDir),
 		archiver:   NewArchiverService(true),
@@ -108,6 +118,16 @@ func (c *Client) FindInstall(ref string) (*install.Install, error) {
 	return install, nil
 }
 
+func (c *Client) FindAddon(ref string) (*addon.Addon, error) {
+	id := c.encoder.Hash(ref)
+	addon, err := c.addon.FindByID(id)
+	if err != nil {
+		return nil, err
+	}
+
+	return addon, nil
+}
+
 func (c *Client) AddInstall(path string) error {
 	build, err := c.library.FindBuildByPath(path)
 	if err != nil {
@@ -119,7 +139,26 @@ func (c *Client) AddInstall(path string) error {
 		return fmt.Errorf("build already installed")
 	}
 
-	err = c.install.Create(c.newInstall(build.Reference, path))
+	err = c.install.Create(c.newInstall(build.Reference, path, build.Packages))
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (c *Client) AddAddon(path string) error {
+	pack, err := c.library.FindPackageByPath(path)
+	if err != nil {
+		return err
+	}
+
+	a, _ := c.FindAddon(pack.Reference)
+	if a != nil {
+		return fmt.Errorf("addon already installed")
+	}
+
+	err = c.addon.Create(c.newAddon(pack.Reference, path))
 	if err != nil {
 		return err
 	}
@@ -178,26 +217,43 @@ func (c *Client) InstallBuild(ref string) error {
 	}
 
 	// Markshal build
-	js, err := json.Marshal(build)
+	data, err := json.Marshal(build)
 	if err != nil {
 		return err
 	}
 
 	// Write out build.json
-	if err := os.WriteFile(filepath.Join(outPath, library.BuildFile), js, os.ModePerm); err != nil {
+	if err := os.WriteFile(filepath.Join(outPath, library.BuildFile), data, os.ModePerm); err != nil {
 		return err
 	}
 
 	// Add install to database
-	err = c.install.Create(c.newInstall(ref, outPath))
+	err = c.install.Create(c.newInstall(ref, outPath, build.Packages))
 	if err != nil {
 		return err
+	}
+
+	// TODO: call asynchronously
+	// Install packages
+	for _, p := range build.Packages {
+		err = c.installPackageIgnorable(p, true)
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil
 }
 
+func (c *Client) InstallPackage(ref string) error {
+	return c.installPackageIgnorable(ref, false)
+}
+
 func (c *Client) RemoveInstall(hash string) error {
+	return fmt.Errorf("not implemented")
+}
+
+func (c *Client) RemoveAddon(hash string) error {
 	return fmt.Errorf("not implemented")
 }
 
@@ -208,6 +264,15 @@ func (c *Client) FindAllInstalls() ([]*install.Install, error) {
 	}
 
 	return ints, nil
+}
+
+func (c *Client) FindAllAddons() ([]*addon.Addon, error) {
+	addons, err := c.addon.FindAll()
+	if err != nil {
+		return nil, err
+	}
+
+	return addons, nil
 }
 
 // func (c *Client) FindOrFetchBuild(build string) (*library.Build, error) {
@@ -231,25 +296,12 @@ func (c *Client) FindBuildByPath(build string) (*library.Build, error) {
 	return c.library.FindBuildByPath(build)
 }
 
-func (c *Client) FetchPackage(source string) (*library.Package, error) {
-	pack, err := c.library.FetchPackage(source)
-	if err != nil {
-		return nil, err
-	}
-
-	return pack, nil
+func (c *Client) FetchPackageByPath(pack string) (*library.Package, error) {
+	return c.library.FindPackageByPath(pack)
 }
 
 func (c *Client) Platform() runtime.Platform {
 	return c.conf.Platform
-}
-
-func (c *Client) newInstall(ref string, path string) *install.Install {
-	return &install.Install{
-		Id:    c.encoder.Hash(ref),
-		Build: ref,
-		Path:  path,
-	}
 }
 
 func (c *Client) OpenProject(file string, ref string, args string) error {
@@ -258,4 +310,82 @@ func (c *Client) OpenProject(file string, ref string, args string) error {
 
 func (c *Client) CreateProject(name string, path string, ref string) error {
 	return fmt.Errorf("not implemented")
+}
+
+func (c *Client) installPackageIgnorable(ref string, ignore bool) error {
+	// TODO: Move downloading packages/builds into library service.
+
+	// Check if addon already exists
+	adn, _ := c.FindAddon(ref)
+	if adn != nil {
+		if !ignore {
+			return fmt.Errorf("already installed")
+		}
+		return nil
+	}
+
+	// Fetch package from ref
+	pack, err := c.library.FetchPackage(ref)
+	if err != nil {
+		return err
+	}
+
+	if pack == nil {
+		return fmt.Errorf("invalid package")
+	}
+
+	// Output directory
+	outPath := filepath.Join(c.conf.InstallationDir, ref)
+
+	// Create output directories
+	err = os.MkdirAll(outPath, os.ModePerm)
+	if err != nil {
+		return err
+	}
+
+	// download file path
+	name := filepath.Base(pack.Source)
+	filePath := filepath.Join(outPath, name)
+
+	// Download file to file path
+	err = c.downloader.Download(pack.Source, filePath)
+	if err != nil {
+		return err
+	}
+
+	// Markshal pack
+	data, err := json.Marshal(pack)
+	if err != nil {
+		return err
+	}
+
+	// Write out package.json
+	if err := os.WriteFile(filepath.Join(outPath, library.PackgeFile), data, os.ModePerm); err != nil {
+		return err
+	}
+
+	// Add addon to database
+	err = c.addon.Create(c.newAddon(ref, outPath))
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (c *Client) newInstall(ref string, path string, packs []string) *install.Install {
+	return &install.Install{
+		Id:       c.encoder.Hash(ref),
+		Build:    ref,
+		Path:     path,
+		Packages: packs,
+	}
+}
+
+func (c *Client) newAddon(ref string, path string) *addon.Addon {
+	return &addon.Addon{
+		Id:      c.encoder.Hash(ref),
+		Package: ref,
+		Path:    path,
+	}
 }

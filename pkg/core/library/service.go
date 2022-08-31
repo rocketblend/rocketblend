@@ -10,7 +10,7 @@ type (
 
 	Repository interface {
 		FindBuildByPath(path string) (*Build, error)
-		FindPackageByPath(path string) (*Build, error)
+		FindPackageByPath(path string) (*Package, error)
 	}
 
 	Service struct {
@@ -37,7 +37,7 @@ func (s *Service) FindBuildByPath(path string) (*Build, error) {
 	return b, nil
 }
 
-func (s *Service) FindPackageByPath(path string) (*Build, error) {
+func (s *Service) FindPackageByPath(path string) (*Package, error) {
 	p, err := s.repo.FindPackageByPath(path)
 	if err != nil {
 		return nil, err
@@ -64,6 +64,10 @@ func (s *Service) FetchPackage(str string) (*Package, error) {
 	p, err := s.http.FetchPackage(str)
 	if err != nil {
 		return nil, err
+	}
+
+	if p.Reference != str {
+		return nil, fmt.Errorf("package reference %s does not match %s", p.Reference, str)
 	}
 
 	return p, nil

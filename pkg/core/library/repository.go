@@ -30,18 +30,18 @@ func (r *JSONRepository) FindBuildByPath(path string) (*Build, error) {
 	return &build, nil
 }
 
-func (r *JSONRepository) FindPackageByPath(path string) (*Build, error) {
+func (r *JSONRepository) FindPackageByPath(path string) (*Package, error) {
 	file, err := r.findByPath(path, PackgeFile)
 	if err != nil {
 		return nil, err
 	}
 
-	build := Build{}
-	if err := json.Unmarshal(file, &build); err != nil {
+	pack := Package{}
+	if err := json.Unmarshal(file, &pack); err != nil {
 		return nil, fmt.Errorf("failed to unmarshal package config: %s", err)
 	}
 
-	return &build, nil
+	return &pack, nil
 }
 
 func (r *JSONRepository) findByPath(path string, file string) ([]byte, error) {
