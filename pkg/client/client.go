@@ -344,7 +344,7 @@ func (c *Client) findAddonDirectoryByPackageReference(ref string) (string, error
 		return "", fmt.Errorf("failed to find package: %s", err)
 	}
 
-	return filepath.Join(addon.Path, pack.Name), nil
+	return filepath.Join(addon.Path, pack.Source.File), nil
 }
 
 func (c *Client) installPackageIgnorable(ref string, ignore bool) error {
@@ -379,11 +379,11 @@ func (c *Client) installPackageIgnorable(ref string, ignore bool) error {
 	}
 
 	// download file path
-	name := filepath.Base(pack.Source)
+	name := filepath.Base(pack.Source.URL)
 	filePath := filepath.Join(outPath, name)
 
 	// Download file to file path
-	err = c.downloader.Download(pack.Source, filePath)
+	err = c.downloader.Download(pack.Source.URL, filePath)
 	if err != nil {
 		return err
 	}

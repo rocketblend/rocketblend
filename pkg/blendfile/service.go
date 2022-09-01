@@ -7,19 +7,13 @@ import (
 	"os/exec"
 	"path/filepath"
 
-	"github.com/rocketblend/rocketblend/pkg/core/addon"
 	"github.com/rocketblend/rocketblend/pkg/core/executable"
-	"github.com/rocketblend/rocketblend/pkg/core/install"
-	"github.com/rocketblend/rocketblend/pkg/core/runtime"
 )
 
 type (
 	Client interface {
-		FindInstall(ref string) (*install.Install, error)
-		FindAddon(ref string) (*addon.Addon, error)
 		FindExecutableByBuildReference(ref string) (*executable.Executable, error)
 		FindAllAddonDirectories(ref []string) ([]string, error)
-		Platform() runtime.Platform
 	}
 
 	Config struct {
@@ -82,6 +76,8 @@ func (s *Service) Create(file *BlendFile) (*BlendFile, error) {
 }
 
 func (s *Service) Open(file *BlendFile) error {
+	fmt.Println(file.GetFullARGS())
+
 	cmd := exec.Command(file.Exec.Path, file.GetFullARGS())
 
 	if err := cmd.Start(); err != nil {
