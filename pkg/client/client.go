@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 
 	"github.com/rocketblend/rocketblend/pkg/core/addon"
+	"github.com/rocketblend/rocketblend/pkg/core/executable"
 	"github.com/rocketblend/rocketblend/pkg/core/install"
 	"github.com/rocketblend/rocketblend/pkg/core/library"
 	"github.com/rocketblend/rocketblend/pkg/core/runtime"
@@ -106,6 +107,10 @@ func LoadConfig() (*Config, error) {
 	}
 
 	return &conf, nil
+}
+
+func (c *Client) Platform() runtime.Platform {
+	return c.conf.Platform
 }
 
 func (c *Client) FindInstall(ref string) (*install.Install, error) {
@@ -275,23 +280,6 @@ func (c *Client) FindAllAddons() ([]*addon.Addon, error) {
 	return addons, nil
 }
 
-// func (c *Client) FindOrFetchBuild(build string) (*library.Build, error) {
-// 	var b *library.Build
-// 	var err error
-
-// 	install, _ := c.FindInstall(build)
-// 	if install != nil {
-// 		b, err = c.library.FindBuildByPath(install.Build)
-// 	} else {
-// 		b, err = c.library.FetchBuild(build)
-// 	}
-// 	if err != nil {
-// 		return nil, err
-// 	}
-
-// 	return b, nil
-// }
-
 func (c *Client) FindBuildByPath(build string) (*library.Build, error) {
 	return c.library.FindBuildByPath(build)
 }
@@ -300,16 +288,63 @@ func (c *Client) FetchPackageByPath(pack string) (*library.Package, error) {
 	return c.library.FindPackageByPath(pack)
 }
 
-func (c *Client) Platform() runtime.Platform {
-	return c.conf.Platform
-}
-
 func (c *Client) OpenProject(file string, ref string, args string) error {
 	return fmt.Errorf("not implemented")
 }
 
 func (c *Client) CreateProject(name string, path string, ref string) error {
 	return fmt.Errorf("not implemented")
+}
+
+func (c *Client) FindExecutableByBuildReference(ref string) (*executable.Executable, error) {
+	install, err := c.FindInstall(ref)
+	if err != nil {
+		return nil, fmt.Errorf("failed to find install: %s", err)
+	}
+
+	build, err := c.library.FindBuildByPath(install.Path)
+	if err != nil {
+		return nil, fmt.Errorf("failed to find build: %s", err)
+	}
+
+	addons, err := c.FindAllAddonDirectories(build.Packages)
+	if err != nil {
+		return nil, fmt.Errorf("failed to find all addons for build: %s", err)
+	}
+
+	return &executable.Executable{
+		Path:   filepath.Join(install.Path, build.GetSourceForPlatform(c.conf.Platform).Executable),
+		Addons: addons,
+		ARGS:   build.Args,
+	}, nil
+}
+
+func (c *Client) FindAllAddonDirectories(ref []string) ([]string, error) {
+	var addons []string
+	for _, a := range ref {
+		dir, err := c.findAddonDirectoryByPackageReference(a)
+		if err != nil {
+			return nil, fmt.Errorf("failed to find addon directory: %s", err)
+		}
+
+		addons = append(addons, dir)
+	}
+
+	return addons, nil
+}
+
+func (c *Client) findAddonDirectoryByPackageReference(ref string) (string, error) {
+	addon, err := c.FindAddon(ref)
+	if err != nil {
+		return "", fmt.Errorf("failed to find addon: %s", err)
+	}
+
+	pack, err := c.library.FindPackageByPath(addon.Path)
+	if err != nil {
+		return "", fmt.Errorf("failed to find package: %s", err)
+	}
+
+	return filepath.Join(addon.Path, pack.Name), nil
 }
 
 func (c *Client) installPackageIgnorable(ref string, ignore bool) error {

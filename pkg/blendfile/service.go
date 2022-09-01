@@ -7,15 +7,18 @@ import (
 	"os/exec"
 	"path/filepath"
 
+	"github.com/rocketblend/rocketblend/pkg/core/addon"
+	"github.com/rocketblend/rocketblend/pkg/core/executable"
 	"github.com/rocketblend/rocketblend/pkg/core/install"
-	"github.com/rocketblend/rocketblend/pkg/core/library"
 	"github.com/rocketblend/rocketblend/pkg/core/runtime"
 )
 
 type (
 	Client interface {
-		FindInstall(build string) (*install.Install, error)
-		FindBuildByPath(build string) (*library.Build, error)
+		FindInstall(ref string) (*install.Install, error)
+		FindAddon(ref string) (*addon.Addon, error)
+		FindExecutableByBuildReference(ref string) (*executable.Executable, error)
+		FindAllAddonDirectories(ref []string) ([]string, error)
 		Platform() runtime.Platform
 	}
 
@@ -51,22 +54,22 @@ func (s *Service) Load(path string) (*BlendFile, error) {
 		return nil, fmt.Errorf("failed to unmarshal rocketfile: %s", err)
 	}
 
-	// Check if the build is installed
-	inst, err := s.srv.FindInstall(rkt.Build)
+	// Get build executable path.
+	exec, err := s.srv.FindExecutableByBuildReference(rkt.Build)
 	if err != nil {
-		return nil, fmt.Errorf("failed to find install: %s", err)
+		return nil, fmt.Errorf("failed to find executable: %s", err)
 	}
 
-	// Get build information from local install
-	build, err := s.srv.FindBuildByPath(inst.Path)
+	addons, err := s.srv.FindAllAddonDirectories(rkt.Packges)
 	if err != nil {
-		return nil, fmt.Errorf("failed to find build information: %s", err)
+		return nil, fmt.Errorf("failed to find all addon directories: %s", err)
 	}
 
 	return &BlendFile{
-		Path:  path,
-		Build: filepath.Join(inst.Path, build.GetSourceForPlatform(s.srv.Platform()).Executable),
-		ARGS:  rkt.ARGS,
+		Exec:   exec,
+		Path:   path,
+		Addons: addons,
+		ARGS:   rkt.ARGS,
 	}, nil
 }
 
@@ -79,8 +82,7 @@ func (s *Service) Create(file *BlendFile) (*BlendFile, error) {
 }
 
 func (s *Service) Open(file *BlendFile) error {
-	args := fmt.Sprintf("%s %s", file.Path, file.ARGS)
-	cmd := exec.Command(file.Build, args)
+	cmd := exec.Command(file.Exec.Path, file.GetFullARGS())
 
 	if err := cmd.Start(); err != nil {
 		return fmt.Errorf("failed to open blend file: %s", err)
