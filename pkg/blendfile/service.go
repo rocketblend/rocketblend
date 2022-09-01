@@ -76,9 +76,9 @@ func (s *Service) Create(file *BlendFile) (*BlendFile, error) {
 }
 
 func (s *Service) Open(file *BlendFile) error {
-	fmt.Println(file.GetFullARGS())
+	cmd := exec.Command(file.Exec.Path, file.Path, file.GetPythonArgs())
 
-	cmd := exec.Command(file.Exec.Path, file.GetFullARGS())
+	println(cmd.String())
 
 	if err := cmd.Start(); err != nil {
 		return fmt.Errorf("failed to open blend file: %s", err)

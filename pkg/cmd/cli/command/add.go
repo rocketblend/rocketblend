@@ -2,7 +2,7 @@ package command
 
 import (
 	"fmt"
-	"path"
+	"path/filepath"
 
 	"github.com/rocketblend/rocketblend/pkg/client"
 	"github.com/rocketblend/rocketblend/pkg/core/library"
@@ -10,16 +10,16 @@ import (
 )
 
 func NewAddCommand(client *client.Client) *cobra.Command {
-	var dir string
+	var path string
 
 	c := &cobra.Command{
 		Use:   "add",
 		Short: "Adds a local build/package to the database",
 		Long:  ``,
 		Run: func(cmd *cobra.Command, args []string) {
-			name := path.Base(dir)
+			dir, file := filepath.Split(path)
 
-			switch name {
+			switch file {
 			case library.BuildFile:
 				err := addInstall(client, dir)
 				if err != nil {
@@ -31,12 +31,12 @@ func NewAddCommand(client *client.Client) *cobra.Command {
 					fmt.Printf("Error adding build: %v\n", err)
 				}
 			default:
-				fmt.Printf("Unknown file type: %s\n", name)
+				fmt.Printf("Unknown file type. Path should end in `%s` or `%s`", library.BuildFile, library.PackgeFile)
 			}
 		},
 	}
 
-	c.Flags().StringVarP(&dir, "path", "p", "", "path to the build/package to add")
+	c.Flags().StringVarP(&path, "path", "p", "", "path to a local build/package config")
 	if err := c.MarkFlagRequired("path"); err != nil {
 		fmt.Println(err)
 	}
