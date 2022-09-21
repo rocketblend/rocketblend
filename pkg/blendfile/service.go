@@ -6,6 +6,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 
 	"github.com/rocketblend/rocketblend/pkg/core/executable"
 )
@@ -76,7 +77,27 @@ func (s *Service) Create(file *BlendFile) (*BlendFile, error) {
 }
 
 func (s *Service) Open(file *BlendFile) error {
-	cmd := exec.Command(file.Exec.Path, file.Path, file.GetPythonArgs())
+	d, _ := os.UserHomeDir()
+	script := filepath.Join(d, ".rocketblend", "scripts", "arg_script.py")
+
+	args := []string{
+		file.Path,
+		"--python",
+		script,
+	}
+
+	a := append(file.Exec.Addons, file.Addons...)
+	addons := strings.Join(a[:], ",")
+
+	if addons != "" {
+		args = append(args, []string{
+			"--",
+			"-a",
+			addons,
+		}...)
+	}
+
+	cmd := exec.Command(file.Exec.Path, args...)
 
 	println(cmd.String())
 

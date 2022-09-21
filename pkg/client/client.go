@@ -48,9 +48,14 @@ type (
 		Hash(str string) string
 	}
 
+	ResourceService interface {
+		SaveOut() error
+	}
+
 	Config struct {
 		DBDir           string
 		InstallationDir string
+		ResourceDir     string
 		Platform        runtime.Platform
 	}
 
@@ -61,9 +66,32 @@ type (
 		downloader DownloadService
 		archiver   ArchiverService
 		encoder    EncoderService
+		resource   ResourceService
 		conf       Config
 	}
 )
+
+func LoadConfig() (*Config, error) {
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return nil, fmt.Errorf("cannot find user home directory: %v", err)
+	}
+
+	platform := runtime.DetectPlatform()
+	if platform == runtime.Undefined {
+		return nil, fmt.Errorf("cannot detect platform")
+	}
+
+	appDir := filepath.Join(home, fmt.Sprintf(".%s", "rocketblend"))
+	conf := Config{
+		InstallationDir: filepath.Join(appDir, "installations"),
+		DBDir:           filepath.Join(appDir, "data"),
+		ResourceDir:     filepath.Join(appDir, "resources"),
+		Platform:        platform,
+	}
+
+	return &conf, nil
+}
 
 func NewClient(conf Config) (*Client, error) {
 	db, err := scribble.New(conf.DBDir, nil)
@@ -82,31 +110,20 @@ func NewClient(conf Config) (*Client, error) {
 		downloader: NewDownloaderService(conf.InstallationDir),
 		archiver:   NewArchiverService(true),
 		encoder:    NewEncoderService(),
+		resource:   NewResourceService(conf.ResourceDir),
 		conf:       conf,
 	}
 
 	return client, nil
 }
 
-func LoadConfig() (*Config, error) {
-	home, err := os.UserHomeDir()
+func (c *Client) Initialize() error {
+	err := c.resource.SaveOut()
 	if err != nil {
-		return nil, fmt.Errorf("cannot find user home directory: %v", err)
+		return err
 	}
 
-	platform := runtime.DetectPlatform()
-	if platform == runtime.Undefined {
-		return nil, fmt.Errorf("cannot detect platform")
-	}
-
-	appDir := filepath.Join(home, fmt.Sprintf(".%s", "rocketblend"))
-	conf := Config{
-		InstallationDir: filepath.Join(appDir, "installations"),
-		DBDir:           filepath.Join(appDir, "data"),
-		Platform:        platform,
-	}
-
-	return &conf, nil
+	return nil
 }
 
 func (c *Client) Platform() runtime.Platform {

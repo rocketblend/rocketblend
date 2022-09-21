@@ -1,7 +1,6 @@
 package blendfile
 
 import (
-	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -30,17 +29,24 @@ type (
 	}
 )
 
-func (i *BlendFile) GetARGS() string {
-	return fmt.Sprintf("%s %s", i.Exec.ARGS, i.Exec.ARGS)
-}
+func (i *BlendFile) Get() []string {
+	args := []string{i.Path}
 
-func (i *BlendFile) GetAddonStr() string {
-	addons := append(i.Exec.Addons, i.Addons...)
-	return strings.Join(addons[:], ",")
-}
+	a := append(i.Exec.Addons, i.Addons...)
+	addons := strings.Join(a[:], ",")
 
-func (i *BlendFile) GetPythonArgs() string {
-	dirname, _ := os.UserHomeDir()
-	script := filepath.Join(dirname, ".rocketblend", "scripts", "arg_script.py")
-	return fmt.Sprintf("--python \"%s\" -- -a \"%s\"", script, i.GetAddonStr())
+	if addons != "" {
+		d, _ := os.UserHomeDir()
+		script := filepath.Join(d, ".rocketblend", "scripts", "arg_script.py")
+
+		args = append(args, []string{
+			"--python",
+			script,
+			"--",
+			"-a",
+			addons,
+		}...)
+	}
+
+	return args
 }
