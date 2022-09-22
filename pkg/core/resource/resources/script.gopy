@@ -1,0 +1,126 @@
+import bpy
+import argparse
+import sys
+
+from pathlib import Path
+
+# This is the script that is run when Blender is started from the CLI.
+# It is used to load the addons specified in the command line.
+# The script is called with the following arguments:
+# -a, --addons: a comma-separated list of addons to load.
+#               The addons must be specified as a path to the addon's
+#               directory.
+#               E.g., -a "C:\Users\user\Documents\blender\addons\addon1,
+#                         C:\Users\user\Documents\blender\addons\addon2"
+#               If the addon is already installed on this build, it will be
+#               loaded. Otherwise, it will be installed and then loaded.
+
+class ArgumentParserForBlender(argparse.ArgumentParser):
+    """
+    This class is identical to its superclass, except for the parse_args
+    method (see docstring). It resolves the ambiguity generated when calling
+    Blender from the CLI with a python script, and both Blender and the script
+    have arguments. E.g., the following call will make Blender crash because
+    it will try to process the script's -a and -b flags:
+    >>> blender --python my_script.py -a 1 -b 2
+
+    To bypass this issue this class uses the fact that Blender will ignore all
+    arguments given after a double-dash ('--'). The approach is that all
+    arguments before '--' go to Blender, arguments after go to the script.
+    The following calls work fine:
+    >>> blender --python my_script.py -- -a 1 -b 2
+    >>> blender --python my_script.py --
+    """
+
+    def _get_argv_after_doubledash(self):
+        """
+        Given the sys.argv as a list of strings, this method returns the
+        sublist right after the '--' element (if present, otherwise returns
+        an empty list).
+        """
+        try:
+            idx = sys.argv.index("--")
+            return sys.argv[idx+1:] # the list after '--'
+        except ValueError as e: # '--' not in the list:
+            return []
+
+    # overrides superclass
+    def parse_args(self):
+        """
+        This method is expected to behave identically as in the superclass,
+        except that the sys.argv list will be pre-processed using
+        _get_argv_after_doubledash before. See the docstring of the class for
+        usage examples and details.
+        """
+        return super().parse_args(args=self._get_argv_after_doubledash())
+
+class Startup():
+    """
+    This class is called at Blender startup, and is used to load the
+    addons specified in the command line.
+    """
+
+    default_addons = ["io_anim_bvh",
+                  "io_curve_svg",
+                  "io_mesh_ply",
+                  "io_mesh_stl",
+                  "io_mesh_uv_layout",
+                  "io_scene_fbx",
+                  "io_scene_gltf2",
+                  "io_scene_obj",
+                  "io_scene_x3d",
+                  "cycles"]
+
+    custom_addons = {}
+    
+    def __init__(self, addons: list[str]):
+        for path in addons or []:
+            pth = Path(path)
+            if pth.exists():
+                self.custom_addons[pth.stem] = str(pth)
+
+        self.install_custom_addons(True)
+        self.reset_addons()
+        self.load_custom_addons()
+
+    def install_custom_addons(self, force: bool = False) -> None:
+        """
+        Installs any addon not already installed on this build.
+        """
+
+        installed = {addon.module for addon in bpy.context.preferences.addons}
+
+        for addon, path in self.custom_addons.items():
+            if addon not in installed:
+                bpy.ops.preferences.addon_install(filepath=path)
+
+    def load_custom_addons(self) -> None:
+        """
+        Enabled custom addons.
+        """
+
+        for name in self.custom_addons:
+            bpy.ops.preferences.addon_enable(module=name)
+
+    def reset_addons(self) -> None:
+        """
+        Resets the addons to the default list.
+        """
+        
+        for addon in self.default_addons:
+            bpy.ops.preferences.addon_enable(module=addon)
+
+        for addon in bpy.context.preferences.addons:
+            if addon.module not in self.default_addons:
+                bpy.ops.preferences.addon_disable(module=addon.module)
+
+parser = ArgumentParserForBlender()
+
+parser.add_argument("-a", "--addons", help="Addons to load", type=str)
+args = vars(parser.parse_args())
+
+if "addons" in args.keys():
+    if args["addons"]:
+        args["addons"] = [s.strip() for s in args["addons"].split(",")]
+
+Startup(args["addons"])
