@@ -9,10 +9,12 @@ import (
 	"strings"
 
 	"github.com/rocketblend/rocketblend/pkg/core/executable"
+	"github.com/rocketblend/rocketblend/pkg/core/resource"
 )
 
 type (
 	Client interface {
+		FindResource(key string) (*resource.Resource, error)
 		FindExecutableByBuildReference(ref string) (*executable.Executable, error)
 		FindAllAddonDirectories(ref []string) ([]string, error)
 	}
@@ -77,13 +79,15 @@ func (s *Service) Create(file *BlendFile) (*BlendFile, error) {
 }
 
 func (s *Service) Open(file *BlendFile) error {
-	d, _ := os.UserHomeDir()
-	script := filepath.Join(d, ".rocketblend", "scripts", "arg_script.py")
+	script, err := s.srv.FindResource(resource.Startup)
+	if err != nil {
+		return fmt.Errorf("failed to find startup script: %s", err)
+	}
 
 	args := []string{
 		file.Path,
 		"--python",
-		script,
+		script.OutputPath,
 	}
 
 	a := append(file.Exec.Addons, file.Addons...)
@@ -98,8 +102,6 @@ func (s *Service) Open(file *BlendFile) error {
 	}
 
 	cmd := exec.Command(file.Exec.Path, args...)
-
-	println(cmd.String())
 
 	if err := cmd.Start(); err != nil {
 		return fmt.Errorf("failed to open blend file: %s", err)

@@ -10,6 +10,7 @@ import (
 	"github.com/rocketblend/rocketblend/pkg/core/executable"
 	"github.com/rocketblend/rocketblend/pkg/core/install"
 	"github.com/rocketblend/rocketblend/pkg/core/library"
+	"github.com/rocketblend/rocketblend/pkg/core/resource"
 	"github.com/rocketblend/rocketblend/pkg/core/runtime"
 	"github.com/rocketblend/scribble"
 )
@@ -49,6 +50,7 @@ type (
 	}
 
 	ResourceService interface {
+		FindByName(name string) (*resource.Resource, error)
 		SaveOut() error
 	}
 
@@ -103,6 +105,10 @@ func NewClient(conf Config) (*Client, error) {
 		return nil, fmt.Errorf("failed to create installation directory: %w", err)
 	}
 
+	if err := os.MkdirAll(conf.ResourceDir, os.ModePerm); err != nil {
+		return nil, fmt.Errorf("failed to create resource directory: %w", err)
+	}
+
 	client := &Client{
 		install:    NewInstallService(db),
 		addon:      NewAddonService(db),
@@ -128,6 +134,10 @@ func (c *Client) Initialize() error {
 
 func (c *Client) Platform() runtime.Platform {
 	return c.conf.Platform
+}
+
+func (c *Client) FindResource(key string) (*resource.Resource, error) {
+	return c.resource.FindByName(key)
 }
 
 func (c *Client) FindInstall(ref string) (*install.Install, error) {

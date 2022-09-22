@@ -79,7 +79,7 @@ class Startup():
             if pth.exists():
                 self.custom_addons[pth.stem] = str(pth)
 
-        self.install_custom_addons()
+        self.install_custom_addons(True)
         self.reset_addons()
         self.load_custom_addons()
 

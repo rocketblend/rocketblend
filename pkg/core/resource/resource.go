@@ -31,6 +31,15 @@ func NewService(dir string) *Service {
 	}
 }
 
+func (s *Service) FindByName(name string) (*Resource, error) {
+	resource, ok := s.Resources[name]
+	if !ok {
+		return nil, os.ErrNotExist
+	}
+
+	return &resource, nil
+}
+
 func (s *Service) SaveOut() error {
 	for _, r := range s.Resources {
 		file, err := os.Create(r.OutputPath)
