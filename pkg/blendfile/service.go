@@ -57,7 +57,7 @@ func (s *Service) Load(path string) (*BlendFile, error) {
 		return nil, fmt.Errorf("failed to find executable: %s", err)
 	}
 
-	addons, err := s.srv.FindAllAddonDirectories(rkt.Packges)
+	addons, err := s.srv.FindAllAddonDirectories(rkt.Packages)
 	if err != nil {
 		return nil, fmt.Errorf("failed to find all addon directories: %s", err)
 	}
@@ -102,6 +102,8 @@ func (s *Service) Open(file *BlendFile) error {
 	}
 
 	cmd := exec.Command(file.Exec.Path, args...)
+
+	fmt.Println(cmd.String())
 
 	if err := cmd.Start(); err != nil {
 		return fmt.Errorf("failed to open blend file: %s", err)

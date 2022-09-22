@@ -1,52 +1,26 @@
 package blendfile
 
 import (
-	"os"
-	"path/filepath"
-	"strings"
-
 	"github.com/rocketblend/rocketblend/pkg/core/executable"
 )
 
 type (
 	RocketFile struct {
-		Build   string
-		ARGS    string
-		Version string
-		Packges []string
+		Build    string   `json:"build"`
+		ARGS     string   `json:"args"`
+		Version  string   `json:"version"`
+		Packages []string `json:"packages"`
 	}
 
 	BlendFile struct {
-		Exec   *executable.Executable
-		Path   string
-		Addons []string
-		ARGS   string
+		Exec   *executable.Executable `json:"exec"`
+		Path   string                 `json:"path"`
+		Addons []string               `json:"addons"`
+		ARGS   string                 `json:"args"`
 	}
 
 	AddonDict struct {
-		Name string
-		Path string
+		Name string `json:"name"`
+		Path string `json:"path"`
 	}
 )
-
-func (i *BlendFile) Get() []string {
-	args := []string{i.Path}
-
-	a := append(i.Exec.Addons, i.Addons...)
-	addons := strings.Join(a[:], ",")
-
-	if addons != "" {
-		d, _ := os.UserHomeDir()
-		script := filepath.Join(d, ".rocketblend", "scripts", "arg_script.py")
-
-		args = append(args, []string{
-			"--python",
-			script,
-			"--",
-			"-a",
-			addons,
-		}...)
-	}
-
-	return args
-}
