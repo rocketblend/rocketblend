@@ -113,6 +113,13 @@ class Startup():
 
         logging.debug(f"Finished loading addons")
 
+    def disable_addons(self) -> None:
+        """
+        Disables all addons.
+        """
+        for addon in bpy.context.preferences.addons:
+            bpy.ops.preferences.addon_disable(module=addon.module)
+
     def install_custom_addons(self, overwrite: bool = False) -> None:
         """
         Installs any addon not already installed on this build.
@@ -132,9 +139,9 @@ class Startup():
         """
         Enables all addons in the default_addons list and in the custom_addons.
         """
+        self.disable_addons()
+        
         enable = self.default_addons + list(self.custom_addons.keys())
-
-        addon_utils.disable_all()
 
         for addon in enable:
             mod = addon_utils.enable(addon, default_set=True)
