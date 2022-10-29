@@ -8,6 +8,7 @@ type (
 
 	Package struct {
 		Reference string        `json:"reference"`
+		Name      string        `json:"name"`
 		Source    PackageSource `json:"source"`
 	}
 )

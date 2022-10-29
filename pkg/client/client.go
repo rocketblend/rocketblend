@@ -334,44 +334,44 @@ func (c *Client) FindExecutableByBuildReference(ref string) (*executable.Executa
 		return nil, fmt.Errorf("failed to find build: %s", err)
 	}
 
-	addons, err := c.FindAllAddonDirectories(build.Packages)
+	addonMap, err := c.GetAddonMapByReferences(build.Packages)
 	if err != nil {
 		return nil, fmt.Errorf("failed to find all addons for build: %s", err)
 	}
 
 	return &executable.Executable{
 		Path:   filepath.Join(install.Path, build.GetSourceForPlatform(c.conf.Platform).Executable),
-		Addons: addons,
+		Addons: addonMap,
 		ARGS:   build.Args,
 	}, nil
 }
 
-func (c *Client) FindAllAddonDirectories(ref []string) ([]string, error) {
-	var addons []string
+func (c *Client) GetAddonMapByReferences(ref []string) (map[string]string, error) {
+	addonMap := make(map[string]string)
 	for _, a := range ref {
-		dir, err := c.findAddonDirectoryByPackageReference(a)
+		name, path, err := c.getAddonNamePathByReference(a)
 		if err != nil {
-			return nil, fmt.Errorf("failed to find addon directory: %s", err)
+			return nil, fmt.Errorf("failed to find package: %s", err)
 		}
 
-		addons = append(addons, dir)
+		addonMap[name] = path
 	}
 
-	return addons, nil
+	return addonMap, nil
 }
 
-func (c *Client) findAddonDirectoryByPackageReference(ref string) (string, error) {
+func (c *Client) getAddonNamePathByReference(ref string) (string, string, error) {
 	addon, err := c.FindAddon(ref)
 	if err != nil {
-		return "", fmt.Errorf("failed to find addon: %s", err)
+		return "", "", fmt.Errorf("failed to find addon: %s", err)
 	}
 
 	pack, err := c.library.FindPackageByPath(addon.Path)
 	if err != nil {
-		return "", fmt.Errorf("failed to find package: %s", err)
+		return "", "", fmt.Errorf("failed to find package: %s", err)
 	}
 
-	return filepath.Join(addon.Path, pack.Source.File), nil
+	return pack.Name, filepath.Join(addon.Path, pack.Source.File), nil
 }
 
 func (c *Client) installPackageIgnorable(ref string, ignore bool) error {

@@ -16,10 +16,11 @@ type (
 	Client interface {
 		FindResource(key string) (*resource.Resource, error)
 		FindExecutableByBuildReference(ref string) (*executable.Executable, error)
-		FindAllAddonDirectories(ref []string) ([]string, error)
+		GetAddonMapByReferences(ref []string) (map[string]string, error)
 	}
 
 	Config struct {
+		Debug bool
 	}
 
 	Service struct {
@@ -57,7 +58,7 @@ func (s *Service) Load(path string) (*BlendFile, error) {
 		return nil, fmt.Errorf("failed to find executable: %s", err)
 	}
 
-	addons, err := s.srv.FindAllAddonDirectories(rkt.Packges)
+	addons, err := s.srv.GetAddonMapByReferences(rkt.Packages)
 	if err != nil {
 		return nil, fmt.Errorf("failed to find all addon directories: %s", err)
 	}
@@ -90,22 +91,37 @@ func (s *Service) Open(file *BlendFile) error {
 		script.OutputPath,
 	}
 
-	a := append(file.Exec.Addons, file.Addons...)
-	addons := strings.Join(a[:], ",")
+	addons := merge(file.Exec.Addons, file.Addons)
+	json, err := json.Marshal(addons)
+	if err != nil {
+		return fmt.Errorf("failed to marshal addons: %s", err)
+	}
 
-	if addons != "" {
+	if len(addons) != 0 {
 		args = append(args, []string{
 			"--",
 			"-a",
-			addons,
+			string(json),
 		}...)
 	}
 
 	cmd := exec.Command(file.Exec.Path, args...)
+
+	if s.conf.Debug {
+		fmt.Println(strings.ReplaceAll(cmd.String(), "\"", "\\\""))
+	}
 
 	if err := cmd.Start(); err != nil {
 		return fmt.Errorf("failed to open blend file: %s", err)
 	}
 
 	return nil
+}
+
+func merge(a map[string]string, b map[string]string) map[string]string {
+	for k, v := range b {
+		a[k] = v
+	}
+
+	return a
 }

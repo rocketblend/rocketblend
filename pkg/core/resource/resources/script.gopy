@@ -1,17 +1,43 @@
 import bpy
-import argparse
 import sys
+import ast
+import os
+import argparse
+import logging
+import addon_utils
 
 from pathlib import Path
+from logging.handlers import RotatingFileHandler
+
+if not os.path.exists("logs"):
+    os.makedirs("logs")
+
+logging.basicConfig(
+    level=logging.DEBUG,
+    format='%(asctime)s %(message)s',
+    datefmt='%a, %d %b %Y %H:%M:%S',
+    handlers=[
+        RotatingFileHandler(
+            "logs/rocketblend.log",
+            mode="a",
+            maxBytes=5*1024*1024,
+            backupCount=2,
+            encoding=None,
+            delay=0
+        ),
+        logging.StreamHandler()
+]) 
+
+log = logging.getLogger(__name__)
 
 # This is the script that is run when Blender is started from the CLI.
 # It is used to load the addons specified in the command line.
 # The script is called with the following arguments:
 # -a, --addons: a comma-separated list of addons to load.
-#               The addons must be specified as a path to the addon's
-#               directory.
-#               E.g., -a "C:\Users\user\Documents\blender\addons\addon1,
-#                         C:\Users\user\Documents\blender\addons\addon2"
+#               The addons must be specified as a dict with the name of the package 
+#               and a  path to the addon's directory.
+#               E.g., -a "{"addon1": "C:\Users\user\Documents\blender\addons\addon1",
+#                          "addon2": "C:\Users\user\Documents\blender\addons\addon2"}"
 #               If the addon is already installed on this build, it will be
 #               loaded. Otherwise, it will be installed and then loaded.
 
@@ -69,58 +95,71 @@ class Startup():
                   "io_scene_gltf2",
                   "io_scene_obj",
                   "io_scene_x3d",
+                  "node_wrangler",
                   "cycles"]
 
     custom_addons = {}
     
-    def __init__(self, addons: list[str]):
-        for path in addons or []:
+    def __init__(self, addons: dict[str, str]):
+        logging.debug(f"Starting Blender with the following addons: {addons}")
+
+        for name, path in addons.items() or {}:
             pth = Path(path)
             if pth.exists():
-                self.custom_addons[pth.stem] = str(pth)
+                self.custom_addons[name] = str(pth)
 
-        self.install_custom_addons(True)
-        self.reset_addons()
-        self.load_custom_addons()
+        self.install_custom_addons()
+        self.enable_addons()
 
-    def install_custom_addons(self, force: bool = False) -> None:
+        logging.debug(f"Finished loading addons")
+
+    def disable_addons(self) -> None:
+        """
+        Disables all addons.
+        """
+        for addon in bpy.context.preferences.addons:
+            bpy.ops.preferences.addon_disable(module=addon.module)
+
+    def install_custom_addons(self, overwrite: bool = False) -> None:
         """
         Installs any addon not already installed on this build.
         """
+        installed = []
 
-        installed = {addon.module for addon in bpy.context.preferences.addons}
+        for mod in addon_utils.modules():
+            if mod.__name__ in self.custom_addons:
+                installed.append(mod.__name__)
 
         for addon, path in self.custom_addons.items():
             if addon not in installed:
-                bpy.ops.preferences.addon_install(filepath=path)
+                logging.debug(f"Installing addon {addon} from {path}")
+                bpy.ops.preferences.addon_install(filepath=path, overwrite=overwrite)
 
-    def load_custom_addons(self) -> None:
+    def enable_addons(self) -> None:
         """
-        Enabled custom addons.
+        Enables all addons in the default_addons list and in the custom_addons.
         """
-
-        for name in self.custom_addons:
-            bpy.ops.preferences.addon_enable(module=name)
-
-    def reset_addons(self) -> None:
-        """
-        Resets the addons to the default list.
-        """
+        self.disable_addons()
         
-        for addon in self.default_addons:
-            bpy.ops.preferences.addon_enable(module=addon)
+        enable = self.default_addons + list(self.custom_addons.keys())
 
-        for addon in bpy.context.preferences.addons:
-            if addon.module not in self.default_addons:
-                bpy.ops.preferences.addon_disable(module=addon.module)
+        for addon in enable:
+            mod = addon_utils.enable(addon, default_set=True)
+
+            if mod:
+                logging.debug(f"Enabled addon {addon}")
+
+                info = addon_utils.module_bl_info(mod)
+                info_ver = info.get("blender", (0, 0, 0))
+
+                if info_ver > bpy.app.version:
+                    logging.debug(f"Addon {addon} was written in Blender {info_ver[0]}.{info_ver[1]} and may not work correctly in Blender {bpy.app.version[0]}.{bpy.app.version[1]}")
+            else:
+                logging.debug(f"Failed to enable addon {addon}")
 
 parser = ArgumentParserForBlender()
+parser.add_argument("-a", "--addons", help="Addons to load", type=ast.literal_eval, default={})
 
-parser.add_argument("-a", "--addons", help="Addons to load", type=str)
-args = vars(parser.parse_args())
+args = parser.parse_args()
 
-if "addons" in args.keys():
-    if args["addons"]:
-        args["addons"] = [s.strip() for s in args["addons"].split(",")]
-
-Startup(args["addons"])
+Startup(args.addons)
