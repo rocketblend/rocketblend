@@ -6,6 +6,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 
 	"github.com/rocketblend/rocketblend/pkg/core/executable"
 	"github.com/rocketblend/rocketblend/pkg/core/resource"
@@ -19,6 +20,7 @@ type (
 	}
 
 	Config struct {
+		Debug bool
 	}
 
 	Service struct {
@@ -104,6 +106,10 @@ func (s *Service) Open(file *BlendFile) error {
 	}
 
 	cmd := exec.Command(file.Exec.Path, args...)
+
+	if s.conf.Debug {
+		fmt.Println(strings.ReplaceAll(cmd.String(), "\"", "\\\""))
+	}
 
 	if err := cmd.Start(); err != nil {
 		return fmt.Errorf("failed to open blend file: %s", err)
