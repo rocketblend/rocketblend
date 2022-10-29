@@ -1,6 +1,7 @@
 import bpy
 import argparse
 import sys
+import ast
 
 from pathlib import Path
 
@@ -8,10 +9,10 @@ from pathlib import Path
 # It is used to load the addons specified in the command line.
 # The script is called with the following arguments:
 # -a, --addons: a comma-separated list of addons to load.
-#               The addons must be specified as a path to the addon's
-#               directory.
-#               E.g., -a "C:\Users\user\Documents\blender\addons\addon1,
-#                         C:\Users\user\Documents\blender\addons\addon2"
+#               The addons must be specified as a dict with the name of the package 
+#               and a  path to the addon's directory.
+#               E.g., -a "{"addon1": "C:\Users\user\Documents\blender\addons\addon1",
+#                          "addon2": "C:\Users\user\Documents\blender\addons\addon2"}"
 #               If the addon is already installed on this build, it will be
 #               loaded. Otherwise, it will be installed and then loaded.
 
@@ -74,11 +75,11 @@ class Startup():
 
     custom_addons = {}
     
-    def __init__(self, addons: list[str]):
-        for path in addons or []:
+    def __init__(self, addons: dict[str, str]):
+        for name, path in addons.items() or {}:
             pth = Path(path)
             if pth.exists():
-                self.custom_addons[pth.stem] = str(pth)
+                self.custom_addons[name] = str(pth)
 
         self.install_custom_addons(True)
         self.reset_addons()
@@ -116,12 +117,8 @@ class Startup():
                 bpy.ops.preferences.addon_disable(module=addon.module)
 
 parser = ArgumentParserForBlender()
+parser.add_argument("-a", "--addons", help="Addons to load", type=ast.literal_eval, default={})
 
-parser.add_argument("-a", "--addons", help="Addons to load", type=str)
-args = vars(parser.parse_args())
+args = parser.parse_args()
 
-if "addons" in args.keys():
-    if args["addons"]:
-        args["addons"] = [s.strip() for s in args["addons"].split(",")]
-
-Startup(args["addons"])
+Startup(args.addons)

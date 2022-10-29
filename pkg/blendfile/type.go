@@ -15,12 +15,7 @@ type (
 	BlendFile struct {
 		Exec   *executable.Executable `json:"exec"`
 		Path   string                 `json:"path"`
-		Addons []string               `json:"addons"`
+		Addons map[string]string      `json:"addons"`
 		ARGS   string                 `json:"args"`
-	}
-
-	AddonDict struct {
-		Name string `json:"name"`
-		Path string `json:"path"`
 	}
 )

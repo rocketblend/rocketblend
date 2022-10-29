@@ -24,11 +24,11 @@ dep:
 	@go mod vendor
 	@go mod tidy
 
-install:
+cli:
 	@go install ./cmd/rocketblend
 
 build:
 	@go build ./cmd/rocketblend
 
-build-launcher:
+launcher:
 	@go build -ldflags -H=windowsgui ./cmd/launcher
