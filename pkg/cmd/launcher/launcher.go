@@ -1,7 +1,6 @@
 package launcher
 
 import (
-	"fmt"
 	"os"
 
 	"github.com/rocketblend/rocketblend/pkg/blendfile"
@@ -9,10 +8,6 @@ import (
 )
 
 func Launch() error {
-	if len(os.Args) == 1 {
-		return fmt.Errorf("no file specified")
-	}
-
 	conf, err := client.LoadConfig()
 	if err != nil {
 		return err
@@ -24,12 +19,14 @@ func Launch() error {
 	}
 
 	srv := blendfile.NewService(&blendfile.Config{}, client)
-	blend, err := srv.Load(os.Args[1])
-	if err != nil {
-		return err
+
+	var path string
+	if len((os.Args)) > 1 {
+		path = os.Args[1]
 	}
 
-	if err = srv.Open(blend); err != nil {
+	err = srv.Open(path)
+	if err != nil {
 		return err
 	}
 

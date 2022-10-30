@@ -16,6 +16,7 @@ type (
 	Client interface {
 		FindResource(key string) (*resource.Resource, error)
 		FindExecutableByBuildReference(ref string) (*executable.Executable, error)
+		FindDefaultExecutable() (*executable.Executable, error)
 		GetAddonMapByReferences(ref []string) (map[string]string, error)
 	}
 
@@ -79,7 +80,32 @@ func (s *Service) Create(file *BlendFile) (*BlendFile, error) {
 	return nil, fmt.Errorf("not implemented")
 }
 
-func (s *Service) Open(file *BlendFile) error {
+func (s *Service) Open(path string) error {
+	file := &BlendFile{}
+	if path == "" {
+		exec, err := s.srv.FindDefaultExecutable()
+		if err != nil {
+			return fmt.Errorf("failed to find default executable: %s", err)
+		}
+
+		file.Exec = exec
+	} else {
+		loaded, err := s.Load(path)
+		if err != nil {
+			return fmt.Errorf("failed to load blend file: %s", err)
+		}
+
+		file = loaded
+	}
+
+	if err := s.run(file); err != nil {
+		return fmt.Errorf("failed to run default build: %s", err)
+	}
+
+	return nil
+}
+
+func (s *Service) run(file *BlendFile) error {
 	script, err := s.srv.FindResource(resource.Startup)
 	if err != nil {
 		return fmt.Errorf("failed to find startup script: %s", err)
