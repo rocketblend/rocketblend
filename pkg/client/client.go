@@ -10,6 +10,7 @@ import (
 	"github.com/rocketblend/rocketblend/pkg/core/executable"
 	"github.com/rocketblend/rocketblend/pkg/core/install"
 	"github.com/rocketblend/rocketblend/pkg/core/library"
+	"github.com/rocketblend/rocketblend/pkg/core/preference"
 	"github.com/rocketblend/rocketblend/pkg/core/resource"
 	"github.com/rocketblend/rocketblend/pkg/core/runtime"
 	"github.com/rocketblend/scribble"
@@ -28,6 +29,11 @@ type (
 		FindByID(id string) (*addon.Addon, error)
 		Create(i *addon.Addon) error
 		Remove(id string) error
+	}
+
+	PreferenceService interface {
+		Find() (*preference.Settings, error)
+		Create(i *preference.Settings) error
 	}
 
 	LibraryService interface {
@@ -64,6 +70,7 @@ type (
 	Client struct {
 		install    InstallService
 		addon      AddonService
+		preference PreferenceService
 		library    LibraryService
 		downloader DownloadService
 		archiver   ArchiverService
@@ -112,6 +119,7 @@ func NewClient(conf Config) (*Client, error) {
 	client := &Client{
 		install:    NewInstallService(db),
 		addon:      NewAddonService(db),
+		preference: NewPreferenceService(db),
 		library:    NewLibraryService(),
 		downloader: NewDownloaderService(conf.InstallationDir),
 		archiver:   NewArchiverService(true),
@@ -137,6 +145,7 @@ func (c *Client) Platform() runtime.Platform {
 }
 
 func (c *Client) FindResource(key string) (*resource.Resource, error) {
+	// TODO: save out if not found.
 	return c.resource.FindByName(key)
 }
 
@@ -307,13 +316,52 @@ func (c *Client) FindAllAddons() ([]*addon.Addon, error) {
 	return addons, nil
 }
 
-func (c *Client) FindBuildByPath(build string) (*library.Build, error) {
-	return c.library.FindBuildByPath(build)
+func (c *Client) SetDefaultExecutable(ref string) error {
+	settings, err := c.preference.Find()
+	if err != nil {
+		return err
+	}
+
+	if settings == nil {
+		settings = &preference.Settings{}
+	}
+
+	settings.DefaultBuild = ref
+
+	err = c.preference.Create(settings)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
-func (c *Client) FetchPackageByPath(pack string) (*library.Package, error) {
-	return c.library.FindPackageByPath(pack)
+func (c *Client) FindDefaultExecutable() (*executable.Executable, error) {
+	settings, err := c.preference.Find()
+	if err != nil {
+		return nil, err
+	}
+
+	if settings.DefaultBuild == "" {
+		// TODO: Get latest build and set as default
+		return nil, fmt.Errorf("no default executable set")
+	}
+
+	executable, err := c.FindExecutableByBuildReference(settings.DefaultBuild)
+	if err != nil {
+		return nil, err
+	}
+
+	return executable, nil
 }
+
+// func (c *Client) FindBuildByPath(build string) (*library.Build, error) {
+// 	return c.library.FindBuildByPath(build)
+// }
+
+// func (c *Client) FetchPackageByPath(pack string) (*library.Package, error) {
+// 	return c.library.FindPackageByPath(pack)
+// }
 
 func (c *Client) OpenProject(file string, ref string, args string) error {
 	return fmt.Errorf("not implemented")
@@ -324,6 +372,10 @@ func (c *Client) CreateProject(name string, path string, ref string) error {
 }
 
 func (c *Client) FindExecutableByBuildReference(ref string) (*executable.Executable, error) {
+	if ref == "" {
+		return nil, fmt.Errorf("invalid build reference")
+	}
+
 	install, err := c.FindInstall(ref)
 	if err != nil {
 		return nil, fmt.Errorf("failed to find install: %s", err)

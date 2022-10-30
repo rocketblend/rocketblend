@@ -32,7 +32,7 @@ func NewClientConfig() *LibraryConfig {
 }
 
 func (c *Client) FetchBuild(str string) (*Build, error) {
-	rd, err := makeRequest(str, BuildFile)
+	rd, err := c.makeRequest(str, BuildFile)
 	if err != nil {
 		return nil, err
 	}
@@ -44,7 +44,7 @@ func (c *Client) FetchBuild(str string) (*Build, error) {
 }
 
 func (c *Client) FetchPackage(str string) (*Package, error) {
-	rd, err := makeRequest(str, PackgeFile)
+	rd, err := c.makeRequest(str, PackgeFile)
 	if err != nil {
 		return nil, err
 	}
@@ -55,7 +55,7 @@ func (c *Client) FetchPackage(str string) (*Package, error) {
 	return p, nil
 }
 
-func makeRequest(str string, file string) ([]byte, error) {
+func (c *Client) makeRequest(str string, file string) ([]byte, error) {
 	u, err := GetBuildUrl(str)
 	if err != nil {
 		return nil, err
