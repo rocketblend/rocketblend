@@ -111,24 +111,22 @@ func (s *Service) run(file *BlendFile) error {
 		return fmt.Errorf("failed to find startup script: %s", err)
 	}
 
-	args := []string{
-		file.Path,
-		"--python",
-		script.OutputPath,
-	}
-
 	addons := merge(file.Exec.Addons, file.Addons)
 	json, err := json.Marshal(addons)
 	if err != nil {
 		return fmt.Errorf("failed to marshal addons: %s", err)
 	}
 
-	if len(addons) != 0 {
-		args = append(args, []string{
-			"--",
-			"-a",
-			string(json),
-		}...)
+	args := []string{
+		"--python",
+		script.OutputPath,
+		"--",
+		"-a",
+		string(json),
+	}
+
+	if file.Path != "" {
+		args = append([]string{file.Path}, args...)
 	}
 
 	cmd := exec.Command(file.Exec.Path, args...)
