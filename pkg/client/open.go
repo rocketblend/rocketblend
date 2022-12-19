@@ -28,7 +28,32 @@ type (
 	}
 )
 
-func (c *Client) Load(path string) (*BlendFile, error) {
+func (c *Client) Open(path string) error {
+	file := &BlendFile{}
+	if path == "" {
+		exec, err := c.findDefaultExecutable()
+		if err != nil {
+			return fmt.Errorf("failed to find default executable: %s", err)
+		}
+
+		file.Exec = exec
+	} else {
+		loaded, err := c.load(path)
+		if err != nil {
+			return fmt.Errorf("failed to load blend file: %s", err)
+		}
+
+		file = loaded
+	}
+
+	if err := c.run(file); err != nil {
+		return fmt.Errorf("failed to run default build: %s", err)
+	}
+
+	return nil
+}
+
+func (c *Client) load(path string) (*BlendFile, error) {
 	ext := filepath.Ext(path)
 	if ext != ".blend" {
 		return nil, fmt.Errorf("invalid file extension: %s", ext)
@@ -45,12 +70,12 @@ func (c *Client) Load(path string) (*BlendFile, error) {
 	}
 
 	// Get build executable path.
-	exec, err := c.FindExecutableByBuildReference(rkt.Build)
+	exec, err := c.findExecutableByBuildReference(rkt.Build)
 	if err != nil {
 		return nil, fmt.Errorf("failed to find executable: %s", err)
 	}
 
-	addons, err := c.GetAddonMapByReferences(rkt.Packages)
+	addons, err := c.getAddonMapByReferences(rkt.Packages)
 	if err != nil {
 		return nil, fmt.Errorf("failed to find all addon directories: %s", err)
 	}
@@ -61,31 +86,6 @@ func (c *Client) Load(path string) (*BlendFile, error) {
 		Addons: addons,
 		ARGS:   rkt.ARGS,
 	}, nil
-}
-
-func (c *Client) Open(path string) error {
-	file := &BlendFile{}
-	if path == "" {
-		exec, err := c.FindDefaultExecutable()
-		if err != nil {
-			return fmt.Errorf("failed to find default executable: %s", err)
-		}
-
-		file.Exec = exec
-	} else {
-		loaded, err := c.Load(path)
-		if err != nil {
-			return fmt.Errorf("failed to load blend file: %s", err)
-		}
-
-		file = loaded
-	}
-
-	if err := c.run(file); err != nil {
-		return fmt.Errorf("failed to run default build: %s", err)
-	}
-
-	return nil
 }
 
 func (c *Client) run(file *BlendFile) error {

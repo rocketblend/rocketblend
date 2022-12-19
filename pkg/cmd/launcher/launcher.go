@@ -14,11 +14,17 @@ func Launch() error {
 
 	cmd := exec.Command("rocketblend", command...)
 
-	// Run the command
-	err := cmd.Run()
+	// Start the command
+	err := cmd.Start()
 	if err != nil {
 		return fmt.Errorf("error running command '%v': %s", command, err)
 	}
+
+	// // Capture the output of the command
+	// output, err := cmd.CombinedOutput()
+	// if err != nil {
+	// 	return fmt.Errorf("Error running command '%v': %s\nOutput: %s", command, err, output)
+	// }
 
 	return nil
 }

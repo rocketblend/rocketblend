@@ -24,7 +24,7 @@ dep:
 	@go mod vendor
 	@go mod tidy
 
-cli:
+rocketblend:
 	@go install ./cmd/rocketblend
 
 build:
