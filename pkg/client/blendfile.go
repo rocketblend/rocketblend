@@ -1,4 +1,4 @@
-package blendfile
+package client
 
 import (
 	"encoding/json"
@@ -13,53 +13,44 @@ import (
 )
 
 type (
-	Client interface {
-		FindResource(key string) (*resource.Resource, error)
-		FindExecutableByBuildReference(ref string) (*executable.Executable, error)
-		FindDefaultExecutable() (*executable.Executable, error)
-		GetAddonMapByReferences(ref []string) (map[string]string, error)
+	RocketFile struct {
+		Build    string   `json:"build"`
+		ARGS     string   `json:"args"`
+		Version  string   `json:"version"`
+		Packages []string `json:"packages"`
 	}
 
-	Config struct {
-		Debug bool
-	}
-
-	Service struct {
-		conf *Config
-		srv  Client
+	BlendFile struct {
+		Exec   *executable.Executable `json:"exec"`
+		Path   string                 `json:"path"`
+		Addons map[string]string      `json:"addons"`
+		ARGS   string                 `json:"args"`
 	}
 )
 
-func NewService(conf *Config, s Client) *Service {
-	return &Service{
-		conf: conf,
-		srv:  s,
-	}
-}
-
-func (s *Service) Load(path string) (*BlendFile, error) {
+func (c *Client) Load(path string) (*BlendFile, error) {
 	ext := filepath.Ext(path)
 	if ext != ".blend" {
 		return nil, fmt.Errorf("invalid file extension: %s", ext)
 	}
 
-	c, err := os.ReadFile(filepath.Join(filepath.Dir(path), "rocketfile.json"))
+	f, err := os.ReadFile(filepath.Join(filepath.Dir(path), "rocketfile.json"))
 	if err != nil {
 		return nil, fmt.Errorf("failed to read rocketfile: %s", err)
 	}
 
 	var rkt RocketFile
-	if err := json.Unmarshal(c, &rkt); err != nil {
+	if err := json.Unmarshal(f, &rkt); err != nil {
 		return nil, fmt.Errorf("failed to unmarshal rocketfile: %s", err)
 	}
 
 	// Get build executable path.
-	exec, err := s.srv.FindExecutableByBuildReference(rkt.Build)
+	exec, err := c.FindExecutableByBuildReference(rkt.Build)
 	if err != nil {
 		return nil, fmt.Errorf("failed to find executable: %s", err)
 	}
 
-	addons, err := s.srv.GetAddonMapByReferences(rkt.Packages)
+	addons, err := c.GetAddonMapByReferences(rkt.Packages)
 	if err != nil {
 		return nil, fmt.Errorf("failed to find all addon directories: %s", err)
 	}
@@ -72,25 +63,17 @@ func (s *Service) Load(path string) (*BlendFile, error) {
 	}, nil
 }
 
-func (s *Service) Save(file *BlendFile, safe bool) error {
-	return fmt.Errorf("not implemented")
-}
-
-func (s *Service) Create(file *BlendFile) (*BlendFile, error) {
-	return nil, fmt.Errorf("not implemented")
-}
-
-func (s *Service) Open(path string) error {
+func (c *Client) Open(path string) error {
 	file := &BlendFile{}
 	if path == "" {
-		exec, err := s.srv.FindDefaultExecutable()
+		exec, err := c.FindDefaultExecutable()
 		if err != nil {
 			return fmt.Errorf("failed to find default executable: %s", err)
 		}
 
 		file.Exec = exec
 	} else {
-		loaded, err := s.Load(path)
+		loaded, err := c.Load(path)
 		if err != nil {
 			return fmt.Errorf("failed to load blend file: %s", err)
 		}
@@ -98,15 +81,15 @@ func (s *Service) Open(path string) error {
 		file = loaded
 	}
 
-	if err := s.run(file); err != nil {
+	if err := c.run(file); err != nil {
 		return fmt.Errorf("failed to run default build: %s", err)
 	}
 
 	return nil
 }
 
-func (s *Service) run(file *BlendFile) error {
-	script, err := s.srv.FindResource(resource.Startup)
+func (c *Client) run(file *BlendFile) error {
+	script, err := c.FindResource(resource.Startup)
 	if err != nil {
 		return fmt.Errorf("failed to find startup script: %s", err)
 	}
@@ -131,7 +114,7 @@ func (s *Service) run(file *BlendFile) error {
 
 	cmd := exec.Command(file.Exec.Path, args...)
 
-	if s.conf.Debug {
+	if c.conf.Debug {
 		fmt.Println(strings.ReplaceAll(cmd.String(), "\"", "\\\""))
 	}
 

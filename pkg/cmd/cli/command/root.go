@@ -19,7 +19,6 @@ func NewCommand(srv *client.Client) *cobra.Command {
 	initCmd := NewInitCommand(srv)
 	removeCmd := NewRemoveCommand(srv)
 	openCmd := NewOpenCommand(srv)
-	createCmd := NewCreateCommand(srv)
 	listCmd := NewListCommand(srv)
 	installCmd := NewInstallCommand(srv)
 	getCmd := NewGetCommand(srv)
@@ -29,7 +28,6 @@ func NewCommand(srv *client.Client) *cobra.Command {
 		initCmd,
 		removeCmd,
 		openCmd,
-		createCmd,
 		listCmd,
 		installCmd,
 		getCmd,

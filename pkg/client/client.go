@@ -64,6 +64,7 @@ type (
 		DBDir           string
 		InstallationDir string
 		ResourceDir     string
+		Debug           bool
 		Platform        runtime.Platform
 	}
 
@@ -96,6 +97,7 @@ func LoadConfig() (*Config, error) {
 		InstallationDir: filepath.Join(appDir, "installations"),
 		DBDir:           filepath.Join(appDir, "data"),
 		ResourceDir:     filepath.Join(appDir, "resources"),
+		Debug:           false,
 		Platform:        platform,
 	}
 
@@ -362,14 +364,6 @@ func (c *Client) FindDefaultExecutable() (*executable.Executable, error) {
 // func (c *Client) FetchPackageByPath(pack string) (*library.Package, error) {
 // 	return c.library.FindPackageByPath(pack)
 // }
-
-func (c *Client) OpenProject(file string, ref string, args string) error {
-	return fmt.Errorf("not implemented")
-}
-
-func (c *Client) CreateProject(name string, path string, ref string) error {
-	return fmt.Errorf("not implemented")
-}
 
 func (c *Client) FindExecutableByBuildReference(ref string) (*executable.Executable, error) {
 	if ref == "" {
