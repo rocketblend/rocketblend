@@ -1,34 +1,30 @@
 package launcher
 
 import (
+	"fmt"
 	"os"
-
-	"github.com/rocketblend/rocketblend/pkg/blendfile"
-	"github.com/rocketblend/rocketblend/pkg/client"
+	"os/exec"
 )
 
 func Launch() error {
-	conf, err := client.LoadConfig()
-	if err != nil {
-		return err
-	}
-
-	client, err := client.NewClient(*conf)
-	if err != nil {
-		return err
-	}
-
-	srv := blendfile.NewService(&blendfile.Config{}, client)
-
-	var path string
+	command := []string{"open", "-p", ""}
 	if len((os.Args)) > 1 {
-		path = os.Args[1]
+		command[2] = os.Args[1]
 	}
 
-	err = srv.Open(path)
+	cmd := exec.Command("rocketblend", command...)
+
+	// Start the command
+	err := cmd.Start()
 	if err != nil {
-		return err
+		return fmt.Errorf("error running command '%v': %s", command, err)
 	}
+
+	// // Capture the output of the command
+	// output, err := cmd.CombinedOutput()
+	// if err != nil {
+	// 	return fmt.Errorf("Error running command '%v': %s\nOutput: %s", command, err, output)
+	// }
 
 	return nil
 }
