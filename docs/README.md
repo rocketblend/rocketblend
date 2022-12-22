@@ -1,4 +1,12 @@
+---
+description: A brief introduction to RocketBlend.
+---
+
 # Introduction to RocketBlend
+
+{% hint style="warning" %}
+Please note that RocketBlend is still in the early stages of development and may undergo large changes as it continues to evolve.&#x20;
+{% endhint %}
 
 ## What is RocketBlend?
 
@@ -35,4 +43,3 @@ Dive a little deeper and start exploring our references documentation to get an 
 {% content-ref url="reference/launcher/" %}
 [launcher](reference/launcher/)
 {% endcontent-ref %}
-

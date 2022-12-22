@@ -22,10 +22,11 @@
     * [Remove](reference/cli/commands/remove.md)
   * [Configuration](reference/cli/configuration.md)
 * [Launcher](reference/launcher/README.md)
-  * [General](reference/launcher/general.md)
-* [Rocketfiles](reference/rocketfiles.md)
-* [Packages](reference/packages.md)
-* [Builds](reference/builds.md)
+  * [Arguments](reference/launcher/general.md)
+* [Assets](reference/assets/README.md)
+  * [Rocketfiles](reference/assets/rocketfiles.md)
+  * [Packages](reference/assets/packages.md)
+  * [Builds](reference/assets/builds.md)
 
 ## Development
 
