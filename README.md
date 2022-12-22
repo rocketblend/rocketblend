@@ -1,3 +1,5 @@
+### [Discussions](https://github.com/rocketblend/rocketblend/discussions) │ [Documentation](https://docs.rocketblend.io) │ [Latest Release](https://github.com/rocketblend/rocketblend/releases/latest)
+
 # RocketBlend
 
 [![Github tag](https://badgen.net/github/tag/rocketblend/rocketblend)](https://github.com/rocketblend/rocketblend/tags)
@@ -5,43 +7,37 @@
 [![Go Report Card](https://goreportcard.com/badge/github.com/rocketblend/rocketblend)](https://goreportcard.com/report/github.com/rocketblend/rocketblend)
 [![GitHub](https://img.shields.io/github/license/rocketblend/rocketblend)](https://github.com/rocketblend/rocketblend/blob/master/LICENSE)
 
+RocketBlend is an open-source tool that offers package and version management for the 3D graphics software, [Blender](https://www.blender.org/).
 
-Rockeblend is an open-source tool that provides package and version management for the 3D graphics software [Blender](https://www.blender.org/).
+## About
 
-## Description
-
-**Project is currently being development and is not stable.**
+RocketBlend consists of two parts: a CLI tool and a Launcher.
 
 ### CLI
-Command line tool to manage packages and installed versions of Blender.
+
+The command line tool is the primary application for managing your local installations of packages and Blender versions.
 
 ### Launcher
-Alternative launcher for `.blend` files that utilises a `config.json` file to determine the correct version of Blender and packages to run. 
+
+The Launcher is an alternative launcher for .blend files that utilizes a rocketfile.json file to determine the correct version of Blender and the packages to run.
+
+**Note: The Launcher is optional, but it allows you to open .blend files as you normally would while still maintaining package and build management.**
 
 ## Getting Started
 
-### Dependencies
+See [Quick Start](https://docs.rocketblend.io/getting-started/quick-start) in our documentation.
 
-### Installing
+## See Also
 
-### Executing program
-
-### Building
-
-* `make build-cli`
-* `make build-launcher`
-
-## Help
-
-Coming soon.
+- [Official Library](https://github.com/rocketblend/official-library) - Collection of builds and packages.
+- [RocketBlend Collector](https://github.com/rocketblend/rocketblend-collector) - CLI tool for generating build collections from offical blender releases.
+- [RocketBlend Companion](https://github.com/rocketblend/rocketblend-package) - Blender addon to aid with working with RocketBlend. **NOTE: WIP**
 
 ## Roadmap
-- Add new CI/CD pipeine.
-- New build and packaging system.
-- MacOs and Linux support.
-- Documentation.
-- Guides.
+- CI/CD pipeline for releases.
+- Companion blender addon.
 - GUI project.
+- Searchable build and package website similar to [hub.docker.com](https://hub.docker.com/) or [pkg.go.dev](pkg.go.dev).
 
 ## Acknowledgments
 
