@@ -37,7 +37,7 @@ See [Quick Start](https://docs.rocketblend.io/getting-started/quick-start) in ou
 - CI/CD pipeline for releases.
 - Companion blender addon.
 - GUI project.
-- Searchable build and package library similar to [hub.docker.com](https://hub.docker.com/) or [pkg.go.dev](pkg.go.dev).
+- Searchable build and package website similar to [hub.docker.com](https://hub.docker.com/) or [pkg.go.dev](pkg.go.dev).
 
 ## Acknowledgments
 
