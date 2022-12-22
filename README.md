@@ -7,7 +7,11 @@
 [![Go Report Card](https://goreportcard.com/badge/github.com/rocketblend/rocketblend)](https://goreportcard.com/report/github.com/rocketblend/rocketblend)
 [![GitHub](https://img.shields.io/github/license/rocketblend/rocketblend)](https://github.com/rocketblend/rocketblend/blob/master/LICENSE)
 
-RocketBlend is an open-source tool that offers package and version management for the 3D graphics software, [Blender](https://www.blender.org/). It consists of two parts: a CLI tool and a Launcher.
+RocketBlend is an open-source tool that offers package and version management for the 3D graphics software, [Blender](https://www.blender.org/).
+
+## About
+
+RocketBlend consists of two parts: a CLI tool and a Launcher.
 
 ### CLI
 
@@ -17,7 +21,7 @@ The command line tool is the primary application for managing your local install
 
 The Launcher is an alternative launcher for .blend files that utilizes a rocketfile.json file to determine the correct version of Blender and the packages to run.
 
-*Note: The Launcher is optional, but it allows you to open .blend files as you normally would while still maintaining package and build management.*
+**Note: The Launcher is optional, but it allows you to open .blend files as you normally would while still maintaining package and build management.**
 
 ## Getting Started
 
