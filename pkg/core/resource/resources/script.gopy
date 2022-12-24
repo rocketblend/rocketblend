@@ -82,21 +82,23 @@ class ArgumentParserForBlender(argparse.ArgumentParser):
 
 class Startup():
     """
-    This class is called at Blender startup, and is used to load the
-    addons specified in the command line.
+    This class is called at Blender startup, and is used to install/enable the
+    addons specified by the command line argument.
     """
 
-    default_addons = ["io_anim_bvh",
-                  "io_curve_svg",
-                  "io_mesh_ply",
-                  "io_mesh_stl",
-                  "io_mesh_uv_layout",
-                  "io_scene_fbx",
-                  "io_scene_gltf2",
-                  "io_scene_obj",
-                  "io_scene_x3d",
-                  "node_wrangler",
-                  "cycles"]
+    default_addons = [
+        "io_anim_bvh",
+        "io_curve_svg",
+        "io_mesh_ply",
+        "io_mesh_stl",
+        "io_mesh_uv_layout",
+        "io_scene_fbx",
+        "io_scene_gltf2",
+        "io_scene_obj",
+        "io_scene_x3d",
+        "node_wrangler",
+        "cycles"
+    ]
 
     custom_addons = {}
     
@@ -112,13 +114,6 @@ class Startup():
         self.enable_addons()
 
         logging.debug(f"Finished loading addons")
-
-    def disable_addons(self) -> None:
-        """
-        Disables all addons.
-        """
-        for addon in bpy.context.preferences.addons:
-            bpy.ops.preferences.addon_disable(module=addon.module)
 
     def install_custom_addons(self, overwrite: bool = False) -> None:
         """
@@ -138,24 +133,38 @@ class Startup():
     def enable_addons(self) -> None:
         """
         Enables all addons in the default_addons list and in the custom_addons.
-        """
-        self.disable_addons()
-        
+        """  
         enable = self.default_addons + list(self.custom_addons.keys())
 
-        for addon in enable:
-            mod = addon_utils.enable(addon, default_set=True)
-
-            if mod:
-                logging.debug(f"Enabled addon {addon}")
-
-                info = addon_utils.module_bl_info(mod)
-                info_ver = info.get("blender", (0, 0, 0))
-
-                if info_ver > bpy.app.version:
-                    logging.debug(f"Addon {addon} was written in Blender {info_ver[0]}.{info_ver[1]} and may not work correctly in Blender {bpy.app.version[0]}.{bpy.app.version[1]}")
+        for addon in bpy.context.preferences.addons:
+            if addon in enable:
+                self.enable_addon(addon)
             else:
-                logging.debug(f"Failed to enable addon {addon}")
+                self.disable_addon(addon)
+
+    def enable_addon(self, addon: str) -> None:
+        """
+        Enables the addon with the given name.
+        """
+        mod = addon_utils.enable(addon, default_set=True)
+
+        if mod:
+            logging.debug(f"Enabled addon {addon}")
+
+            info = addon_utils.module_bl_info(mod)
+            info_ver = info.get("blender", (0, 0, 0))
+
+            if info_ver > bpy.app.version:
+                logging.debug(f"Addon {addon} was written in Blender {info_ver[0]}.{info_ver[1]} and may not work correctly in Blender {bpy.app.version[0]}.{bpy.app.version[1]}")
+        else:
+            logging.debug(f"Failed to enable addon {addon}")
+
+    def disable_addon(self, addon: str) -> None:
+        """
+        Disables the addon with the given name.
+        """
+        addon_utils.disable(addon)
+        logging.debug(f"Disabled addon {addon}")
 
 parser = ArgumentParserForBlender()
 parser.add_argument("-a", "--addons", help="Addons to load", type=ast.literal_eval, default={})
