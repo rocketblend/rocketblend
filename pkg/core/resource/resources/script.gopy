@@ -170,7 +170,7 @@ class Startup():
 
         for addon in self.manager.get(ignore_pre_installed=True):
             if addon.name not in installed:
-                logging.debug(f"Installing addon {addon.name} from {addon.path}")
+                logging.debug(f"Installing addon {addon.name} {addon.version} from {addon.path}")
                 bpy.ops.preferences.addon_install(filepath=addon.path, overwrite=overwrite)
 
     def reset_addons(self) -> None:
