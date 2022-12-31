@@ -1,8 +1,8 @@
 package library
 
 import (
-	"github.com/Masterminds/semver/v3"
 	"github.com/rocketblend/rocketblend/pkg/core/runtime"
+	"github.com/rocketblend/rocketblend/pkg/semver"
 )
 
 type (
@@ -13,11 +13,11 @@ type (
 	}
 
 	Build struct {
-		Reference      string         `json:"reference"`
-		Args           string         `json:"args"`
-		BlenderVersion semver.Version `json:"blenderVersion"`
-		Source         []*Source      `json:"source"`
-		Packages       []string       `json:"packages"`
+		Reference      string          `json:"reference"`
+		Args           string          `json:"args"`
+		BlenderVersion *semver.Version `json:"blenderVersion"`
+		Source         []*Source       `json:"source"`
+		Packages       []string        `json:"packages"`
 	}
 )
 

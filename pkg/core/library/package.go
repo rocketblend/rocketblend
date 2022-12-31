@@ -1,7 +1,7 @@
 package library
 
 import (
-	"github.com/Masterminds/semver/v3"
+	"github.com/rocketblend/rocketblend/pkg/semver"
 )
 
 type (

@@ -1,6 +1,6 @@
 package executable
 
-import "github.com/Masterminds/semver/v3"
+import "github.com/rocketblend/rocketblend/pkg/semver"
 
 type (
 	Addon struct {
