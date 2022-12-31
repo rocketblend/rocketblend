@@ -111,7 +111,7 @@ class Startup():
                 self.custom_addons[name] = str(pth)
 
         self.install_custom_addons()
-        self.enable_addons()
+        self.reset_addons()
 
         logging.debug(f"Finished loading addons")
 
@@ -130,17 +130,20 @@ class Startup():
                 logging.debug(f"Installing addon {addon} from {path}")
                 bpy.ops.preferences.addon_install(filepath=path, overwrite=overwrite)
 
-    def enable_addons(self) -> None:
+    def reset_addons(self) -> None:
         """
-        Enables all addons in the default_addons list and in the custom_addons.
+        Resets addons to only the enabled ones.
         """  
         enable = self.default_addons + list(self.custom_addons.keys())
 
         for addon in bpy.context.preferences.addons:
-            if addon in enable:
-                self.enable_addon(addon)
-            else:
+            if addon.module not in enable:
                 self.disable_addon(addon)
+            else:
+                enable.remove(addon.module)
+
+        for addon in enable:
+            self.enable_addon(addon)
 
     def enable_addon(self, addon: str) -> None:
         """
