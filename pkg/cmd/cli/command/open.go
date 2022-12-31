@@ -11,13 +11,14 @@ import (
 func NewOpenCommand(srv *client.Client) *cobra.Command {
 	var path string
 	var output string
+	var auto bool
 
 	c := &cobra.Command{
 		Use:   "open",
 		Short: "Opens blender with the specified version",
 		Long:  ``,
 		Run: func(cmd *cobra.Command, args []string) {
-			if path == "" {
+			if auto && path == "" {
 				file, err := findBlendFile()
 				if err != nil {
 					cmd.PrintErrln(err)
@@ -33,8 +34,9 @@ func NewOpenCommand(srv *client.Client) *cobra.Command {
 		},
 	}
 
-	c.Flags().StringVarP(&path, "path", "p", "", "The path to a .blendfile")
-	c.Flags().StringVarP(&output, "output", "o", "cmd", "Output type of command")
+	c.Flags().StringVarP(&path, "path", "p", "", "The file path to a .blend file.")
+	c.Flags().StringVarP(&output, "output", "o", "cmd", "Output type of the command")
+	c.Flags().BoolVarP(&auto, "auto", "a", false, "Enables or disables the automatic detection of .blend files in the current directory.")
 
 	return c
 }
