@@ -46,8 +46,19 @@ func (c *Client) Open(path string, output string) error {
 		file = loaded
 	}
 
-	if err := c.run(file); err != nil {
-		return fmt.Errorf("failed to run default build: %s", err)
+	switch output {
+	case "json":
+		json, err := json.Marshal(file)
+		if err != nil {
+			return fmt.Errorf("failed to marshal blend file: %s", err)
+		}
+		fmt.Println(string(json))
+	case "cmd":
+		if err := c.run(file); err != nil {
+			return fmt.Errorf("failed to run default build: %s", err)
+		}
+	default:
+		return fmt.Errorf("invalid output format: %s", output)
 	}
 
 	return nil
