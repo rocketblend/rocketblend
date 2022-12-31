@@ -37,6 +37,7 @@ func (c *Client) Open(path string, output string) error {
 		}
 
 		file.Exec = exec
+		file.Addons = &[]executable.Addon{}
 	} else {
 		loaded, err := c.load(path)
 		if err != nil {
