@@ -62,7 +62,7 @@ func (c *Client) findExecutableByBuildReference(ref string) (*executable.Executa
 		return nil, fmt.Errorf("failed to find build: %s", err)
 	}
 
-	addonMap, err := c.getAddonMapByReferences(build.Packages)
+	addonMap, err := c.getExecutableAddonsByReference(build.Packages)
 	if err != nil {
 		return nil, fmt.Errorf("failed to find all addons for build: %s", err)
 	}
@@ -71,5 +71,37 @@ func (c *Client) findExecutableByBuildReference(ref string) (*executable.Executa
 		Path:   filepath.Join(install.Path, build.GetSourceForPlatform(c.conf.Platform).Executable),
 		Addons: addonMap,
 		ARGS:   build.Args,
+	}, nil
+}
+
+func (c *Client) getExecutableAddonsByReference(ref []string) (*[]executable.Addon, error) {
+	addons := []executable.Addon{}
+	for _, r := range ref {
+		addon, err := c.getExecutableAddonByReference(r)
+		if err != nil {
+			return nil, fmt.Errorf("failed to find addon: %s", err)
+		}
+
+		addons = append(addons, *addon)
+	}
+
+	return &addons, nil
+}
+
+func (c *Client) getExecutableAddonByReference(ref string) (*executable.Addon, error) {
+	addon, err := c.findAddon(ref)
+	if err != nil {
+		return nil, fmt.Errorf("failed to find addon: %s", err)
+	}
+
+	pack, err := c.library.FindPackageByPath(addon.Path)
+	if err != nil {
+		return nil, fmt.Errorf("failed to find package: %s", err)
+	}
+
+	return &executable.Addon{
+		Name:    pack.Name,
+		Version: pack.AddonVersion,
+		Path:    filepath.Join(addon.Path, pack.Source.File),
 	}, nil
 }

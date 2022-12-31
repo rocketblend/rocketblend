@@ -95,7 +95,7 @@ func LoadConfig() (*Config, error) {
 		InstallationDir: filepath.Join(appDir, "installations"),
 		DBDir:           filepath.Join(appDir, "data"),
 		ResourceDir:     filepath.Join(appDir, "resources"),
-		Debug:           false,
+		Debug:           true,
 		Platform:        platform,
 	}
 
