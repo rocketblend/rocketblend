@@ -8,9 +8,9 @@ import (
 
 func NewCommand(srv *client.Client) *cobra.Command {
 	c := &cobra.Command{
-		Use:   "rocketblend-cli",
-		Short: "version manager for blender.",
-		Long:  `RocketBlend-Cli is a CLI tool to manage packages and installed versions of Blender.`,
+		Use:   "rocketblend",
+		Short: "Version and package manager for blender.",
+		Long:  `RocketBlend is a tool for managing packages and versions of Blender.`,
 	}
 
 	c.SetVersionTemplate("{{.Version}}\n")
