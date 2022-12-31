@@ -1,5 +1,9 @@
 package library
 
+import (
+	"github.com/rocketblend/rocketblend/pkg/semver"
+)
+
 type (
 	PackageSource struct {
 		File string `json:"file"`
@@ -7,8 +11,9 @@ type (
 	}
 
 	Package struct {
-		Reference string        `json:"reference"`
-		Name      string        `json:"name"`
-		Source    PackageSource `json:"source"`
+		Reference    string         `json:"reference"`
+		Name         string         `json:"name"`
+		AddonVersion semver.Version `json:"addonVersion"`
+		Source       PackageSource  `json:"source"`
 	}
 )

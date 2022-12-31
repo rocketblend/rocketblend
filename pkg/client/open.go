@@ -13,23 +13,23 @@ import (
 )
 
 type (
-	RocketFile struct {
+	rocketFile struct {
 		Build    string   `json:"build"`
 		ARGS     string   `json:"args"`
 		Version  string   `json:"version"`
 		Packages []string `json:"packages"`
 	}
 
-	BlendFile struct {
+	blendFile struct {
 		Exec   *executable.Executable `json:"exec"`
 		Path   string                 `json:"path"`
-		Addons map[string]string      `json:"addons"`
+		Addons *[]executable.Addon    `json:"addons"`
 		ARGS   string                 `json:"args"`
 	}
 )
 
-func (c *Client) Open(path string) error {
-	file := &BlendFile{}
+func (c *Client) Open(path string, output string) error {
+	file := &blendFile{}
 	if path == "" {
 		exec, err := c.findDefaultExecutable()
 		if err != nil {
@@ -46,14 +46,25 @@ func (c *Client) Open(path string) error {
 		file = loaded
 	}
 
-	if err := c.run(file); err != nil {
-		return fmt.Errorf("failed to run default build: %s", err)
+	switch output {
+	case "json":
+		json, err := json.Marshal(file)
+		if err != nil {
+			return fmt.Errorf("failed to marshal blend file: %s", err)
+		}
+		fmt.Println(string(json))
+	case "cmd":
+		if err := c.run(file); err != nil {
+			return fmt.Errorf("failed to run default build: %s", err)
+		}
+	default:
+		return fmt.Errorf("invalid output format: %s", output)
 	}
 
 	return nil
 }
 
-func (c *Client) load(path string) (*BlendFile, error) {
+func (c *Client) load(path string) (*blendFile, error) {
 	ext := filepath.Ext(path)
 	if ext != ".blend" {
 		return nil, fmt.Errorf("invalid file extension: %s", ext)
@@ -64,7 +75,7 @@ func (c *Client) load(path string) (*BlendFile, error) {
 		return nil, fmt.Errorf("failed to read rocketfile: %s", err)
 	}
 
-	var rkt RocketFile
+	var rkt rocketFile
 	if err := json.Unmarshal(f, &rkt); err != nil {
 		return nil, fmt.Errorf("failed to unmarshal rocketfile: %s", err)
 	}
@@ -75,12 +86,12 @@ func (c *Client) load(path string) (*BlendFile, error) {
 		return nil, fmt.Errorf("failed to find executable: %s", err)
 	}
 
-	addons, err := c.getAddonMapByReferences(rkt.Packages)
+	addons, err := c.getExecutableAddonsByReference(rkt.Packages)
 	if err != nil {
 		return nil, fmt.Errorf("failed to find all addon directories: %s", err)
 	}
 
-	return &BlendFile{
+	return &blendFile{
 		Exec:   exec,
 		Path:   path,
 		Addons: addons,
@@ -88,13 +99,13 @@ func (c *Client) load(path string) (*BlendFile, error) {
 	}, nil
 }
 
-func (c *Client) run(file *BlendFile) error {
+func (c *Client) run(file *blendFile) error {
 	script, err := c.FindResource(resource.Startup)
 	if err != nil {
 		return fmt.Errorf("failed to find startup script: %s", err)
 	}
 
-	addons := merge(file.Exec.Addons, file.Addons)
+	addons := append(*file.Exec.Addons, *file.Addons...)
 	json, err := json.Marshal(addons)
 	if err != nil {
 		return fmt.Errorf("failed to marshal addons: %s", err)
@@ -123,12 +134,4 @@ func (c *Client) run(file *BlendFile) error {
 	}
 
 	return nil
-}
-
-func merge(a map[string]string, b map[string]string) map[string]string {
-	for k, v := range b {
-		a[k] = v
-	}
-
-	return a
 }

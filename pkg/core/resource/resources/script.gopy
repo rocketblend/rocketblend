@@ -34,12 +34,10 @@ log = logging.getLogger(__name__)
 # It is used to load the addons specified in the command line.
 # The script is called with the following arguments:
 # -a, --addons: a comma-separated list of addons to load.
-#               The addons must be specified as a dict with the name of the package 
-#               and a  path to the addon's directory.
-#               E.g., -a "{"addon1": "C:\Users\user\Documents\blender\addons\addon1",
-#                          "addon2": "C:\Users\user\Documents\blender\addons\addon2"}"
-#               If the addon is already installed on this build, it will be
-#               loaded. Otherwise, it will be installed and then loaded.
+#       E.g., -a "[{"name": "addon1", version: "0.1.0", "path": "C:\Users\user\Documents\blender\addons\addon1"},
+#                  {"name": "addon2", "path": "C:\Users\user\Documents\blender\addons\addon2"}]"
+#  If the addon is already installed on this build, it will be
+#  loaded. Otherwise, it will be installed and then loaded.
 
 class ArgumentParserForBlender(argparse.ArgumentParser):
     """
@@ -80,12 +78,34 @@ class ArgumentParserForBlender(argparse.ArgumentParser):
         """
         return super().parse_args(args=self._get_argv_after_doubledash())
 
-class Startup():
+class Addon(object):
     """
-    This class is called at Blender startup, and is used to install/enable the
-    addons specified by the command line argument.
+    This class represents an addon, and is used to parse the command line
+    argument.
     """
+    def __init__(self, name: str, version: str, path: str, pre_installed: bool = False):
+        self.name = name
+        self.version = self._parse_version(version)
+        self.path = path
+        self.pre_installed = pre_installed
 
+    def __str__(self):
+        return f"Addon(name={self.name}, version={self.version}, path={self.path})"
+
+    def __repr__(self):
+        return self.__str__()
+
+    def _parse_version(self, version_str: str) -> tuple[int, int, int]:
+        if version_str is None:
+            return (-1, -1, -1)
+        
+        version = ()
+        for element in version_str.split('.'):
+            version += (int(element),)
+        
+        return version
+
+class AddonManager(object):
     default_addons = [
         "io_anim_bvh",
         "io_curve_svg",
@@ -99,42 +119,65 @@ class Startup():
         "node_wrangler",
         "cycles"
     ]
-
-    custom_addons = {}
     
-    def __init__(self, addons: dict[str, str]):
+    def __init__(self, addons: list[dict]):
+        self.addons = []
+        for addon in addons:
+            path = Path(addon["path"])
+            if path.exists():
+                self.addons.append(Addon(addon["name"], addon["version"], addon["path"]))
+
+        for addon in self.default_addons:
+            if self.find(addon) is None:
+                self.addons.append(Addon(addon, None, None, True))
+
+    def get(self, ignore_pre_installed: bool = False) -> list[Addon]:
+        return [addon for addon in self.addons if not addon.pre_installed or not ignore_pre_installed]
+
+    def find(self, name: str) -> Addon:
+        for addon in self.addons:
+            if addon.name == name:
+                return addon
+        return None
+
+class Startup():
+    """
+    This class is called at Blender startup, and is used to install/enable the
+    addons specified by the command line argument.
+    """
+    
+    def __init__(self, addons: list[Addon]):
         logging.debug(f"Starting Blender with the following addons: {addons}")
 
-        for name, path in addons.items() or {}:
-            pth = Path(path)
-            if pth.exists():
-                self.custom_addons[name] = str(pth)
+        self.manager = AddonManager(addons)
 
-        self.install_custom_addons()
+        self.install_addons()
         self.reset_addons()
 
         logging.debug(f"Finished loading addons")
 
-    def install_custom_addons(self, overwrite: bool = False) -> None:
+    def install_addons(self, overwrite: bool = False) -> None:
         """
         Installs any addon not already installed on this build.
         """
         installed = []
 
         for mod in addon_utils.modules():
-            if mod.__name__ in self.custom_addons:
+            addon = self.manager.find(mod.__name__)
+
+            if addon is not None and addon.version == mod.bl_info.get('version', (-1, -1, -1)):
                 installed.append(mod.__name__)
 
-        for addon, path in self.custom_addons.items():
-            if addon not in installed:
-                logging.debug(f"Installing addon {addon} from {path}")
-                bpy.ops.preferences.addon_install(filepath=path, overwrite=overwrite)
+        for addon in self.manager.get(ignore_pre_installed=True):
+            if addon.name not in installed:
+                logging.debug(f"Installing addon {addon.name} {addon.version} from {addon.path}")
+                bpy.ops.preferences.addon_install(filepath=addon.path, overwrite=overwrite)
 
     def reset_addons(self) -> None:
         """
-        Resets addons to only the enabled ones.
+        Resets addons to only the ones defined.
         """  
-        enable = self.default_addons + list(self.custom_addons.keys())
+        enable = [addon.name for addon in self.manager.get()]
 
         for addon in bpy.context.preferences.addons:
             if addon.module not in enable:
