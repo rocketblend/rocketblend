@@ -13,9 +13,31 @@ type Version struct {
 	Patch int
 }
 
-// NewVersion returns a new Version with the given major, minor, and patch numbers.
+// NewVersion returns a new SemVer with the given major, minor, and patch numbers.
 func NewVersion(major, minor, patch int) Version {
 	return Version{Major: major, Minor: minor, Patch: patch}
+}
+
+// Parse parses a string in the format "MAJOR.MINOR.PATCH" into a SemVer.
+func Parse(s string) (*Version, error) {
+	parts := strings.Split(s, ".")
+	if len(parts) != 3 {
+		return nil, fmt.Errorf("invalid SemVer string: %q", s)
+	}
+	major, err := strconv.Atoi(parts[0])
+	if err != nil {
+		return nil, fmt.Errorf("invalid SemVer major version: %q", parts[0])
+	}
+	minor, err := strconv.Atoi(parts[1])
+	if err != nil {
+		return nil, fmt.Errorf("invalid SemVer minor version: %q", parts[1])
+	}
+	patch, err := strconv.Atoi(parts[2])
+	if err != nil {
+		return nil, fmt.Errorf("invalid SemVer patch version: %q", parts[2])
+	}
+
+	return &Version{Major: major, Minor: minor, Patch: patch}, nil
 }
 
 // String returns a string representation of the Version in the format "MAJOR.MINOR.PATCH".
@@ -32,23 +54,12 @@ func (v *Version) UnmarshalJSON(data []byte) error {
 	}
 
 	// Parse the string as a SemVer.
-	parts := strings.Split(s, ".")
-	if len(parts) != 3 {
-		return fmt.Errorf("invalid SemVer string: %q", s)
-	}
-	major, err := strconv.Atoi(parts[0])
+	version, err := Parse(s)
 	if err != nil {
-		return fmt.Errorf("invalid SemVer major version: %q", parts[0])
+		return err
 	}
-	minor, err := strconv.Atoi(parts[1])
-	if err != nil {
-		return fmt.Errorf("invalid SemVer minor version: %q", parts[1])
-	}
-	patch, err := strconv.Atoi(parts[2])
-	if err != nil {
-		return fmt.Errorf("invalid SemVer patch version: %q", parts[2])
-	}
-	*v = Version{Major: major, Minor: minor, Patch: patch}
+
+	*v = *version
 	return nil
 }
 
