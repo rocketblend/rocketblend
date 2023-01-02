@@ -3,6 +3,7 @@ package build
 import (
 	"encoding/json"
 	"fmt"
+	"net/url"
 
 	"github.com/rocketblend/rocketblend/pkg/core/runtime"
 	"github.com/rocketblend/rocketblend/pkg/jot"
@@ -45,7 +46,12 @@ func (srv *Service) FindByReference(ref reference.Reference) (*Build, error) {
 }
 
 func (srv *Service) FetchByReference(ref reference.Reference) error {
-	err := srv.driver.Write(ref, BuildFile, ref.Url())
+	downloadUrl, err := url.JoinPath(ref.Url(), BuildFile)
+	if err != nil {
+		return err
+	}
+
+	err = srv.driver.Write(ref, BuildFile, downloadUrl)
 	if err != nil {
 		return err
 	}

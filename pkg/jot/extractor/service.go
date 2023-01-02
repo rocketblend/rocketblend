@@ -18,14 +18,13 @@ type (
 
 func New(options *Options) *Service {
 	// create default options
-	opts := Options{}
+	opts := Options{
+		Cleanup: true,
+	}
 
 	// if options are passed in, use those
 	if options != nil {
 		opts = *options
-
-		// if no cleanup is provided, create a default
-		opts.Cleanup = true
 	}
 
 	return &Service{

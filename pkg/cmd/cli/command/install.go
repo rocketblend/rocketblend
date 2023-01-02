@@ -20,8 +20,6 @@ func NewInstallCommand(client *client.Client) *cobra.Command {
 				fmt.Printf("Error installing build: %v\n", err)
 				return
 			}
-
-			fmt.Printf("Build %s installed\n", build)
 		},
 	}
 

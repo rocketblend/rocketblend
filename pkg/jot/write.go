@@ -14,12 +14,12 @@ func (d *Driver) Write(reference reference.Reference, resource string, downloadU
 }
 
 func (d *Driver) WriteAndExtract(reference reference.Reference, resource string, downloadUrl string) error {
-	dir, err := d.write(reference, resource, downloadUrl)
+	path, err := d.write(reference, resource, downloadUrl)
 	if err != nil {
 		return err
 	}
 
-	err = d.extractor.Extract(dir, dir)
+	err = d.extractor.Extract(path, filepath.Dir(path))
 	if err != nil {
 		return err
 	}
@@ -46,17 +46,18 @@ func (d *Driver) write(reference reference.Reference, resource string, downloadU
 	defer mutex.Unlock()
 
 	// create full paths to reference, final resource file, and temp file
-	dir := filepath.Join(d.dir, reference.String(), resource)
+	dir := filepath.Join(d.dir, reference.String())
 
 	// create reference directory
 	if err := os.MkdirAll(dir, 0755); err != nil {
 		return "", err
 	}
 
-	err := d.downloader.Download(dir, downloadUrl)
+	filePath := filepath.Join(dir, resource)
+	err := d.downloader.Download(filePath, downloadUrl)
 	if err != nil {
 		return "", err
 	}
 
-	return dir, nil
+	return filePath, nil
 }

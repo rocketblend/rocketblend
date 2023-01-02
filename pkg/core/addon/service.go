@@ -2,6 +2,7 @@ package addon
 
 import (
 	"encoding/json"
+	"net/url"
 
 	"github.com/rocketblend/rocketblend/pkg/jot"
 	"github.com/rocketblend/rocketblend/pkg/jot/reference"
@@ -34,7 +35,12 @@ func (srv *Service) FindByReference(ref reference.Reference) (*Package, error) {
 }
 
 func (srv *Service) FetchByReference(ref reference.Reference) error {
-	err := srv.driver.Write(ref, PackgeFile, ref.Url())
+	downloadUrl, err := url.JoinPath(ref.Url(), PackgeFile)
+	if err != nil {
+		return err
+	}
+
+	err = srv.driver.Write(ref, PackgeFile, downloadUrl)
 	if err != nil {
 		return err
 	}
