@@ -209,8 +209,8 @@ class Startup():
         """
         Disables the addon with the given name.
         """
-        addon_utils.disable(addon)
-        logging.debug(f"Disabled addon {addon}")
+        addon_utils.disable(addon.module)
+        logging.debug(f"Disabled addon {addon.module}")
 
 parser = ArgumentParserForBlender()
 parser.add_argument("-a", "--addons", help="Addons to load", type=ast.literal_eval, default={})

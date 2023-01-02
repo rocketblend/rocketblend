@@ -6,56 +6,36 @@ import (
 	"path/filepath"
 
 	"github.com/rocketblend/rocketblend/pkg/core/addon"
-	"github.com/rocketblend/rocketblend/pkg/core/install"
-	"github.com/rocketblend/rocketblend/pkg/core/library"
+	"github.com/rocketblend/rocketblend/pkg/core/build"
 	"github.com/rocketblend/rocketblend/pkg/core/preference"
 	"github.com/rocketblend/rocketblend/pkg/core/resource"
 	"github.com/rocketblend/rocketblend/pkg/core/runtime"
+	"github.com/rocketblend/rocketblend/pkg/jot"
+	"github.com/rocketblend/rocketblend/pkg/jot/reference"
 	"github.com/rocketblend/scribble"
 )
 
 type (
-	InstallService interface {
-		FindAll() ([]*install.Install, error)
-		FindByID(id string) (*install.Install, error)
-		Create(i *install.Install) error
-		Remove(id string) error
-	}
-
-	AddonService interface {
-		FindAll() ([]*addon.Addon, error)
-		FindByID(id string) (*addon.Addon, error)
-		Create(i *addon.Addon) error
-		Remove(id string) error
-	}
-
 	PreferenceService interface {
 		Find() (*preference.Settings, error)
 		Create(i *preference.Settings) error
 	}
 
-	LibraryService interface {
-		FindBuildByPath(path string) (*library.Build, error)
-		FindPackageByPath(path string) (*library.Package, error)
-		FetchBuild(str string) (*library.Build, error)
-		FetchPackage(str string) (*library.Package, error)
-	}
-
-	DownloadService interface {
-		Download(url string, path string) error
-	}
-
-	ArchiverService interface {
-		Extract(path string) error
-	}
-
-	EncoderService interface {
-		Hash(str string) string
-	}
-
 	ResourceService interface {
 		FindByName(name string) (*resource.Resource, error)
 		SaveOut() error
+	}
+
+	AddonService interface {
+		FindByReference(ref reference.Reference) (*addon.Package, error)
+		FetchByReference(ref reference.Reference) error
+		PullByReference(ref reference.Reference) error
+	}
+
+	BuildService interface {
+		FindByReference(ref reference.Reference) (*build.Build, error)
+		FetchByReference(ref reference.Reference) error
+		PullByReference(ref reference.Reference, platform runtime.Platform) error
 	}
 
 	Config struct {
@@ -67,14 +47,10 @@ type (
 	}
 
 	Client struct {
-		install    InstallService
-		addon      AddonService
 		preference PreferenceService
-		library    LibraryService
-		downloader DownloadService
-		archiver   ArchiverService
-		encoder    EncoderService
 		resource   ResourceService
+		addon      AddonService
+		build      BuildService
 		conf       Config
 	}
 )
@@ -90,7 +66,7 @@ func LoadConfig() (*Config, error) {
 		return nil, fmt.Errorf("cannot detect platform")
 	}
 
-	appDir := filepath.Join(home, fmt.Sprintf(".%s", "rocketblend"))
+	appDir := filepath.Join(home, "rocketblend")
 	conf := Config{
 		InstallationDir: filepath.Join(appDir, "installations"),
 		DBDir:           filepath.Join(appDir, "data"),
@@ -116,14 +92,17 @@ func NewClient(conf Config) (*Client, error) {
 		return nil, fmt.Errorf("failed to create resource directory: %w", err)
 	}
 
+	jot, err := jot.New(conf.InstallationDir, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	addonService := NewAddonService(jot)
+
 	client := &Client{
-		install:    NewInstallService(db),
-		addon:      NewAddonService(db),
 		preference: NewPreferenceService(db),
-		library:    NewLibraryService(),
-		downloader: NewDownloaderService(conf.InstallationDir),
-		archiver:   NewArchiverService(true),
-		encoder:    NewEncoderService(),
+		addon:      addonService,
+		build:      NewBuildService(jot, addonService),
 		resource:   NewResourceService(conf.ResourceDir),
 		conf:       conf,
 	}
@@ -139,7 +118,3 @@ func (c *Client) Initialize() error {
 
 	return nil
 }
-
-// func (c *Client) Platform() runtime.Platform {
-// 	return c.conf.Platform
-// }

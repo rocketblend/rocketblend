@@ -6,6 +6,7 @@ import (
 
 	"github.com/rocketblend/rocketblend/pkg/core/executable"
 	"github.com/rocketblend/rocketblend/pkg/core/preference"
+	"github.com/rocketblend/rocketblend/pkg/jot/reference"
 )
 
 func (c *Client) SetDefaultExecutable(ref string) error {
@@ -48,16 +49,7 @@ func (c *Client) findDefaultExecutable() (*executable.Executable, error) {
 }
 
 func (c *Client) findExecutableByBuildReference(ref string) (*executable.Executable, error) {
-	if ref == "" {
-		return nil, fmt.Errorf("invalid build reference")
-	}
-
-	install, err := c.findInstall(ref)
-	if err != nil {
-		return nil, fmt.Errorf("failed to find install: %s", err)
-	}
-
-	build, err := c.library.FindBuildByPath(install.Path)
+	build, err := c.build.FindByReference(reference.Reference(ref))
 	if err != nil {
 		return nil, fmt.Errorf("failed to find build: %s", err)
 	}
@@ -68,7 +60,7 @@ func (c *Client) findExecutableByBuildReference(ref string) (*executable.Executa
 	}
 
 	return &executable.Executable{
-		Path:   filepath.Join(install.Path, build.GetSourceForPlatform(c.conf.Platform).Executable),
+		Path:   filepath.Join(c.conf.InstallationDir, ref, build.GetSourceForPlatform(c.conf.Platform).Executable),
 		Addons: addonMap,
 		ARGS:   build.Args,
 	}, nil
@@ -89,19 +81,14 @@ func (c *Client) getExecutableAddonsByReference(ref []string) (*[]executable.Add
 }
 
 func (c *Client) getExecutableAddonByReference(ref string) (*executable.Addon, error) {
-	addon, err := c.findAddon(ref)
+	pack, err := c.addon.FindByReference(reference.Reference(ref))
 	if err != nil {
 		return nil, fmt.Errorf("failed to find addon: %s", err)
-	}
-
-	pack, err := c.library.FindPackageByPath(addon.Path)
-	if err != nil {
-		return nil, fmt.Errorf("failed to find package: %s", err)
 	}
 
 	return &executable.Addon{
 		Name:    pack.Name,
 		Version: pack.AddonVersion,
-		Path:    filepath.Join(addon.Path, pack.Source.File),
+		Path:    filepath.Join(c.conf.InstallationDir, ref, pack.Source.File),
 	}, nil
 }
