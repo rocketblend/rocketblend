@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/rocketblend/rocketblend/pkg/client"
+	"github.com/rocketblend/rocketblend/pkg/jot/reference"
 	"github.com/spf13/cobra"
 )
 
@@ -15,7 +16,7 @@ func NewGetCommand(client *client.Client) *cobra.Command {
 		Short: "Gets a new packge/addon for blender",
 		Long:  ``,
 		Run: func(cmd *cobra.Command, args []string) {
-			if err := client.InstallPackage(pack); err != nil {
+			if err := client.InstallPackage(reference.Reference(pack)); err != nil {
 				fmt.Printf("Error installing package: %v\n", err)
 				return
 			}

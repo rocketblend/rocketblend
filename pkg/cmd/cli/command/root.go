@@ -20,7 +20,6 @@ func NewCommand(srv *client.Client) *cobra.Command {
 	openCmd := NewOpenCommand(srv)
 	installCmd := NewInstallCommand(srv)
 	getCmd := NewGetCommand(srv)
-	// addCmd := NewAddCommand(srv)
 
 	c.AddCommand(
 		initCmd,
