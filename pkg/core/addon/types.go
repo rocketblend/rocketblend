@@ -1,10 +1,17 @@
 package addon
 
+import "github.com/rocketblend/rocketblend/pkg/semver"
+
 type (
-	Addon struct {
-		Id       string `json:"id"`
-		Package  string `json:"package"`
-		Path     string `json:"path"`
-		CheckSum string `json:"checksum"`
+	PackageSource struct {
+		File string `json:"file"`
+		URL  string `json:"url"`
+	}
+
+	Package struct {
+		Reference    string         `json:"reference"`
+		Name         string         `json:"name"`
+		AddonVersion semver.Version `json:"addonVersion"`
+		Source       PackageSource  `json:"source"`
 	}
 )

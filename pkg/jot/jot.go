@@ -6,6 +6,7 @@ import (
 	"sync"
 
 	"github.com/rocketblend/rocketblend/pkg/jot/downloader"
+	"github.com/rocketblend/rocketblend/pkg/jot/extractor"
 	"github.com/sirupsen/logrus"
 )
 
@@ -32,12 +33,17 @@ func New(dir string, options *Options) (*Driver, error) {
 		opts.Downloader = downloader.New()
 	}
 
+	if opts.Extractor == nil {
+		opts.Extractor = extractor.New(nil)
+	}
+
 	// create driver
 	driver := Driver{
 		dir:        dir,
 		mutexes:    make(map[string]*sync.Mutex),
 		log:        opts.Logger,
 		downloader: opts.Downloader,
+		extractor:  opts.Extractor,
 	}
 
 	// if the database already exists, just use it

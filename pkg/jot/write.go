@@ -4,39 +4,59 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+
+	"github.com/rocketblend/rocketblend/pkg/jot/reference"
 )
 
-// Write locks the store and attempts to download the record to the store under
-// the [reference] specified and with the [resource] name given
-func (d *Driver) Write(reference string, resource string, downloadUrl string) error {
-	// ensure there is a place to save record
-	if reference == "" {
-		return fmt.Errorf("missing reference - no place to save record")
-	}
+func (d *Driver) Write(reference reference.Reference, resource string, downloadUrl string) error {
+	_, err := d.write(reference, resource, downloadUrl)
+	return err
+}
 
-	// ensure there is a resource (name) to save record as
-	if reference == "" {
-		return fmt.Errorf("missing resource - unable to save record (no name)")
-	}
-
-	// create mutex on reference
-	mutex := d.getOrCreateMutex(reference)
-	mutex.Lock()
-	defer mutex.Unlock()
-
-	// create full paths to reference, final resource file, and temp file
-	dir := filepath.Join(d.dir, reference, resource)
-
-	// create reference directory
-	if err := os.MkdirAll(dir, 0755); err != nil {
+func (d *Driver) WriteAndExtract(reference reference.Reference, resource string, downloadUrl string) error {
+	dir, err := d.write(reference, resource, downloadUrl)
+	if err != nil {
 		return err
 	}
 
-	// filePath := filepath.Join(dir, resource)
-	err := d.downloader.Download(dir, downloadUrl)
+	err = d.extractor.Extract(dir, dir)
 	if err != nil {
 		return err
 	}
 
 	return nil
+}
+
+// Write locks the store and attempts to download the record to the store under
+// the [reference] specified and with the [resource] name given
+func (d *Driver) write(reference reference.Reference, resource string, downloadUrl string) (string, error) {
+	// ensure there is a place to save record
+	if reference.String() == "" {
+		return "", fmt.Errorf("missing reference - no place to save record")
+	}
+
+	// ensure there is a resource (name) to save record as
+	if reference.String() == "" {
+		return "", fmt.Errorf("missing resource - unable to save record (no name)")
+	}
+
+	// create mutex on reference
+	mutex := d.getOrCreateMutex(reference.String())
+	mutex.Lock()
+	defer mutex.Unlock()
+
+	// create full paths to reference, final resource file, and temp file
+	dir := filepath.Join(d.dir, reference.String(), resource)
+
+	// create reference directory
+	if err := os.MkdirAll(dir, 0755); err != nil {
+		return "", err
+	}
+
+	err := d.downloader.Download(dir, downloadUrl)
+	if err != nil {
+		return "", err
+	}
+
+	return dir, nil
 }

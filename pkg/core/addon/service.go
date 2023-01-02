@@ -1,60 +1,56 @@
 package addon
 
-import "fmt"
+import (
+	"encoding/json"
 
-type (
-	Repository interface {
-		FindAll() ([]*Addon, error)
-		FindByID(id string) (*Addon, error)
-		Create(i *Addon) error
-		Remove(id string) error
-	}
-
-	// Service is an addon Service
-	Service struct {
-		repo Repository
-	}
+	"github.com/rocketblend/rocketblend/pkg/jot"
+	"github.com/rocketblend/rocketblend/pkg/jot/reference"
 )
 
-func NewService(r Repository) *Service {
-	srv := &Service{
-		repo: r,
-	}
+const PackgeFile = "package.json"
 
-	return srv
+type Service struct {
+	driver *jot.Driver
 }
 
-// FindAll return all addons
-func (s *Service) FindAll() ([]*Addon, error) {
-	addons, err := s.repo.FindAll()
+func NewService(driver *jot.Driver) *Service {
+	return &Service{
+		driver: driver,
+	}
+}
+
+func (srv *Service) FindByReference(ref reference.Reference) (*Package, error) {
+	b, err := srv.driver.Read(ref, PackgeFile)
 	if err != nil {
-		return nil, fmt.Errorf("failed to find addons: %w", err)
+		return nil, err
 	}
 
-	return addons, nil
+	p := &Package{}
+	if err := json.Unmarshal(b, p); err != nil {
+		return nil, err
+	}
+
+	return p, err
 }
 
-// FindById return an addon by ID
-func (s *Service) FindByID(id string) (*Addon, error) {
-	addon, err := s.repo.FindByID(id)
+func (srv *Service) FetchByReference(ref reference.Reference) error {
+	err := srv.driver.Write(ref, PackgeFile, ref.Url())
 	if err != nil {
-		return nil, fmt.Errorf("failed to find addon: %w", err)
-	}
-
-	return addon, err
-}
-
-func (s *Service) Create(i *Addon) error {
-	if err := s.repo.Create(i); err != nil {
-		return fmt.Errorf("failed to insert addon: %w", err)
+		return err
 	}
 
 	return nil
 }
 
-func (s *Service) Remove(source string) error {
-	if err := s.repo.Remove(source); err != nil {
-		return fmt.Errorf("failed to remove addon: %w", err)
+func (srv *Service) PullByReference(ref reference.Reference) error {
+	pack, err := srv.FindByReference(ref)
+	if err != nil {
+		return err
+	}
+
+	err = srv.driver.Write(ref, pack.Source.File, pack.Source.URL)
+	if err != nil {
+		return err
 	}
 
 	return nil
