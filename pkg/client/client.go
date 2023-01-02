@@ -5,8 +5,6 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/rocketblend/rocketblend/pkg/core/addon"
-	"github.com/rocketblend/rocketblend/pkg/core/install"
 	"github.com/rocketblend/rocketblend/pkg/core/library"
 	"github.com/rocketblend/rocketblend/pkg/core/preference"
 	"github.com/rocketblend/rocketblend/pkg/core/resource"
@@ -15,20 +13,6 @@ import (
 )
 
 type (
-	InstallService interface {
-		FindAll() ([]*install.Install, error)
-		FindByID(id string) (*install.Install, error)
-		Create(i *install.Install) error
-		Remove(id string) error
-	}
-
-	AddonService interface {
-		FindAll() ([]*addon.Addon, error)
-		FindByID(id string) (*addon.Addon, error)
-		Create(i *addon.Addon) error
-		Remove(id string) error
-	}
-
 	PreferenceService interface {
 		Find() (*preference.Settings, error)
 		Create(i *preference.Settings) error
@@ -67,8 +51,6 @@ type (
 	}
 
 	Client struct {
-		install    InstallService
-		addon      AddonService
 		preference PreferenceService
 		library    LibraryService
 		downloader DownloadService
@@ -117,8 +99,6 @@ func NewClient(conf Config) (*Client, error) {
 	}
 
 	client := &Client{
-		install:    NewInstallService(db),
-		addon:      NewAddonService(db),
 		preference: NewPreferenceService(db),
 		library:    NewLibraryService(),
 		downloader: NewDownloaderService(conf.InstallationDir),
@@ -139,7 +119,3 @@ func (c *Client) Initialize() error {
 
 	return nil
 }
-
-// func (c *Client) Platform() runtime.Platform {
-// 	return c.conf.Platform
-// }

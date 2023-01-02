@@ -1,73 +1,78 @@
 package library
 
-import "fmt"
-
 type (
-	Http interface {
+	HTTPClient interface {
 		FetchBuild(str string) (*Build, error)
 		FetchPackage(str string) (*Package, error)
 	}
 
 	Repository interface {
-		FindBuildByPath(path string) (*Build, error)
-		FindPackageByPath(path string) (*Package, error)
+		CreateBuild(build *Build) error
+		CreatePackage(pack *Package) error
+		FindBuildByRef(ref string) (*Build, error)
+		FindPackageByRef(ref string) (*Package, error)
 	}
 
 	Service struct {
-		http Http
-		repo Repository
+		client HTTPClient
+		repo   Repository
 	}
 )
 
-func NewService(http Http, repo Repository) *Service {
+func NewService(client HTTPClient, repo Repository) *Service {
 	srv := &Service{
-		http: http,
-		repo: repo,
+		client: client,
+		repo:   repo,
 	}
 
 	return srv
 }
 
-func (s *Service) FindBuildByPath(path string) (*Build, error) {
-	b, err := s.repo.FindBuildByPath(path)
+func (s *Service) FindBuildByRef(ref string) (*Build, error) {
+	b, err := s.repo.FindBuildByRef(ref)
 	if err != nil {
-		return nil, err
+		b, err = s.fetchBuild(ref)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	return b, nil
 }
 
-func (s *Service) FindPackageByPath(path string) (*Package, error) {
-	p, err := s.repo.FindPackageByPath(path)
+func (s *Service) FindPackageByRef(ref string) (*Package, error) {
+	p, err := s.repo.FindPackageByRef(ref)
 	if err != nil {
-		return nil, err
+		p, err = s.fetchPackage(ref)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	return p, nil
 }
 
-func (s *Service) FetchBuild(str string) (*Build, error) {
-	b, err := s.http.FetchBuild(str)
+func (s *Service) fetchBuild(ref string) (*Build, error) {
+	b, err := s.client.FetchBuild(ref)
 	if err != nil {
 		return nil, err
 	}
 
-	// Create validators for the build configurations.
-	if b.Reference != str {
-		return nil, fmt.Errorf("build reference %s does not match %s", b.Reference, str)
+	if err := s.repo.CreateBuild(b); err != nil {
+		return nil, err
 	}
 
 	return b, nil
 }
 
-func (s *Service) FetchPackage(str string) (*Package, error) {
-	p, err := s.http.FetchPackage(str)
+func (s *Service) fetchPackage(ref string) (*Package, error) {
+	p, err := s.client.FetchPackage(ref)
 	if err != nil {
 		return nil, err
 	}
 
-	if p.Reference != str {
-		return nil, fmt.Errorf("package reference %s does not match %s", p.Reference, str)
+	if err := s.repo.CreatePackage(p); err != nil {
+		return nil, err
 	}
 
 	return p, nil

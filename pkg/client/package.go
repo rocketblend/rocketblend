@@ -16,9 +16,9 @@ func (c *Client) InstallPackage(ref string) error {
 func (c *Client) installPackageIgnorable(ref string, ignore bool) error {
 	// TODO: Move downloading packages/builds into library service.
 
-	// Check if addon already exists
-	adn, _ := c.findAddon(ref)
-	if adn != nil {
+	path := filepath.Join(c.conf.InstallationDir, ref)
+	_, err := c.library.FindPackageByPath(path)
+	if err == nil {
 		if !ignore {
 			return fmt.Errorf("already installed")
 		}
@@ -26,7 +26,7 @@ func (c *Client) installPackageIgnorable(ref string, ignore bool) error {
 	}
 
 	// Fetch package from ref
-	pack, err := c.library.FetchPackage(ref)
+	pack, err := c.library.FetchPackage(path)
 	if err != nil {
 		return err
 	}
@@ -35,18 +35,15 @@ func (c *Client) installPackageIgnorable(ref string, ignore bool) error {
 		return fmt.Errorf("invalid package")
 	}
 
-	// Output directory
-	outPath := filepath.Join(c.conf.InstallationDir, ref)
-
 	// Create output directories
-	err = os.MkdirAll(outPath, os.ModePerm)
+	err = os.MkdirAll(path, os.ModePerm)
 	if err != nil {
 		return err
 	}
 
 	// download file path
 	name := filepath.Base(pack.Source.URL)
-	filePath := filepath.Join(outPath, name)
+	filePath := filepath.Join(path, name)
 
 	// Download file to file path
 	err = c.downloader.Download(pack.Source.URL, filePath)
@@ -61,13 +58,7 @@ func (c *Client) installPackageIgnorable(ref string, ignore bool) error {
 	}
 
 	// Write out package.json
-	if err := os.WriteFile(filepath.Join(outPath, library.PackgeFile), data, os.ModePerm); err != nil {
-		return err
-	}
-
-	// Add addon to database
-	err = c.addon.Create(c.newAddon(ref, outPath))
-	if err != nil {
+	if err := os.WriteFile(filepath.Join(path, library.PackgeFile), data, os.ModePerm); err != nil {
 		return err
 	}
 

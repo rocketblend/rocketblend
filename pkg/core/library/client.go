@@ -2,6 +2,7 @@ package library
 
 import (
 	"encoding/json"
+	"fmt"
 	"io"
 	"net/http"
 	"net/url"
@@ -40,6 +41,10 @@ func (c *Client) FetchBuild(str string) (*Build, error) {
 	var b *Build = &Build{}
 	json.Unmarshal(rd, b)
 
+	if b.Reference != str {
+		return nil, fmt.Errorf("build reference %s does not match %s", b.Reference, str)
+	}
+
 	return b, nil
 }
 
@@ -51,6 +56,10 @@ func (c *Client) FetchPackage(str string) (*Package, error) {
 
 	var p *Package = &Package{}
 	json.Unmarshal(rd, p)
+
+	if p.Reference != str {
+		return nil, fmt.Errorf("package reference %s does not match %s", p.Reference, str)
+	}
 
 	return p, nil
 }

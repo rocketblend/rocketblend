@@ -11,8 +11,9 @@ import (
 
 func (c *Client) InstallBuild(ref string) error {
 	// Check if install already exists
-	inst, _ := c.findInstall(ref)
-	if inst != nil {
+	outPath := filepath.Join(c.conf.InstallationDir, ref)
+	_, err := c.library.FindBuildByPath(outPath)
+	if err == nil {
 		return fmt.Errorf("already installed")
 	}
 
@@ -25,9 +26,6 @@ func (c *Client) InstallBuild(ref string) error {
 	if build == nil {
 		return fmt.Errorf("invalid build")
 	}
-
-	// Output directory
-	outPath := filepath.Join(c.conf.InstallationDir, ref)
 
 	// Create output directories
 	err = os.MkdirAll(outPath, os.ModePerm)
@@ -67,12 +65,6 @@ func (c *Client) InstallBuild(ref string) error {
 
 	// Write out build.json
 	if err := os.WriteFile(filepath.Join(outPath, library.BuildFile), data, os.ModePerm); err != nil {
-		return err
-	}
-
-	// Add install to database
-	err = c.install.Create(c.newInstall(ref, outPath, build.Packages))
-	if err != nil {
 		return err
 	}
 

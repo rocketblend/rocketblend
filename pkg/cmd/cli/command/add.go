@@ -45,21 +45,21 @@ func NewAddCommand(client *client.Client) *cobra.Command {
 }
 
 func addInstall(client *client.Client, path string) error {
-	if err := client.AddInstall(path); err != nil {
-		return fmt.Errorf("error adding build: %v", err)
-	}
+	// if err := client.AddInstall(path); err != nil {
+	// 	return fmt.Errorf("error adding build: %v", err)
+	// }
 
-	fmt.Printf("Build %s added\n", path)
+	// fmt.Printf("Build %s added\n", path)
 
 	return nil
 }
 
 func addAddon(client *client.Client, path string) error {
-	if err := client.AddAddon(path); err != nil {
-		return fmt.Errorf("error adding package: %v", err)
-	}
+	// if err := client.AddAddon(path); err != nil {
+	// 	return fmt.Errorf("error adding package: %v", err)
+	// }
 
-	fmt.Printf("Package %s added\n", path)
+	// fmt.Printf("Package %s added\n", path)
 
 	return nil
 }
