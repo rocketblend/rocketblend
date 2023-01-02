@@ -28,8 +28,6 @@ func (d *Downloader) Download(path string, downloadUrl string) error {
 	defer resp.Body.Close()
 
 	f, _ := os.OpenFile(tempPath, os.O_CREATE|os.O_WRONLY, 0644)
-	defer f.Close()
-
 	bar := progressbar.DefaultBytes(
 		resp.ContentLength,
 		"downloading",
