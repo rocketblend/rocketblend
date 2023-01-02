@@ -12,42 +12,43 @@ func TestGetBuildUrlConversion(t *testing.T) {
 	tests := []struct {
 		name string
 		args args
-		want *url.URL
+		want string
 	}{
 		{
 			name: "Github short path style (no protocol)",
 			args: args{
 				url: "github.com/rocketblend/official-library/build",
 			},
-			want: parseURL("https://raw.githubusercontent.com/rocketblend/official-library/master/build"),
+			want: "https://raw.githubusercontent.com/rocketblend/official-library/master/build",
 		},
 		{
 			name: "Github offical path style (no protocol)",
 			args: args{
 				url: "github.com/rocketblend/official-library/builds/stable/3.2.2",
 			},
-			want: parseURL("https://raw.githubusercontent.com/rocketblend/official-library/master/builds/stable/3.2.2"),
+			want: "https://raw.githubusercontent.com/rocketblend/official-library/master/builds/stable/3.2.2",
 		},
 		{
 			name: "Github (http)",
 			args: args{
 				url: "http://github.com/rocketblend/official-library/build",
 			},
-			want: parseURL("http://raw.githubusercontent.com/rocketblend/official-library/master/build"),
+			want: "http://raw.githubusercontent.com/rocketblend/official-library/master/build",
 		},
 		{
 			name: "Github (https)",
 			args: args{
 				url: "https://github.com/rocketblend/official-library/build",
 			},
-			want: parseURL("https://raw.githubusercontent.com/rocketblend/official-library/master/build"),
+			want: "https://raw.githubusercontent.com/rocketblend/official-library/master/build",
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got, _ := convertToUrl(tt.args.url); got != tt.want {
-				t.Errorf("NewSourceUrl() = %v, want %v", got, tt.want)
+			got, _ := convertToUrl(tt.args.url)
+			if got.String() != tt.want {
+				t.Errorf("NewSourceUrl() = %v, want %v", got.String(), tt.want)
 			}
 		})
 	}
@@ -137,9 +138,4 @@ func TestAddToPathIndex(t *testing.T) {
 			}
 		})
 	}
-}
-
-func parseURL(str string) *url.URL {
-	ret, _ := url.Parse(str)
-	return ret
 }

@@ -3,7 +3,6 @@ module github.com/rocketblend/rocketblend
 go 1.19
 
 require (
-	github.com/dustin/go-humanize v1.0.0
 	github.com/mholt/archiver/v3 v3.5.1
 	github.com/rocketblend/scribble v1.1.0
 	github.com/schollz/progressbar/v3 v3.12.2
