@@ -1,7 +1,6 @@
 package downloader
 
 import (
-	"fmt"
 	"io"
 	"net/http"
 	"os"
@@ -37,9 +36,6 @@ func (d *Downloader) Download(path string, downloadUrl string) error {
 		f.Close()
 		return err
 	}
-
-	// The progress use the same line so print a new line once it's finished downloading
-	fmt.Print("\n")
 
 	// Close the file without defer so it can happen before Rename()
 	f.Close()
