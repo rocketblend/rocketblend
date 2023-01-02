@@ -8,7 +8,7 @@ import (
 	"github.com/rocketblend/rocketblend/pkg/jot/reference"
 )
 
-// Read a record from the database
+// Read a record from the store
 func (d *Driver) Read(reference reference.Reference, resource string) ([]byte, error) {
 	// ensure there is a place to save record
 	if reference == "" {
