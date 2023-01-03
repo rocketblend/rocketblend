@@ -209,7 +209,6 @@ class Startup():
         """
         Disables the addon with the given name.
         """
-
         addon_utils.disable(addon.module, default_set=True)
         logging.debug(f"Disabled addon {addon.module}")
 
