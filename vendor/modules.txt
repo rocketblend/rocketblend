@@ -93,9 +93,6 @@ github.com/pierrec/lz4/v4/internal/xxh32
 # github.com/rivo/uniseg v0.4.3
 ## explicit; go 1.18
 github.com/rivo/uniseg
-# github.com/rocketblend/scribble v1.1.0
-## explicit; go 1.19
-github.com/rocketblend/scribble
 # github.com/schollz/progressbar/v3 v3.12.2
 ## explicit; go 1.13
 github.com/schollz/progressbar/v3

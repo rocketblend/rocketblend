@@ -6,7 +6,6 @@ require (
 	github.com/go-playground/validator v9.31.0+incompatible
 	github.com/mholt/archiver/v3 v3.5.1
 	github.com/mitchellh/mapstructure v1.5.0
-	github.com/rocketblend/scribble v1.1.0
 	github.com/schollz/progressbar/v3 v3.12.2
 	github.com/sirupsen/logrus v1.9.0
 	github.com/spf13/cobra v1.5.0
