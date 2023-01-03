@@ -31,7 +31,7 @@ See [Quick Start](https://docs.rocketblend.io/getting-started/quick-start) in ou
 
 - [Official Library](https://github.com/rocketblend/official-library) - Collection of builds and packages.
 - [RocketBlend Collector](https://github.com/rocketblend/rocketblend-collector) - CLI tool for generating build collections from offical blender releases.
-- [RocketBlend Companion](https://github.com/rocketblend/rocketblend-package) - Blender addon to aid with working with RocketBlend. **NOTE: WIP**
+- [RocketBlend Companion](https://github.com/rocketblend/rocketblend-companion) - Blender addon to aid with working with RocketBlend. **NOTE: WIP**
 
 ## Roadmap
 - CI/CD pipeline for releases.
