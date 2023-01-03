@@ -101,23 +101,26 @@ func (c *Client) load(path string) (*blendFile, error) {
 }
 
 func (c *Client) run(file *blendFile) error {
-	script, err := c.FindResource(resource.Startup)
-	if err != nil {
-		return fmt.Errorf("failed to find startup script: %s", err)
-	}
-
 	addons := append(*file.Exec.Addons, *file.Addons...)
 	json, err := json.Marshal(addons)
 	if err != nil {
 		return fmt.Errorf("failed to marshal addons: %s", err)
 	}
 
-	args := []string{
-		"--python",
-		script.OutputPath,
-		"--",
-		"-a",
-		string(json),
+	args := []string{}
+	if c.conf.Features.Addons {
+		script, err := c.FindResource(resource.Startup)
+		if err != nil {
+			return fmt.Errorf("failed to find startup script: %s", err)
+		}
+
+		args = append(args, []string{
+			"--python",
+			script.OutputPath,
+			"--",
+			"-a",
+			string(json),
+		}...)
 	}
 
 	if file.Path != "" {
