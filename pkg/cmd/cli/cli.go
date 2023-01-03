@@ -6,12 +6,7 @@ import (
 )
 
 func Execute() error {
-	conf, err := client.LoadConfig()
-	if err != nil {
-		return err
-	}
-
-	client, err := client.NewClient(*conf)
+	client, err := client.New()
 	if err != nil {
 		return err
 	}

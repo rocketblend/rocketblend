@@ -3,24 +3,17 @@ package client
 import (
 	"fmt"
 	"os"
-	"path/filepath"
 
+	"github.com/rocketblend/rocketblend/pkg/client/config"
 	"github.com/rocketblend/rocketblend/pkg/core/addon"
 	"github.com/rocketblend/rocketblend/pkg/core/build"
-	"github.com/rocketblend/rocketblend/pkg/core/preference"
 	"github.com/rocketblend/rocketblend/pkg/core/resource"
 	"github.com/rocketblend/rocketblend/pkg/core/runtime"
 	"github.com/rocketblend/rocketblend/pkg/jot"
 	"github.com/rocketblend/rocketblend/pkg/jot/reference"
-	"github.com/rocketblend/scribble"
 )
 
 type (
-	PreferenceService interface {
-		Find() (*preference.Settings, error)
-		Create(i *preference.Settings) error
-	}
-
 	ResourceService interface {
 		FindByName(name string) (*resource.Resource, error)
 		SaveOut() error
@@ -38,73 +31,38 @@ type (
 		PullByReference(ref reference.Reference, platform runtime.Platform) error
 	}
 
-	Config struct {
-		DBDir           string
-		InstallationDir string
-		ResourceDir     string
-		Debug           bool
-		Platform        runtime.Platform
-	}
-
 	Client struct {
-		preference PreferenceService
-		resource   ResourceService
-		addon      AddonService
-		build      BuildService
-		conf       Config
+		resource ResourceService
+		addon    AddonService
+		build    BuildService
+		conf     *config.Config
 	}
 )
 
-func LoadConfig() (*Config, error) {
-	home, err := os.UserHomeDir()
+func New() (*Client, error) {
+	config, err := config.Load()
 	if err != nil {
-		return nil, fmt.Errorf("cannot find user home directory: %v", err)
+		return nil, fmt.Errorf("failed to load config: %w", err)
 	}
 
-	platform := runtime.DetectPlatform()
-	if platform == runtime.Undefined {
-		return nil, fmt.Errorf("cannot detect platform")
-	}
-
-	appDir := filepath.Join(home, "rocketblend")
-	conf := Config{
-		InstallationDir: filepath.Join(appDir, "installations"),
-		DBDir:           filepath.Join(appDir, "data"),
-		ResourceDir:     filepath.Join(appDir, "resources"),
-		Debug:           false,
-		Platform:        platform,
-	}
-
-	return &conf, nil
-}
-
-func NewClient(conf Config) (*Client, error) {
-	db, err := scribble.New(conf.DBDir, nil)
-	if err != nil {
-		return nil, err
-	}
-
-	if err := os.MkdirAll(conf.InstallationDir, os.ModePerm); err != nil {
-		return nil, fmt.Errorf("failed to create installation directory: %w", err)
-	}
-
-	if err := os.MkdirAll(conf.ResourceDir, os.ModePerm); err != nil {
+	if err := os.MkdirAll(config.Directories.Resources, os.ModePerm); err != nil {
 		return nil, fmt.Errorf("failed to create resource directory: %w", err)
 	}
 
-	jot, err := jot.New(conf.InstallationDir, nil)
+	jot, err := jot.New(config.Directories.Library, nil)
 	if err != nil {
 		return nil, err
 	}
 
 	addonService := NewAddonService(jot)
+	buildService := NewBuildService(jot, addonService)
+	resourceService := NewResourceService(config.Directories.Resources)
 
 	client := &Client{
-		preference: NewPreferenceService(db),
-		addon:      addonService,
-		build:      NewBuildService(jot, addonService),
-		resource:   NewResourceService(conf.ResourceDir),
-		conf:       conf,
+		addon:    addonService,
+		build:    buildService,
+		resource: resourceService,
+		conf:     config,
 	}
 
 	return client, nil

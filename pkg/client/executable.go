@@ -5,42 +5,16 @@ import (
 	"path/filepath"
 
 	"github.com/rocketblend/rocketblend/pkg/core/executable"
-	"github.com/rocketblend/rocketblend/pkg/core/preference"
 	"github.com/rocketblend/rocketblend/pkg/jot/reference"
 )
 
-func (c *Client) SetDefaultExecutable(ref string) error {
-	settings, err := c.preference.Find()
-	if err != nil {
-		return err
-	}
-
-	if settings == nil {
-		settings = &preference.Settings{}
-	}
-
-	settings.DefaultBuild = ref
-
-	err = c.preference.Create(settings)
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
 func (c *Client) findDefaultExecutable() (*executable.Executable, error) {
-	settings, err := c.preference.Find()
-	if err != nil {
-		return nil, err
-	}
-
-	if settings.DefaultBuild == "" {
+	if c.conf.Defaults.Build == "" {
 		// TODO: Get latest build and set as default
 		return nil, fmt.Errorf("no default executable set")
 	}
 
-	executable, err := c.findExecutableByBuildReference(settings.DefaultBuild)
+	executable, err := c.findExecutableByBuildReference(c.conf.Defaults.Build)
 	if err != nil {
 		return nil, err
 	}
@@ -49,6 +23,7 @@ func (c *Client) findDefaultExecutable() (*executable.Executable, error) {
 }
 
 func (c *Client) findExecutableByBuildReference(ref string) (*executable.Executable, error) {
+	// TODO: Move executable stuff into core package.
 	build, err := c.build.FindByReference(reference.Reference(ref))
 	if err != nil {
 		return nil, fmt.Errorf("failed to find build: %s", err)
@@ -60,7 +35,7 @@ func (c *Client) findExecutableByBuildReference(ref string) (*executable.Executa
 	}
 
 	return &executable.Executable{
-		Path:   filepath.Join(c.conf.InstallationDir, ref, build.GetSourceForPlatform(c.conf.Platform).Executable),
+		Path:   filepath.Join(c.conf.Directories.Library, ref, build.GetSourceForPlatform(c.conf.Platform).Executable),
 		Addons: addonMap,
 		ARGS:   build.Args,
 	}, nil
@@ -89,6 +64,6 @@ func (c *Client) getExecutableAddonByReference(ref string) (*executable.Addon, e
 	return &executable.Addon{
 		Name:    pack.Name,
 		Version: pack.AddonVersion,
-		Path:    filepath.Join(c.conf.InstallationDir, ref, pack.Source.File),
+		Path:    filepath.Join(c.conf.Directories.Library, ref, pack.Source.File),
 	}, nil
 }
