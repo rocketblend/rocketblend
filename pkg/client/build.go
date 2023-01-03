@@ -8,7 +8,7 @@ func (c *Client) InstallBuild(ref reference.Reference) error {
 		return err
 	}
 
-	err = c.build.PullByReference(ref, c.conf.Platform)
+	err = c.build.PullByReference(ref)
 	if err != nil {
 		return err
 	}

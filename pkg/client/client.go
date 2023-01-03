@@ -8,7 +8,6 @@ import (
 	"github.com/rocketblend/rocketblend/pkg/core/addon"
 	"github.com/rocketblend/rocketblend/pkg/core/build"
 	"github.com/rocketblend/rocketblend/pkg/core/resource"
-	"github.com/rocketblend/rocketblend/pkg/core/runtime"
 	"github.com/rocketblend/rocketblend/pkg/jot"
 	"github.com/rocketblend/rocketblend/pkg/jot/reference"
 )
@@ -28,7 +27,7 @@ type (
 	BuildService interface {
 		FindByReference(ref reference.Reference) (*build.Build, error)
 		FetchByReference(ref reference.Reference) error
-		PullByReference(ref reference.Reference, platform runtime.Platform) error
+		PullByReference(ref reference.Reference) error
 	}
 
 	Client struct {
@@ -55,7 +54,7 @@ func New() (*Client, error) {
 	}
 
 	addonService := NewAddonService(jot)
-	buildService := NewBuildService(jot, addonService)
+	buildService := NewBuildService(jot, config.Platform, addonService)
 	resourceService := NewResourceService(config.Directories.Resources)
 
 	client := &Client{

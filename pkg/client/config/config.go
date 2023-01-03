@@ -73,7 +73,7 @@ func Load() (config *Config, err error) {
 	appDir := filepath.Join(home, "rocketblend")
 
 	v.SetDefault("debug", false)
-	v.SetDefault("platform", platform)
+	v.SetDefault("platform", platform.String())
 	v.SetDefault("defaults.build", "")
 	v.SetDefault("directories.installations", filepath.Join(appDir, "installations"))
 	v.SetDefault("directories.resources", filepath.Join(appDir, "resources"))
@@ -81,7 +81,9 @@ func Load() (config *Config, err error) {
 
 	v.SetConfigName("settings") // Set the name of the configuration file
 	v.AddConfigPath(appDir)     // Look for the configuration file at the home directory
-	v.SetConfigType("yml")      // Set the config type to YAML
+	v.SetConfigType("json")     // Set the config type to JSON
+
+	v.SafeWriteConfig()
 
 	err = v.ReadInConfig()
 	if err != nil {
