@@ -21,12 +21,14 @@ type (
 	Service struct {
 		driver       *jot.Driver
 		addonService AddonService
+		platform     runtime.Platform
 	}
 )
 
-func NewService(driver *jot.Driver, addonService AddonService) *Service {
+func NewService(driver *jot.Driver, platform runtime.Platform, addonService AddonService) *Service {
 	return &Service{
 		driver:       driver,
+		platform:     platform,
 		addonService: addonService,
 	}
 }
@@ -71,15 +73,15 @@ func (srv *Service) FetchByReference(ref reference.Reference) error {
 	return nil
 }
 
-func (srv *Service) PullByReference(ref reference.Reference, platform runtime.Platform) error {
+func (srv *Service) PullByReference(ref reference.Reference) error {
 	build, err := srv.FindByReference(ref)
 	if err != nil {
 		return err
 	}
 
-	source := build.GetSourceForPlatform(platform)
+	source := build.GetSourceForPlatform(srv.platform)
 	if source == nil {
-		return fmt.Errorf("no source found for platform %s", platform)
+		return fmt.Errorf("no source found for platform %s", (srv.platform))
 	}
 
 	err = srv.driver.WriteAndExtract(ref, jot.GetFilenameFromURL(source.URL), source.URL)
