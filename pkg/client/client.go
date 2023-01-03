@@ -49,7 +49,7 @@ func New() (*Client, error) {
 		return nil, fmt.Errorf("failed to create resource directory: %w", err)
 	}
 
-	jot, err := jot.New(config.Directories.Library, nil)
+	jot, err := jot.New(config.Directories.Installations, nil)
 	if err != nil {
 		return nil, err
 	}

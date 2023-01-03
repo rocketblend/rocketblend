@@ -35,7 +35,7 @@ func (c *Client) findExecutableByBuildReference(ref string) (*executable.Executa
 	}
 
 	return &executable.Executable{
-		Path:   filepath.Join(c.conf.Directories.Library, ref, build.GetSourceForPlatform(c.conf.Platform).Executable),
+		Path:   filepath.Join(c.conf.Directories.Installations, ref, build.GetSourceForPlatform(c.conf.Platform).Executable),
 		Addons: addonMap,
 		ARGS:   build.Args,
 	}, nil
@@ -64,6 +64,6 @@ func (c *Client) getExecutableAddonByReference(ref string) (*executable.Addon, e
 	return &executable.Addon{
 		Name:    pack.Name,
 		Version: pack.AddonVersion,
-		Path:    filepath.Join(c.conf.Directories.Library, ref, pack.Source.File),
+		Path:    filepath.Join(c.conf.Directories.Installations, ref, pack.Source.File),
 	}, nil
 }

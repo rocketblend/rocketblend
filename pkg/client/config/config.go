@@ -18,8 +18,8 @@ type (
 	}
 
 	Directories struct {
-		Library   string `mapstructure:"library"`
-		Resources string `mapstructure:"resources"`
+		Installations string `mapstructure:"installations"`
+		Resources     string `mapstructure:"resources"`
 	}
 
 	Features struct {
@@ -75,8 +75,8 @@ func Load() (config *Config, err error) {
 	v.SetDefault("debug", false)
 	v.SetDefault("platform", platform)
 	v.SetDefault("defaults.build", "")
-	v.SetDefault("directories.library", filepath.Join(appDir, "library"))
-	v.SetDefault("directories.resources", filepath.Join(appDir, "./resources/"))
+	v.SetDefault("directories.installations", filepath.Join(appDir, "installations"))
+	v.SetDefault("directories.resources", filepath.Join(appDir, "resources"))
 	v.SetDefault("features.addons", false)
 
 	v.SetConfigName("settings") // Set the name of the configuration file
