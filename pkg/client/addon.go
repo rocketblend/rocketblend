@@ -2,7 +2,7 @@ package client
 
 import "github.com/rocketblend/rocketblend/pkg/jot/reference"
 
-func (c *Client) InstallPackage(ref reference.Reference) error {
+func (c *Client) InstallAddon(ref reference.Reference) error {
 	err := c.addon.FetchByReference(ref)
 	if err != nil {
 		return err

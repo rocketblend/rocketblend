@@ -29,7 +29,7 @@ func (c *Client) findExecutableByBuildReference(ref string) (*executable.Executa
 		return nil, fmt.Errorf("failed to find build: %s", err)
 	}
 
-	addonMap, err := c.getExecutableAddonsByReference(build.Packages)
+	addonMap, err := c.getExecutableAddonsByReference(build.Addons)
 	if err != nil {
 		return nil, fmt.Errorf("failed to find all addons for build: %s", err)
 	}

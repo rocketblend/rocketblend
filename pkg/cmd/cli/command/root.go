@@ -9,8 +9,8 @@ import (
 func NewCommand(srv *client.Client) *cobra.Command {
 	c := &cobra.Command{
 		Use:   "rocketblend",
-		Short: "Version and package manager for blender.",
-		Long:  `RocketBlend is a tool for managing packages and versions of Blender.`,
+		Short: "Version and addon manager for blender.",
+		Long:  `RocketBlend is a tool for managing addons and versions of Blender.`,
 	}
 
 	c.SetVersionTemplate("{{.Version}}\n")

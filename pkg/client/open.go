@@ -14,10 +14,10 @@ import (
 
 type (
 	rocketFile struct {
-		Build    string   `json:"build"`
-		ARGS     string   `json:"args"`
-		Version  string   `json:"version"`
-		Packages []string `json:"packages"`
+		Build   string   `json:"build"`
+		ARGS    string   `json:"args"`
+		Version string   `json:"version"`
+		Addons  []string `json:"addons"`
 	}
 
 	blendFile struct {
@@ -87,7 +87,7 @@ func (c *Client) load(path string) (*blendFile, error) {
 		return nil, fmt.Errorf("failed to find executable: %s", err)
 	}
 
-	addons, err := c.getExecutableAddonsByReference(rkt.Packages)
+	addons, err := c.getExecutableAddonsByReference(rkt.Addons)
 	if err != nil {
 		return nil, fmt.Errorf("failed to find all addon directories: %s", err)
 	}

@@ -7,7 +7,7 @@
 [![Go Report Card](https://goreportcard.com/badge/github.com/rocketblend/rocketblend)](https://goreportcard.com/report/github.com/rocketblend/rocketblend)
 [![GitHub](https://img.shields.io/github/license/rocketblend/rocketblend)](https://github.com/rocketblend/rocketblend/blob/master/LICENSE)
 
-RocketBlend is an open-source tool that offers package and version management for the 3D graphics software, [Blender](https://www.blender.org/).
+RocketBlend is an open-source tool that offers build and addon management for the 3D graphics software, [Blender](https://www.blender.org/).
 
 ## About
 
@@ -15,13 +15,13 @@ RocketBlend consists of two parts: a CLI tool and a Launcher.
 
 ### CLI
 
-The command line tool is the primary application for managing your local installations of packages and Blender versions.
+The command line tool is the primary application for managing your local installations of addons and Blender versions.
 
 ### Launcher
 
-The Launcher is an alternative launcher for .blend files that utilizes a rocketfile.json file to determine the correct version of Blender and the packages to run.
+The Launcher is an alternative launcher for .blend files that utilizes a `rocketfile.json` file to determine the correct version of Blender and the addons to run.
 
-**Note: The Launcher is optional, but it allows you to open .blend files as you normally would while still maintaining package and build management.**
+**Note: The Launcher is optional, but it allows you to open .blend files as you normally would while still maintaining addon and build management.**
 
 ## Getting Started
 
@@ -29,7 +29,7 @@ See [Quick Start](https://docs.rocketblend.io/getting-started/quick-start) in ou
 
 ## See Also
 
-- [Official Library](https://github.com/rocketblend/official-library) - Collection of builds and packages.
+- [Official Library](https://github.com/rocketblend/official-library) - Collection of builds and addons.
 - [RocketBlend Collector](https://github.com/rocketblend/rocketblend-collector) - CLI tool for generating build collections from offical blender releases.
 - [RocketBlend Companion](https://github.com/rocketblend/rocketblend-companion) - Blender addon to aid with working with RocketBlend. **NOTE: WIP**
 
@@ -37,7 +37,7 @@ See [Quick Start](https://docs.rocketblend.io/getting-started/quick-start) in ou
 - CI/CD pipeline for releases.
 - Companion blender addon.
 - GUI project.
-- Searchable build and package website similar to [hub.docker.com](https://hub.docker.com/) or [pkg.go.dev](pkg.go.dev).
+- Searchable build and addon website similar to [hub.docker.com](https://hub.docker.com/) or [pkg.go.dev](pkg.go.dev).
 
 ## Acknowledgments
 
