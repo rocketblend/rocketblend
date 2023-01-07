@@ -63,7 +63,7 @@ func (srv *Service) FetchByReference(ref reference.Reference) error {
 		return err
 	}
 
-	for _, pack := range build.Packages {
+	for _, pack := range build.Addons {
 		err = srv.addonService.FetchByReference(reference.Reference(pack))
 		if err != nil {
 			return err
@@ -89,7 +89,7 @@ func (srv *Service) PullByReference(ref reference.Reference) error {
 		return err
 	}
 
-	for _, pack := range build.Packages {
+	for _, pack := range build.Addons {
 		err = srv.addonService.PullByReference(reference.Reference(pack))
 		if err != nil {
 			return err

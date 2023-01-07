@@ -13,11 +13,10 @@ type (
 	}
 
 	Build struct {
-		Reference      string          `json:"reference"`
 		Args           string          `json:"args"`
 		BlenderVersion *semver.Version `json:"blenderVersion"`
 		Source         []*Source       `json:"source"`
-		Packages       []string        `json:"packages"`
+		Addons         []string        `json:"addons"`
 	}
 )
 

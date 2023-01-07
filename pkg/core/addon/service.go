@@ -8,7 +8,7 @@ import (
 	"github.com/rocketblend/rocketblend/pkg/jot/reference"
 )
 
-const PackgeFile = "package.json"
+const PackgeFile = "addon.json"
 
 type Service struct {
 	driver *jot.Driver
@@ -20,13 +20,13 @@ func NewService(driver *jot.Driver) *Service {
 	}
 }
 
-func (srv *Service) FindByReference(ref reference.Reference) (*Package, error) {
+func (srv *Service) FindByReference(ref reference.Reference) (*Addon, error) {
 	b, err := srv.driver.Read(ref, PackgeFile)
 	if err != nil {
 		return nil, err
 	}
 
-	p := &Package{}
+	p := &Addon{}
 	if err := json.Unmarshal(b, p); err != nil {
 		return nil, err
 	}

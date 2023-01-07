@@ -19,7 +19,7 @@ type (
 	}
 
 	AddonService interface {
-		FindByReference(ref reference.Reference) (*addon.Package, error)
+		FindByReference(ref reference.Reference) (*addon.Addon, error)
 		FetchByReference(ref reference.Reference) error
 		PullByReference(ref reference.Reference) error
 	}

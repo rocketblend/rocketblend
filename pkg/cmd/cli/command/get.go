@@ -9,24 +9,24 @@ import (
 )
 
 func NewGetCommand(client *client.Client) *cobra.Command {
-	var pack string
+	var ref string
 
 	c := &cobra.Command{
 		Use:   "get",
-		Short: "Gets a new packge/addon for blender",
+		Short: "Gets a addon for blender",
 		Long:  ``,
 		Run: func(cmd *cobra.Command, args []string) {
-			if err := client.InstallPackage(reference.Reference(pack)); err != nil {
-				fmt.Printf("Error installing package: %v\n", err)
+			if err := client.InstallAddon(reference.Reference(ref)); err != nil {
+				fmt.Printf("Error installing addon: %v\n", err)
 				return
 			}
 
-			fmt.Printf("Package %s added to collection\n", pack)
+			fmt.Printf("addon %s added to collection\n", ref)
 		},
 	}
 
-	c.Flags().StringVarP(&pack, "package", "p", "", "package of the addon get")
-	if err := c.MarkFlagRequired("package"); err != nil {
+	c.Flags().StringVarP(&ref, "ref", "r", "", "reference of the addon to get (required)")
+	if err := c.MarkFlagRequired("ref"); err != nil {
 		fmt.Println(err)
 	}
 
