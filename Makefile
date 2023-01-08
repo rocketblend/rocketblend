@@ -24,11 +24,16 @@ dep:
 	@go mod vendor
 	@go mod tidy
 
-rocketblend:
+install:
 	@go install ./cmd/rocketblend
 
 build:
 	@go build ./cmd/rocketblend
 
-launcher:
-	@go build -ldflags -H=windowsgui ./cmd/launcher
+dry:
+	@goreleaser release --snapshot --rm-dist
+
+release:
+	@git tag $(version)
+	@git push origin $(version)
+	@goreleaser --rm-dist

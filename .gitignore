@@ -20,4 +20,14 @@
 # Dependency directories (remove the comment below to include it)
 # vendor/
 
+# Direnv
+.envrc
+
+# Logs
 logs/
+
+# Distributions
+dist/
+
+# Cosign
+*.key
