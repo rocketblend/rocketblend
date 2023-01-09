@@ -5,24 +5,12 @@ description: A brief introduction to RocketBlend.
 # Introduction to RocketBlend
 
 {% hint style="warning" %}
-Please note that RocketBlend is still in the early stages of development and may undergo large changes as it continues to evolve.&#x20;
+Please note that RocketBlend is still in the early stages of development and may undergo significant changes as it continues to evolve.
 {% endhint %}
 
 ## What is RocketBlend?
 
-[RocketBlend ](https://github.com/rocketblend/rocketblend)is an open-source tool that offers package and version management for the 3D graphics software, [Blender](https://www.blender.org/). It consists of two parts: a CLI tool and a Launcher.
-
-### CLI
-
-The command line tool is the primary application for managing your local installations of packages and Blender versions.
-
-### Launcher
-
-The Launcher is an alternative launcher for `.blend` files that utilizes a `rocketfile.json` file to determine the correct version of Blender and the packages to run.
-
-{% hint style="info" %}
-The Launcher is optional, but it allows you to open .blend files as you normally would while still maintaining package and build management.
-{% endhint %}
+[RocketBlend ](https://github.com/rocketblend/rocketblend)is an open-source CLI tool that offers build and addon management for the 3D graphics software, [Blender](https://www.blender.org/).
 
 ## Want to jump right in?
 
@@ -40,6 +28,14 @@ Dive a little deeper and start exploring our references documentation to get an 
 [cli](reference/cli/)
 {% endcontent-ref %}
 
-{% content-ref url="reference/launcher/" %}
-[launcher](reference/launcher/)
+## Looking for something else?
+
+Check out the other RocketBlend related projects:
+
+{% content-ref url="https://app.gitbook.com/o/4FesCgkV4J6qvlt8rzNP/s/JYAvMxX4q5tA7nq6MNBH/" %}
+[Launcher](https://app.gitbook.com/o/4FesCgkV4J6qvlt8rzNP/s/JYAvMxX4q5tA7nq6MNBH/)
+{% endcontent-ref %}
+
+{% content-ref url="https://app.gitbook.com/o/4FesCgkV4J6qvlt8rzNP/s/m6ZeaZBwoSUNJBkqXOCz/" %}
+[Collector](https://app.gitbook.com/o/4FesCgkV4J6qvlt8rzNP/s/m6ZeaZBwoSUNJBkqXOCz/)
 {% endcontent-ref %}

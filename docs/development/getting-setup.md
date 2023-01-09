@@ -11,6 +11,8 @@ description: >-
 * Linux or Windows x64
 * Go 1.19
 * Git
+* GoReleaser (Release Only)
+* Cosign (Release Only)
 
 ## Building RocketBlend <a href="#building-helm" id="building-helm"></a>
 
@@ -36,3 +38,9 @@ make launcher
 make check
 ```
 
+## Creating a Release
+
+```
+make dry
+make release version=v1.5.0
+```

@@ -14,19 +14,11 @@
 * [CLI](reference/cli/README.md)
   * [Commands](reference/cli/commands/README.md)
     * [Init](reference/cli/commands/init.md)
-    * [Add](reference/cli/commands/add.md)
-    * [List](reference/cli/commands/list.md)
     * [Install](reference/cli/commands/install.md)
     * [Get](reference/cli/commands/get.md)
     * [Open](reference/cli/commands/open.md)
-    * [Remove](reference/cli/commands/remove.md)
+  * [Packages](reference/cli/packages.md)
   * [Configuration](reference/cli/configuration.md)
-* [Launcher](reference/launcher/README.md)
-  * [Arguments](reference/launcher/general.md)
-* [Assets](reference/assets/README.md)
-  * [Rocketfiles](reference/assets/rocketfiles.md)
-  * [Packages](reference/assets/packages.md)
-  * [Builds](reference/assets/builds.md)
 
 ## Development
 
