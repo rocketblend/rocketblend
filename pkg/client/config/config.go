@@ -72,6 +72,10 @@ func Load() (config *Config, err error) {
 
 	appDir := filepath.Join(home, "rocketblend")
 
+	if err := os.MkdirAll(appDir, os.ModePerm); err != nil {
+		return nil, fmt.Errorf("failed to create main directory: %w", err)
+	}
+
 	v.SetDefault("debug", false)
 	v.SetDefault("platform", platform.String())
 	v.SetDefault("defaults.build", "")
