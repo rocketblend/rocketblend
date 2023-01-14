@@ -38,9 +38,8 @@ func (s *Service) Extract(path string, extractPath string) error {
 	// mholt/archiver doesn't support .dmg files, so we need to handle them separately.
 	// This isn't a 100% golang solution, but it works for now.
 	switch strings.ToLower(filepath.Ext(path)) {
-	case "dmg":
-		err := extractDMG(path, extractPath)
-		// err := extractDMGCMD(path, extractPath, "Blender")
+	case ".dmg":
+		err := extractDMG(path, extractPath, "Blender", "Blender.app")
 		if err != nil {
 			return err
 		}
