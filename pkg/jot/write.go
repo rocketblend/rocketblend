@@ -54,10 +54,10 @@ func (d *Driver) write(reference reference.Reference, resource string, downloadU
 	}
 
 	filePath := filepath.Join(dir, resource)
-	// err := d.downloader.Download(filePath, downloadUrl)
-	// if err != nil {
-	// 	return "", err
-	// }
+	err := d.downloader.Download(filePath, downloadUrl)
+	if err != nil {
+		return "", err
+	}
 
 	return filePath, nil
 }
