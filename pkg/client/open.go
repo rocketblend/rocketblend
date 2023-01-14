@@ -134,7 +134,7 @@ func (c *Client) run(file *blendFile) error {
 	}
 
 	if err := cmd.Start(); err != nil {
-		return fmt.Errorf("failed to open blend file: %s", err)
+		return fmt.Errorf("failed to open: %s", err)
 	}
 
 	return nil
