@@ -33,10 +33,19 @@ func extractDMG(filePath string, destination string) error {
 		return fmt.Errorf("could not determine image name")
 	}
 
+	defer func() {
+		// Use hdiutil command to detach the mounted .dmg
+		cmd = exec.Command("hdiutil", "detach", imageName)
+		cmd.Run()
+	}()
+
 	// copy the files from the mounted image to the destination path
 	appFiles, err := filepath.Glob(filepath.Join(imageName, "*.app"))
 	if err != nil {
 		return fmt.Errorf("could not search for app files: %s", err)
+	}
+	if len(appFiles) == 0 {
+		return fmt.Errorf("no app files found in the DMG")
 	}
 
 	for _, appFile := range appFiles {
@@ -46,13 +55,6 @@ func extractDMG(filePath string, destination string) error {
 		if err != nil {
 			return fmt.Errorf("could not copy app files: %s", err)
 		}
-	}
-
-	// Use hdiutil command to detach the mounted .dmg
-	cmd = exec.Command("hdiutil", "detach", imageName)
-	err = cmd.Run()
-	if err != nil {
-		return fmt.Errorf("failed to detach image")
 	}
 
 	return nil
