@@ -2,10 +2,7 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-//go:build !amd64 || appengine || !gc || noasm
-// +build !amd64 appengine !gc noasm
-
-package snappy
+package snapref
 
 func load32(b []byte, i int) uint32 {
 	b = b[i : i+4 : len(b)] // Help the compiler eliminate bounds checks on the next line.
