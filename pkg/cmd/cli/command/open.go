@@ -1,14 +1,14 @@
 package command
 
 import (
+	"encoding/json"
 	"fmt"
 	"path/filepath"
 
-	"github.com/rocketblend/rocketblend/pkg/client"
 	"github.com/spf13/cobra"
 )
 
-func NewOpenCommand(srv *client.Client) *cobra.Command {
+func (srv *Service) newOpenCommand() *cobra.Command {
 	var path string
 	var output string
 	var auto bool
@@ -28,7 +28,7 @@ func NewOpenCommand(srv *client.Client) *cobra.Command {
 				path = file
 			}
 
-			if err := srv.Open(path, output); err != nil {
+			if err := srv.open(path, output); err != nil {
 				cmd.PrintErrln(err)
 			}
 		},
@@ -39,6 +39,30 @@ func NewOpenCommand(srv *client.Client) *cobra.Command {
 	c.Flags().BoolVarP(&auto, "auto", "a", false, "Enables or disables the automatic detection of .blend files in the current directory.")
 
 	return c
+}
+
+func (srv *Service) open(path string, output string) error {
+	file, err := srv.driver.Load(path)
+	if err != nil {
+		return err
+	}
+
+	switch output {
+	case "json":
+		json, err := json.Marshal(file)
+		if err != nil {
+			return fmt.Errorf("failed to marshal blend file: %s", err)
+		}
+		fmt.Println(string(json))
+	case "cmd":
+		if err := srv.driver.Run(file); err != nil {
+			return fmt.Errorf("failed to run default build: %s", err)
+		}
+	default:
+		return fmt.Errorf("invalid output format: %s", output)
+	}
+
+	return nil
 }
 
 func findBlendFile() (string, error) {

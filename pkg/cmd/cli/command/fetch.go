@@ -3,12 +3,11 @@ package command
 import (
 	"fmt"
 
-	"github.com/rocketblend/rocketblend/pkg/client"
 	"github.com/rocketblend/rocketblend/pkg/jot/reference"
 	"github.com/spf13/cobra"
 )
 
-func NewFetchCommand(client *client.Client) *cobra.Command {
+func (srv *Service) newFetchCommand() *cobra.Command {
 	var ref string
 
 	c := &cobra.Command{
@@ -16,7 +15,7 @@ func NewFetchCommand(client *client.Client) *cobra.Command {
 		Short: "fetchs a packs details",
 		Long:  ``,
 		Run: func(cmd *cobra.Command, args []string) {
-			err := client.FetchPackByReference(reference.Reference(ref))
+			err := srv.driver.FetchPackByReference(reference.Reference(ref))
 			if err != nil {
 				fmt.Println(err)
 				return

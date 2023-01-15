@@ -1,0 +1,34 @@
+package rocketfile
+
+import (
+	"fmt"
+	"os"
+	"path/filepath"
+
+	"gopkg.in/yaml.v2"
+)
+
+const FileName = "rocketfile.yaml"
+
+type (
+	RocketFile struct {
+		Build   string   `json:"build"`
+		ARGS    string   `json:"args"`
+		Version string   `json:"version"`
+		Addons  []string `json:"addons"`
+	}
+)
+
+func Load(path string) (*RocketFile, error) {
+	f, err := os.ReadFile(filepath.Join(path, FileName))
+	if err != nil {
+		return nil, fmt.Errorf("failed to read rocketfile: %s", err)
+	}
+
+	var rkt RocketFile
+	if err := yaml.Unmarshal(f, &rkt); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal rocketfile: %s", err)
+	}
+
+	return &rkt, nil
+}

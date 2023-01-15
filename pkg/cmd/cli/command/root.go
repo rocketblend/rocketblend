@@ -1,12 +1,24 @@
 package command
 
 import (
-	"github.com/rocketblend/rocketblend/pkg/client"
+	"github.com/rocketblend/rocketblend/pkg/core"
 
 	"github.com/spf13/cobra"
 )
 
-func NewCommand(srv *client.Client) *cobra.Command {
+type (
+	Service struct {
+		driver *core.Driver
+	}
+)
+
+func NewService(driver *core.Driver) *Service {
+	return &Service{
+		driver: driver,
+	}
+}
+
+func (srv *Service) NewCommand() *cobra.Command {
 	c := &cobra.Command{
 		Use:   "rocketblend",
 		Short: "Version and addon manager for blender.",
@@ -16,12 +28,12 @@ func NewCommand(srv *client.Client) *cobra.Command {
 	c.SetVersionTemplate("{{.Version}}\n")
 	c.Flags().BoolP("toggle", "t", false, "Help message for toggle")
 
-	initCMD := NewInitCommand(srv)
-	openCMD := NewOpenCommand(srv)
-	fetchCMD := NewFetchCommand(srv)
-	pullCMD := NewPullCommand(srv)
-	findCMD := NewFindCommand(srv)
-	getCMD := NewGetCommand(srv)
+	initCMD := srv.newInitCommand()
+	openCMD := srv.newOpenCommand()
+	fetchCMD := srv.newFetchCommand()
+	pullCMD := srv.newPullCommand()
+	findCMD := srv.newFindCommand()
+	getCMD := srv.newGetCommand()
 
 	c.AddCommand(
 		initCMD,

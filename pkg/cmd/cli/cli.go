@@ -1,16 +1,18 @@
 package cli
 
 import (
-	"github.com/rocketblend/rocketblend/pkg/client"
 	"github.com/rocketblend/rocketblend/pkg/cmd/cli/command"
+	"github.com/rocketblend/rocketblend/pkg/core"
 )
 
 func Execute() error {
-	client, err := client.New()
+	driver, err := core.New(nil)
 	if err != nil {
 		return err
 	}
 
-	rootCmd := command.NewCommand(client)
-	return rootCmd.Execute()
+	srv := command.NewService(driver)
+	rootCMD := srv.NewCommand()
+
+	return rootCMD.Execute()
 }

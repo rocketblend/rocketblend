@@ -3,11 +3,10 @@ package command
 import (
 	"fmt"
 
-	"github.com/rocketblend/rocketblend/pkg/client"
 	"github.com/spf13/cobra"
 )
 
-func NewInitCommand(srv *client.Client) *cobra.Command {
+func (srv *Service) newInitCommand() *cobra.Command {
 	c := &cobra.Command{
 		Use:   "init",
 		Short: "Initialize rocketblend",

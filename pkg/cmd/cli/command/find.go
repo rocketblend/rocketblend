@@ -3,12 +3,11 @@ package command
 import (
 	"fmt"
 
-	"github.com/rocketblend/rocketblend/pkg/client"
 	"github.com/rocketblend/rocketblend/pkg/jot/reference"
 	"github.com/spf13/cobra"
 )
 
-func NewFindCommand(client *client.Client) *cobra.Command {
+func (srv *Service) newFindCommand() *cobra.Command {
 	var ref string
 
 	c := &cobra.Command{
@@ -16,7 +15,7 @@ func NewFindCommand(client *client.Client) *cobra.Command {
 		Short: "Finds a packs details locally and validates it",
 		Long:  ``,
 		Run: func(cmd *cobra.Command, args []string) {
-			pack, err := client.FindPackByReference(reference.Reference(ref))
+			pack, err := srv.driver.FindPackByReference(reference.Reference(ref))
 			if err != nil {
 				fmt.Println(err)
 				return
