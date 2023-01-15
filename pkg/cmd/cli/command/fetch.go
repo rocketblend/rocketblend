@@ -12,7 +12,7 @@ func (srv *Service) newFetchCommand() *cobra.Command {
 
 	c := &cobra.Command{
 		Use:   "fetch",
-		Short: "fetchs a packs details",
+		Short: "fetches a packs details",
 		Long:  ``,
 		Run: func(cmd *cobra.Command, args []string) {
 			err := srv.driver.FetchPackByReference(reference.Reference(ref))
