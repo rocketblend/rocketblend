@@ -19,9 +19,9 @@ github.com/go-playground/locales/currency
 # github.com/go-playground/universal-translator v0.18.0
 ## explicit; go 1.13
 github.com/go-playground/universal-translator
-# github.com/go-playground/validator v9.31.0+incompatible
-## explicit
-github.com/go-playground/validator
+# github.com/go-playground/validator/v10 v10.11.1
+## explicit; go 1.13
+github.com/go-playground/validator/v10
 # github.com/golang/snappy v0.0.2
 ## explicit
 github.com/golang/snappy
@@ -139,8 +139,12 @@ github.com/ulikunitz/xz/lzma
 # github.com/xi2/xz v0.0.0-20171230120015-48954b6210f8
 ## explicit
 github.com/xi2/xz
+# golang.org/x/crypto v0.0.0-20220525230936-793ad666bf5e
+## explicit; go 1.17
+golang.org/x/crypto/sha3
 # golang.org/x/sys v0.3.0
 ## explicit; go 1.17
+golang.org/x/sys/cpu
 golang.org/x/sys/internal/unsafeheader
 golang.org/x/sys/plan9
 golang.org/x/sys/unix
@@ -150,11 +154,13 @@ golang.org/x/sys/windows
 golang.org/x/term
 # golang.org/x/text v0.4.0
 ## explicit; go 1.17
+golang.org/x/text/internal/language
+golang.org/x/text/internal/language/compact
+golang.org/x/text/internal/tag
+golang.org/x/text/language
 golang.org/x/text/runes
 golang.org/x/text/transform
 golang.org/x/text/unicode/norm
-# gopkg.in/go-playground/assert.v1 v1.2.1
-## explicit
 # gopkg.in/ini.v1 v1.67.0
 ## explicit
 gopkg.in/ini.v1

@@ -21,11 +21,20 @@ func NewCommand(srv *client.Client) *cobra.Command {
 	installCmd := NewInstallCommand(srv)
 	getCmd := NewGetCommand(srv)
 
+	fetchCMD := NewFetchCommand(srv)
+	pullCMD := NewPullCommand(srv)
+	findCMD := NewFindCommand(srv)
+	grabCMD := NewGrabCommand(srv)
+
 	c.AddCommand(
 		initCmd,
 		openCmd,
 		installCmd,
 		getCmd,
+		fetchCMD,
+		pullCMD,
+		findCMD,
+		grabCMD,
 	)
 
 	return c
