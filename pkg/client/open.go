@@ -10,7 +10,10 @@ import (
 
 	"github.com/rocketblend/rocketblend/pkg/core/executable"
 	"github.com/rocketblend/rocketblend/pkg/core/resource"
+	"sigs.k8s.io/yaml"
 )
+
+const RocketFile = "rocketfile.yaml"
 
 type (
 	rocketFile struct {
@@ -71,13 +74,13 @@ func (c *Client) load(path string) (*blendFile, error) {
 		return nil, fmt.Errorf("invalid file extension: %s", ext)
 	}
 
-	f, err := os.ReadFile(filepath.Join(filepath.Dir(path), "rocketfile.json"))
+	f, err := os.ReadFile(filepath.Join(filepath.Dir(path), RocketFile))
 	if err != nil {
 		return nil, fmt.Errorf("failed to read rocketfile: %s", err)
 	}
 
 	var rkt rocketFile
-	if err := json.Unmarshal(f, &rkt); err != nil {
+	if err := yaml.Unmarshal(f, &rkt); err != nil {
 		return nil, fmt.Errorf("failed to unmarshal rocketfile: %s", err)
 	}
 
@@ -101,14 +104,14 @@ func (c *Client) load(path string) (*blendFile, error) {
 }
 
 func (c *Client) run(file *blendFile) error {
-	addons := append(*file.Exec.Addons, *file.Addons...)
-	json, err := json.Marshal(addons)
-	if err != nil {
-		return fmt.Errorf("failed to marshal addons: %s", err)
-	}
-
 	args := []string{}
 	if c.conf.Features.Addons {
+		addons := append(*file.Exec.Addons, *file.Addons...)
+		json, err := json.Marshal(addons)
+		if err != nil {
+			return fmt.Errorf("failed to marshal addons: %s", err)
+		}
+
 		script, err := c.FindResource(resource.Startup)
 		if err != nil {
 			return fmt.Errorf("failed to find startup script: %s", err)
