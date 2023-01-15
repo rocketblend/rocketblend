@@ -22,7 +22,7 @@ func NewFindCommand(client *client.Client) *cobra.Command {
 				return
 			}
 
-			fmt.Println(pack)
+			fmt.Println(pack.ToString())
 		},
 	}
 
