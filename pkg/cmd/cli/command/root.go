@@ -16,25 +16,20 @@ func NewCommand(srv *client.Client) *cobra.Command {
 	c.SetVersionTemplate("{{.Version}}\n")
 	c.Flags().BoolP("toggle", "t", false, "Help message for toggle")
 
-	initCmd := NewInitCommand(srv)
-	openCmd := NewOpenCommand(srv)
-	installCmd := NewInstallCommand(srv)
-	getCmd := NewGetCommand(srv)
-
+	initCMD := NewInitCommand(srv)
+	openCMD := NewOpenCommand(srv)
 	fetchCMD := NewFetchCommand(srv)
 	pullCMD := NewPullCommand(srv)
 	findCMD := NewFindCommand(srv)
-	grabCMD := NewGrabCommand(srv)
+	getCMD := NewGetCommand(srv)
 
 	c.AddCommand(
-		initCmd,
-		openCmd,
-		installCmd,
-		getCmd,
+		initCMD,
+		openCMD,
 		fetchCMD,
 		pullCMD,
 		findCMD,
-		grabCMD,
+		getCMD,
 	)
 
 	return c

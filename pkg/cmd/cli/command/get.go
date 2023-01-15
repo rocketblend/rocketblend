@@ -13,15 +13,14 @@ func NewGetCommand(client *client.Client) *cobra.Command {
 
 	c := &cobra.Command{
 		Use:   "get",
-		Short: "Gets a addon for blender",
+		Short: "gets a packge and installs it ready for use",
 		Long:  ``,
 		Run: func(cmd *cobra.Command, args []string) {
-			if err := client.InstallAddon(reference.Reference(ref)); err != nil {
-				fmt.Printf("Error installing addon: %v\n", err)
+			err := client.GetPackByReference(reference.Reference(ref))
+			if err != nil {
+				fmt.Println(err)
 				return
 			}
-
-			fmt.Printf("addon %s added to collection\n", ref)
 		},
 	}
 

@@ -24,46 +24,56 @@ func (c *Client) findDefaultExecutable() (*executable.Executable, error) {
 
 func (c *Client) findExecutableByBuildReference(ref string) (*executable.Executable, error) {
 	// TODO: Move executable stuff into core package.
-	build, err := c.build.FindByReference(reference.Reference(ref))
+	pack, err := c.pack.FindByReference(reference.Reference(ref))
 	if err != nil {
 		return nil, fmt.Errorf("failed to find build: %s", err)
 	}
 
-	addonMap, err := c.getExecutableAddonsByReference(build.Addons)
+	if pack.Build == nil {
+		return nil, fmt.Errorf("packge has no build")
+	}
+
+	addons, err := c.getExecutableAddonsByReference(pack.Build.Addons)
 	if err != nil {
 		return nil, fmt.Errorf("failed to find all addons for build: %s", err)
 	}
 
 	return &executable.Executable{
-		Path:   filepath.Join(c.conf.Directories.Installations, ref, build.GetSourceForPlatform(c.conf.Platform).Executable),
-		Addons: addonMap,
-		ARGS:   build.Args,
+		Path:   filepath.Join(c.conf.Directories.Installations, ref, pack.Build.GetSourceForPlatform(c.conf.Platform).Executable),
+		Addons: addons,
+		ARGS:   pack.Build.Args,
 	}, nil
 }
 
 func (c *Client) getExecutableAddonsByReference(ref []string) (*[]executable.Addon, error) {
 	addons := []executable.Addon{}
-	for _, r := range ref {
-		addon, err := c.getExecutableAddonByReference(r)
-		if err != nil {
-			return nil, fmt.Errorf("failed to find addon: %s", err)
-		}
+	if c.conf.Features.Addons {
+		for _, r := range ref {
+			addon, err := c.getExecutableAddonByReference(r)
+			if err != nil {
+				return nil, fmt.Errorf("failed to find addon: %s", err)
+			}
 
-		addons = append(addons, *addon)
+			addons = append(addons, *addon)
+		}
 	}
 
 	return &addons, nil
 }
 
 func (c *Client) getExecutableAddonByReference(ref string) (*executable.Addon, error) {
-	pack, err := c.addon.FindByReference(reference.Reference(ref))
+	pack, err := c.pack.FindByReference(reference.Reference(ref))
 	if err != nil {
 		return nil, fmt.Errorf("failed to find addon: %s", err)
 	}
 
+	if pack.Addon == nil {
+		return nil, fmt.Errorf("packge has no addon")
+	}
+
 	return &executable.Addon{
-		Name:    pack.Name,
-		Version: pack.AddonVersion,
-		Path:    filepath.Join(c.conf.Directories.Installations, ref, pack.Source.File),
+		Name:    pack.Addon.Name,
+		Version: pack.Addon.Version,
+		Path:    filepath.Join(c.conf.Directories.Installations, ref, pack.Addon.Source.File),
 	}, nil
 }
