@@ -12,7 +12,7 @@ func (srv *Service) newInitCommand() *cobra.Command {
 		Short: "Initialize rocketblend",
 		Long:  ``,
 		Run: func(cmd *cobra.Command, args []string) {
-			if err := srv.Initialize(); err != nil {
+			if err := srv.driver.Initialize(); err != nil {
 				fmt.Printf("failed to initialize: %s", err)
 				return
 			}
