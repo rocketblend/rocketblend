@@ -39,7 +39,7 @@ func (s *Service) Extract(path string, extractPath string) error {
 	// This isn't a 100% golang solution, but it works for now.
 	switch strings.ToLower(filepath.Ext(path)) {
 	case ".dmg":
-		err := extractDMG(path, extractPath, "Blender", "Blender.app")
+		err := extractDMG(path, extractPath)
 		if err != nil {
 			return err
 		}

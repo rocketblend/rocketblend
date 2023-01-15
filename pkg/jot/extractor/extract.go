@@ -4,30 +4,57 @@ import (
 	"fmt"
 	"os/exec"
 	"path/filepath"
+	"strings"
 )
 
-func extractDMG(filePath string, destination string, imageName string, contentName string) error {
-	// Use hdiutil command to mount the .dmg file
-	cmd := exec.Command("hdiutil", "attach", filePath)
-	err := cmd.Run()
+func extractDMG(filePath string, destination string) error {
+	// Mount the DMG file
+	cmd := exec.Command("hdiutil", "attach", "-nobrowse", filePath)
+	out, err := cmd.CombinedOutput()
 	if err != nil {
-		return fmt.Errorf("failed to mount .dmg file")
+		return fmt.Errorf("could not mount DMG file: %s", err)
 	}
 
-	volumePath := filepath.Join("/Volumes", imageName)
-
-	// Use cp command to copy the contents of the mounted .dmg to the destination
-	cmd = exec.Command("cp", "-R", filepath.Join(volumePath, contentName), destination)
-	err = cmd.Run()
-	if err != nil {
-		return fmt.Errorf("failed to copy contents of .dmg file")
+	// Extract the image name from the output of the hdiutil attach command
+	imageName := ""
+	output := string(out)
+	lines := strings.Split(output, "\n")
+	for _, line := range lines {
+		if strings.HasPrefix(line, "/dev/") {
+			parts := strings.Fields(line)
+			if len(parts) >= 3 {
+				imageName = parts[2]
+				break
+			}
+		}
 	}
 
-	// Use hdiutil command to detach the mounted .dmg
-	cmd = exec.Command("hdiutil", "detach", volumePath)
-	err = cmd.Run()
+	if imageName == "" {
+		return fmt.Errorf("could not determine image name")
+	}
+
+	defer func() {
+		// Use hdiutil command to detach the mounted .dmg
+		cmd = exec.Command("hdiutil", "detach", imageName)
+		cmd.Run()
+	}()
+
+	// copy the files from the mounted image to the destination path
+	appFiles, err := filepath.Glob(filepath.Join(imageName, "*.app"))
 	if err != nil {
-		return err
+		return fmt.Errorf("could not search for app files: %s", err)
+	}
+	if len(appFiles) == 0 {
+		return fmt.Errorf("no app files found in the DMG")
+	}
+
+	for _, appFile := range appFiles {
+		// Use cp command to copy the .app file to the destination
+		cmd = exec.Command("cp", "-R", appFile, destination)
+		err = cmd.Run()
+		if err != nil {
+			return fmt.Errorf("could not copy app files: %s", err)
+		}
 	}
 
 	return nil
