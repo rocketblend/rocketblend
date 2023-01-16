@@ -13,9 +13,9 @@ const FileName = "rocketfile.yaml"
 type (
 	RocketFile struct {
 		Build   string   `json:"build"`
-		ARGS    string   `json:"args"`
-		Version string   `json:"version"`
-		Addons  []string `json:"addons"`
+		ARGS    string   `json:"args,omitempty"`
+		Version string   `json:"version,omitempty"`
+		Addons  []string `json:"addons,omitempty"`
 	}
 )
 
