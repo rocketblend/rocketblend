@@ -28,18 +28,18 @@ type (
 	}
 
 	Build struct {
-		Args    string          `json:"args"`
+		Args    string          `json:"args,omitempty"`
 		Version *semver.Version `json:"version"`
 		Sources []*BuildSource  `json:"sources" validate:"required"`
-		Addons  []string        `json:"addons"`
+		Addons  []string        `json:"addons,omitempty"`
 	}
 
 	RocketPack struct {
 		// Version *semver.Version `json:"version"`
 		// PackVersion *semver.Version `json:"packVersion"`
 		// Explorable bool   `json:"explorable"`
-		Build *Build `json:"build" validate:"omitempty"`
-		Addon *Addon `json:"addon" validate:"omitempty"`
+		Build *Build `json:"build,omitempty"`
+		Addon *Addon `json:"addon,omitempty"`
 	}
 )
 
