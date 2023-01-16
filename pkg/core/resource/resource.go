@@ -2,6 +2,7 @@ package resource
 
 import (
 	_ "embed"
+	"fmt"
 	"os"
 	"path/filepath"
 )
@@ -20,7 +21,11 @@ type Service struct {
 	Resources map[string]Resource
 }
 
-func NewService(dir string) *Service {
+func NewService(dir string) (*Service, error) {
+	if err := os.MkdirAll(dir, os.ModePerm); err != nil {
+		return nil, fmt.Errorf("failed to create resource directory: %w", err)
+	}
+
 	return &Service{
 		Resources: map[string]Resource{
 			Startup: {
@@ -28,7 +33,7 @@ func NewService(dir string) *Service {
 				Content:    startupScript,
 			},
 		},
-	}
+	}, nil
 }
 
 func (s *Service) FindByName(name string) (*Resource, error) {

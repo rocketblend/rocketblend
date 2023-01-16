@@ -78,8 +78,7 @@ func findAllStaticDictionaryMatches(dict *encoderDictionary, data []byte, min_le
 		var offset uint = uint(dict.buckets[hash(data)])
 		var end bool = offset == 0
 		for !end {
-			var w dictWord
-			w = dict.dict_words[offset]
+			w := dict.dict_words[offset]
 			offset++
 			var l uint = uint(w.len) & 0x1F
 			var n uint = uint(1) << dict.words.size_bits_by_length[l]
@@ -432,8 +431,7 @@ func findAllStaticDictionaryMatches(dict *encoderDictionary, data []byte, min_le
 		var offset uint = uint(dict.buckets[hash(data[1:])])
 		var end bool = offset == 0
 		for !end {
-			var w dictWord
-			w = dict.dict_words[offset]
+			w := dict.dict_words[offset]
 			offset++
 			var l uint = uint(w.len) & 0x1F
 			var n uint = uint(1) << dict.words.size_bits_by_length[l]
@@ -597,8 +595,7 @@ func findAllStaticDictionaryMatches(dict *encoderDictionary, data []byte, min_le
 			var offset uint = uint(dict.buckets[hash(data[2:])])
 			var end bool = offset == 0
 			for !end {
-				var w dictWord
-				w = dict.dict_words[offset]
+				w := dict.dict_words[offset]
 				offset++
 				var l uint = uint(w.len) & 0x1F
 				var n uint = uint(1) << dict.words.size_bits_by_length[l]
@@ -630,8 +627,7 @@ func findAllStaticDictionaryMatches(dict *encoderDictionary, data []byte, min_le
 			var offset uint = uint(dict.buckets[hash(data[5:])])
 			var end bool = offset == 0
 			for !end {
-				var w dictWord
-				w = dict.dict_words[offset]
+				w := dict.dict_words[offset]
 				offset++
 				var l uint = uint(w.len) & 0x1F
 				var n uint = uint(1) << dict.words.size_bits_by_length[l]

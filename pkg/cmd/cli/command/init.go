@@ -3,17 +3,16 @@ package command
 import (
 	"fmt"
 
-	"github.com/rocketblend/rocketblend/pkg/client"
 	"github.com/spf13/cobra"
 )
 
-func NewInitCommand(srv *client.Client) *cobra.Command {
+func (srv *Service) newInitCommand() *cobra.Command {
 	c := &cobra.Command{
 		Use:   "init",
 		Short: "Initialize rocketblend",
 		Long:  ``,
 		Run: func(cmd *cobra.Command, args []string) {
-			if err := srv.Initialize(); err != nil {
+			if err := srv.driver.Initialize(); err != nil {
 				fmt.Printf("failed to initialize: %s", err)
 				return
 			}
