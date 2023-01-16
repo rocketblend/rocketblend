@@ -7,7 +7,7 @@
 [![Go Report Card](https://goreportcard.com/badge/github.com/rocketblend/rocketblend)](https://goreportcard.com/report/github.com/rocketblend/rocketblend)
 [![GitHub](https://img.shields.io/github/license/rocketblend/rocketblend)](https://github.com/rocketblend/rocketblend/blob/master/LICENSE)
 
-### Current under development. Not ready for use.
+### Currently under development. Not ready for use.
 
 RocketBlend is an open-source CLI tool that offers build and addon management for the 3D graphics software, [Blender](https://www.blender.org/).
 
