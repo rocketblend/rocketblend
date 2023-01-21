@@ -2,7 +2,6 @@ package core
 
 import (
 	"github.com/rocketblend/rocketblend/pkg/core/config"
-	"github.com/rocketblend/rocketblend/pkg/core/resource"
 	"github.com/rocketblend/rocketblend/pkg/core/rocketpack"
 	"github.com/rocketblend/rocketblend/pkg/jot/reference"
 )
@@ -21,8 +20,7 @@ type (
 	}
 
 	ResourceService interface {
-		FindByName(name string) (*resource.Resource, error)
-		SaveOut() error
+		GetAddonScript() string
 	}
 
 	PackService interface {

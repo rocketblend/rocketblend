@@ -2,62 +2,21 @@ package resource
 
 import (
 	_ "embed"
-	"fmt"
-	"os"
-	"path/filepath"
 )
 
-const Startup = "startup"
-
-//go:embed resources/script.gopy
-var startupScript string
-
-type Resource struct {
-	OutputPath string
-	Content    string
-}
+//go:embed resources/addonScript.gopy
+var addonScript string
 
 type Service struct {
-	Resources map[string]Resource
+	addonScript string
 }
 
-func NewService(dir string) (*Service, error) {
-	if err := os.MkdirAll(dir, os.ModePerm); err != nil {
-		return nil, fmt.Errorf("failed to create resource directory: %w", err)
-	}
-
+func NewService() *Service {
 	return &Service{
-		Resources: map[string]Resource{
-			Startup: {
-				OutputPath: filepath.Join(dir, Startup+".py"),
-				Content:    startupScript,
-			},
-		},
-	}, nil
+		addonScript: addonScript,
+	}
 }
 
-func (s *Service) FindByName(name string) (*Resource, error) {
-	resource, ok := s.Resources[name]
-	if !ok {
-		return nil, os.ErrNotExist
-	}
-
-	return &resource, nil
-}
-
-func (s *Service) SaveOut() error {
-	for _, r := range s.Resources {
-		file, err := os.Create(r.OutputPath)
-		if err != nil {
-			return err
-		}
-		defer file.Close()
-
-		_, err = file.WriteString(r.Content)
-		if err != nil {
-			return err
-		}
-	}
-
-	return nil
+func (s *Service) GetAddonScript() string {
+	return s.addonScript
 }

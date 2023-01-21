@@ -36,11 +36,7 @@ func New(options *Options) (*Driver, error) {
 
 	// if no resource service is provided, create a default
 	if opts.ResourceService == nil {
-		srv, err := resource.NewService(opts.Config.Directories.Resources)
-		if err != nil {
-			return nil, err
-		}
-
+		srv := resource.NewService()
 		opts.ResourceService = srv
 	}
 

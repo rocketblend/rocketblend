@@ -28,7 +28,6 @@ func (srv *Service) NewCommand() *cobra.Command {
 	c.SetVersionTemplate("{{.Version}}\n")
 	c.Flags().BoolP("toggle", "t", false, "Help message for toggle")
 
-	initCMD := srv.newInitCommand()
 	openCMD := srv.newOpenCommand()
 	fetchCMD := srv.newFetchCommand()
 	pullCMD := srv.newPullCommand()
@@ -36,7 +35,6 @@ func (srv *Service) NewCommand() *cobra.Command {
 	getCMD := srv.newGetCommand()
 
 	c.AddCommand(
-		initCMD,
 		openCMD,
 		fetchCMD,
 		pullCMD,
