@@ -7,7 +7,6 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/rocketblend/rocketblend/pkg/core/resource"
 	"github.com/rocketblend/rocketblend/pkg/core/rocketfile"
 	"github.com/rocketblend/rocketblend/pkg/jot/reference"
 	"github.com/rocketblend/rocketblend/pkg/semver"
@@ -70,14 +69,9 @@ func (d *Driver) Run(file *BlendFile) error {
 			return fmt.Errorf("failed to marshal addons: %s", err)
 		}
 
-		script, err := d.resource.FindByName(resource.Startup)
-		if err != nil {
-			return fmt.Errorf("failed to find startup script: %s", err)
-		}
-
 		args = append(args, []string{
-			"--python",
-			script.OutputPath,
+			"--python-expr",
+			d.resource.GetAddonScript(),
 			"--",
 			"-a",
 			string(json),

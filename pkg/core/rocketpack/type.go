@@ -12,7 +12,7 @@ import (
 type (
 	AddonSource struct {
 		File string `json:"file" validate:"required"`
-		URL  string `json:"url" validate:"required,url"`
+		URL  string `json:"url" validate:"omitempty,url"`
 	}
 
 	Addon struct {
