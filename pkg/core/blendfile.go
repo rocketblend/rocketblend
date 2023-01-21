@@ -33,15 +33,37 @@ type (
 	}
 )
 
+func (d *Driver) Create(path string) error {
+	ref := d.conf.Defaults.Build
+	build, err := d.findBuildByReference(ref)
+	if err != nil {
+		return err
+	}
+
+	blendFile := &BlendFile{
+		Build: build,
+		Path:  path,
+	}
+
+	if err := d.create(blendFile); err != nil {
+		return err
+	}
+
+	rkt := rocketfile.RocketFile{
+		Build: ref,
+	}
+
+	if err := rocketfile.Save(filepath.Dir(path), &rkt); err != nil {
+		return fmt.Errorf("failed to create rocketfile: %s", err)
+	}
+
+	return nil
+}
+
 func (d *Driver) Load(path string) (*BlendFile, error) {
 	file := &BlendFile{}
 	if path == "" {
-		ref, err := d.getDefaultBuild()
-		if err != nil {
-			return nil, err
-		}
-
-		build, err := d.findBuildByReference(ref)
+		build, err := d.getDefaultBuild()
 		if err != nil {
 			return nil, err
 		}
@@ -95,10 +117,15 @@ func (d *Driver) Run(file *BlendFile) error {
 	return nil
 }
 
-func (d *Driver) getDefaultBuild() (string, error) {
-	build := d.conf.Defaults.Build
-	if build == "" {
-		return "", fmt.Errorf("no default build set")
+func (d *Driver) getDefaultBuild() (*Build, error) {
+	ref := d.conf.Defaults.Build
+	if ref == "" {
+		return nil, fmt.Errorf("no default build set")
+	}
+
+	build, err := d.findBuildByReference(ref)
+	if err != nil {
+		return nil, err
 	}
 
 	return build, nil
@@ -115,7 +142,6 @@ func (d *Driver) load(path string) (*BlendFile, error) {
 		return nil, err
 	}
 
-	// Get build executable path.
 	build, err := d.findBuildByReference(rkt.Build)
 	if err != nil {
 		return nil, fmt.Errorf("failed to find executable: %s", err)
@@ -187,4 +213,23 @@ func (d *Driver) getAddonByReference(ref string) (*Addon, error) {
 		Version: pack.Addon.Version,
 		Path:    filepath.Join(d.conf.Directories.Installations, ref, pack.Addon.Source.File),
 	}, nil
+}
+
+func (d *Driver) create(blendFile *BlendFile) error {
+	script, err := d.resource.GetCreateScript(blendFile.Path)
+	if err != nil {
+		return err
+	}
+
+	cmd := exec.Command(blendFile.Build.Path, "-b", "--python-expr", script)
+
+	if d.conf.Debug {
+		fmt.Println(strings.ReplaceAll(cmd.String(), "\"", "\\\""))
+	}
+
+	if err := cmd.Run(); err != nil {
+		return fmt.Errorf("failed to create: %s", err)
+	}
+
+	return nil
 }

@@ -21,6 +21,7 @@ type (
 
 	ResourceService interface {
 		GetAddonScript() string
+		GetCreateScript(path string) (string, error)
 	}
 
 	PackService interface {
