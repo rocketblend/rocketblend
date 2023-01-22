@@ -33,6 +33,7 @@ func (srv *Service) NewCommand() *cobra.Command {
 	pullCMD := srv.newPullCommand()
 	findCMD := srv.newFindCommand()
 	getCMD := srv.newGetCommand()
+	createCMD := srv.newCreateCommand()
 
 	c.AddCommand(
 		openCMD,
@@ -40,6 +41,7 @@ func (srv *Service) NewCommand() *cobra.Command {
 		pullCMD,
 		findCMD,
 		getCMD,
+		createCMD,
 	)
 
 	return c
