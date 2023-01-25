@@ -21,8 +21,10 @@ func NewService(driver *core.Driver) *Service {
 func (srv *Service) NewCommand() *cobra.Command {
 	c := &cobra.Command{
 		Use:   "rocketblend",
-		Short: "Version and addon manager for blender.",
-		Long:  `RocketBlend is a tool for managing addons and versions of Blender.`,
+		Short: "RocketBlend is a build and add-ons manager for Blender.",
+		Long: `RocketBlend is a powerful CLI tool for managing builds and add-ons for Blender,
+					simplifying the process of installation and maintenance.
+			   		Complete documentation is available at https://docs.rocketblend.io/`,
 	}
 
 	c.SetVersionTemplate("{{.Version}}\n")
