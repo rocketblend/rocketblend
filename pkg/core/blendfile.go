@@ -42,7 +42,7 @@ func (d *Driver) Create(name string, path string, reference reference.Reference)
 
 	blendFile := &BlendFile{
 		Build: build,
-		Path:  filepath.Join(path, name),
+		Path:  filepath.Join(path, name, ".blend"),
 	}
 
 	if err := d.create(blendFile); err != nil {
@@ -53,7 +53,7 @@ func (d *Driver) Create(name string, path string, reference reference.Reference)
 		Build: reference.String(),
 	}
 
-	if err := rocketfile.Save(filepath.Dir(path), &rkt); err != nil {
+	if err := rocketfile.Save(path, &rkt); err != nil {
 		return fmt.Errorf("failed to create rocketfile: %s", err)
 	}
 

@@ -17,15 +17,16 @@ func (srv *Service) newCreateCommand() *cobra.Command {
 	var defaultBuild string = srv.driver.GetDefaultBuildReference()
 
 	c := &cobra.Command{
-		Use:   "create [flags] ",
+		Use:   "create [flags]",
 		Short: "Create a new blender project",
-		Long:  `create a new blender project with the specified name, build number and directory location`,
+		Long:  `create a new blender project with the specified name, build number and path to create at`,
 		Run: func(cmd *cobra.Command, args []string) {
 			if err := checkName(projectName); err != nil {
 				cmd.PrintErrln(err)
+				return
 			}
 
-			projectPath, err := getAbsolutePath(projectPath)
+			projectPath, err := checkAndConvertPath(projectPath)
 			if err != nil {
 				cmd.PrintErrln(err)
 				return
@@ -34,6 +35,7 @@ func (srv *Service) newCreateCommand() *cobra.Command {
 			reference := reference.Reference(buildReference)
 			if !reference.IsValid() {
 				cmd.PrintErrln(fmt.Errorf("%q is not a valid build reference string", buildReference))
+				return
 			}
 
 			if err := srv.driver.Create(projectName, projectPath, reference); err != nil {
@@ -46,9 +48,9 @@ func (srv *Service) newCreateCommand() *cobra.Command {
 	c.Flags().StringVarP(&projectName, "name", "n", "", "the name of the project (required)")
 	c.MarkFlagRequired("name")
 
-	c.Flags().StringVarP(&buildReference, "build", "b", defaultBuild, fmt.Sprintf("the build reference to use for the project (default %s)", defaultBuild))
+	c.Flags().StringVarP(&buildReference, "build", "b", defaultBuild, "the build reference to use for the project")
 
-	c.Flags().StringVarP(&projectPath, "path", "p", "", "the path to create the project in (default working directory)")
+	c.Flags().StringVarP(&projectPath, "path", "p", ".", "the path to create the project in")
 
 	return c
 }
@@ -65,11 +67,15 @@ func checkName(name string) error {
 	return nil
 }
 
-func getAbsolutePath(path string) (string, error) {
-	absolutePath, err := filepath.Abs(path)
+func checkAndConvertPath(path string) (string, error) {
+	if filepath.IsAbs(path) {
+		return path, nil
+	}
+
+	// get the absolute path
+	absPath, err := filepath.Abs(path)
 	if err != nil {
 		return "", err
 	}
-
-	return absolutePath, nil
+	return absPath, nil
 }
