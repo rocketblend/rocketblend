@@ -22,9 +22,10 @@ func (srv *Service) NewCommand() *cobra.Command {
 	c := &cobra.Command{
 		Use:   "rocketblend",
 		Short: "RocketBlend is a build and add-ons manager for Blender.",
-		Long: `RocketBlend is a powerful CLI tool for managing builds and add-ons for Blender,
-					simplifying the process of installation and maintenance.
-			   		Complete documentation is available at https://docs.rocketblend.io/`,
+		Long: `RocketBlend is a powerful CLI tool that streamlines the process of managing
+builds and add-ons for Blender, making installation and maintenance easier.
+
+Documentation is available at https://docs.rocketblend.io/`,
 	}
 
 	c.SetVersionTemplate("{{.Version}}\n")
