@@ -11,6 +11,8 @@
 
 RocketBlend is an open-source CLI tool that offers build and addon management for the 3D graphics software, [Blender](https://www.blender.org/).
 
+![](/assets/rocketblend-about.svg)
+
 ## Getting Started
 
 See [Quick Start](https://docs.rocketblend.io/getting-started/quick-start) in our documentation.
