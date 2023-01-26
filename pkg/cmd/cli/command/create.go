@@ -12,14 +12,14 @@ import (
 func (srv *Service) newCreateCommand() *cobra.Command {
 	var projectName string
 	var projectPath string
-	var buildReference string
+	var referenceStr string
 
 	var defaultBuild string = srv.driver.GetDefaultBuildReference()
 
 	c := &cobra.Command{
 		Use:   "create [flags]",
-		Short: "Create a new blender project",
-		Long:  `create a new blender project with the specified name, build number and path to create at`,
+		Short: "Create a new project",
+		Long:  `create a new project with the specified name, build number and path to create at`,
 		Run: func(cmd *cobra.Command, args []string) {
 			if err := checkName(projectName); err != nil {
 				cmd.PrintErrln(err)
@@ -32,9 +32,9 @@ func (srv *Service) newCreateCommand() *cobra.Command {
 				return
 			}
 
-			reference := reference.Reference(buildReference)
-			if !reference.IsValid() {
-				cmd.PrintErrln(fmt.Errorf("%q is not a valid build reference string", buildReference))
+			reference, err := reference.Parse(referenceStr)
+			if err != nil {
+				cmd.PrintErrln(err)
 				return
 			}
 
@@ -48,7 +48,7 @@ func (srv *Service) newCreateCommand() *cobra.Command {
 	c.Flags().StringVarP(&projectName, "name", "n", "", "the name of the project (required)")
 	c.MarkFlagRequired("name")
 
-	c.Flags().StringVarP(&buildReference, "build", "b", defaultBuild, "the build reference to use for the project")
+	c.Flags().StringVarP(&referenceStr, "build", "b", defaultBuild, "the build reference to use for the project")
 
 	c.Flags().StringVarP(&projectPath, "path", "p", ".", "the path to create the project in")
 

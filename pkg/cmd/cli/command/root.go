@@ -29,7 +29,6 @@ Documentation is available at https://docs.rocketblend.io/`,
 	}
 
 	c.SetVersionTemplate("{{.Version}}\n")
-	c.Flags().BoolP("toggle", "t", false, "Help message for toggle")
 
 	openCMD := srv.newOpenCommand()
 	fetchCMD := srv.newFetchCommand()
