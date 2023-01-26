@@ -10,3 +10,9 @@ func (r *Reference) Url() string {
 func (r *Reference) String() string {
 	return string(*r)
 }
+
+func (r *Reference) IsValid() bool {
+	// TODO: validate this properly
+	_, err := convertToUrl(string(*r))
+	return err == nil
+}

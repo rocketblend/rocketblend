@@ -33,16 +33,16 @@ type (
 	}
 )
 
-func (d *Driver) Create(path string) error {
-	ref := d.conf.Defaults.Build
-	build, err := d.findBuildByReference(ref)
+func (d *Driver) Create(name string, path string, reference reference.Reference) error {
+	// TODO: convert all functions to use reference.Reference
+	build, err := d.findBuildByReference(reference.String())
 	if err != nil {
 		return err
 	}
 
 	blendFile := &BlendFile{
 		Build: build,
-		Path:  path,
+		Path:  filepath.Join(path, name),
 	}
 
 	if err := d.create(blendFile); err != nil {
@@ -50,7 +50,7 @@ func (d *Driver) Create(path string) error {
 	}
 
 	rkt := rocketfile.RocketFile{
-		Build: ref,
+		Build: reference.String(),
 	}
 
 	if err := rocketfile.Save(filepath.Dir(path), &rkt); err != nil {
