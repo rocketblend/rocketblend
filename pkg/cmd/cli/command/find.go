@@ -12,8 +12,8 @@ func (srv *Service) newFindCommand() *cobra.Command {
 
 	c := &cobra.Command{
 		Use:   "find [flags]",
-		Short: "Find if a package defination already exists",
-		Long:  `find if a package defination already exists in the global cache`,
+		Short: "Find if a package definition already exists",
+		Long:  `find if a package definition already exists in the global cache`,
 		Run: func(cmd *cobra.Command, args []string) {
 			reference, err := reference.Parse(referenceStr)
 			if err != nil {

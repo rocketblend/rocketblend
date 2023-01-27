@@ -12,8 +12,8 @@ func (srv *Service) newFetchCommand() *cobra.Command {
 
 	c := &cobra.Command{
 		Use:   "fetch [flags]",
-		Short: "Fetch a package defination via the given reference",
-		Long:  `fetch a package defination via the given reference and stores it in the global cache`,
+		Short: "Fetch a package definition via the given reference",
+		Long:  `fetch a package definition via the given reference and stores it in the global cache`,
 		Run: func(cmd *cobra.Command, args []string) {
 			reference, err := reference.Parse(referenceStr)
 			if err != nil {
