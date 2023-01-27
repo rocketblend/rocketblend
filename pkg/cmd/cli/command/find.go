@@ -8,14 +8,20 @@ import (
 )
 
 func (srv *Service) newFindCommand() *cobra.Command {
-	var ref string
+	var referenceStr string
 
 	c := &cobra.Command{
-		Use:   "find",
-		Short: "Finds a packs details locally and validates it",
-		Long:  ``,
+		Use:   "find [flags]",
+		Short: "Find if a package definition already exists",
+		Long:  `find if a package definition already exists in the global cache`,
 		Run: func(cmd *cobra.Command, args []string) {
-			pack, err := srv.driver.FindPackByReference(reference.Reference(ref))
+			reference, err := reference.Parse(referenceStr)
+			if err != nil {
+				cmd.PrintErrln(err)
+				return
+			}
+
+			pack, err := srv.driver.FindPackByReference(reference)
 			if err != nil {
 				fmt.Println(err)
 				return
@@ -25,10 +31,8 @@ func (srv *Service) newFindCommand() *cobra.Command {
 		},
 	}
 
-	c.Flags().StringVarP(&ref, "ref", "r", "", "reference of the addon to get (required)")
-	if err := c.MarkFlagRequired("ref"); err != nil {
-		fmt.Println(err)
-	}
+	c.Flags().StringVarP(&referenceStr, "reference", "r", "", "reference of the addon to get (required)")
+	c.MarkFlagRequired("reference")
 
 	return c
 }

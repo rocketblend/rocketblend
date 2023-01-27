@@ -8,14 +8,20 @@ import (
 )
 
 func (srv *Service) newFetchCommand() *cobra.Command {
-	var ref string
+	var referenceStr string
 
 	c := &cobra.Command{
-		Use:   "fetch",
-		Short: "fetches a packs details",
-		Long:  ``,
+		Use:   "fetch [flags]",
+		Short: "Fetch a package definition via the given reference",
+		Long:  `fetch a package definition via the given reference and stores it in the global cache`,
 		Run: func(cmd *cobra.Command, args []string) {
-			err := srv.driver.FetchPackByReference(reference.Reference(ref))
+			reference, err := reference.Parse(referenceStr)
+			if err != nil {
+				cmd.PrintErrln(err)
+				return
+			}
+
+			err = srv.driver.FetchPackByReference(reference)
 			if err != nil {
 				fmt.Println(err)
 				return
@@ -23,10 +29,8 @@ func (srv *Service) newFetchCommand() *cobra.Command {
 		},
 	}
 
-	c.Flags().StringVarP(&ref, "ref", "r", "", "reference of the addon to get (required)")
-	if err := c.MarkFlagRequired("ref"); err != nil {
-		fmt.Println(err)
-	}
+	c.Flags().StringVarP(&referenceStr, "reference", "r", "", "reference of the addon to get (required)")
+	c.MarkFlagRequired("reference")
 
 	return c
 }

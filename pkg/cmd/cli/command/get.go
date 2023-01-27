@@ -8,14 +8,21 @@ import (
 )
 
 func (srv *Service) newGetCommand() *cobra.Command {
-	var ref string
+	var referenceStr string
 
 	c := &cobra.Command{
-		Use:   "get",
-		Short: "gets a packge and installs it ready for use",
-		Long:  ``,
+		Use:   "get [flags]",
+		Short: "Add a package dependency to the current project and install it",
+		Long: `resolves the given reference to a package, updates rocketblend.yaml to require the reference,
+and downloads the package source to the global cache`,
 		Run: func(cmd *cobra.Command, args []string) {
-			err := srv.getPackByReference(reference.Reference(ref))
+			reference, err := reference.Parse(referenceStr)
+			if err != nil {
+				cmd.PrintErrln(err)
+				return
+			}
+
+			err = srv.getPackByReference(reference)
 			if err != nil {
 				fmt.Println(err)
 				return
@@ -23,10 +30,8 @@ func (srv *Service) newGetCommand() *cobra.Command {
 		},
 	}
 
-	c.Flags().StringVarP(&ref, "ref", "r", "", "reference of the addon to get (required)")
-	if err := c.MarkFlagRequired("ref"); err != nil {
-		fmt.Println(err)
-	}
+	c.Flags().StringVarP(&referenceStr, "reference", "r", "", "reference of the package to get (required)")
+	c.MarkFlagRequired("reference")
 
 	return c
 }

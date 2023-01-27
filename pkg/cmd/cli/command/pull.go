@@ -8,14 +8,20 @@ import (
 )
 
 func (srv *Service) newPullCommand() *cobra.Command {
-	var ref string
+	var referenceStr string
 
 	c := &cobra.Command{
-		Use:   "pull",
-		Short: "pulls the actual data defined by a pack",
+		Use:   "pull [flags]",
+		Short: "Pull the source files defined by a package",
 		Long:  ``,
 		Run: func(cmd *cobra.Command, args []string) {
-			err := srv.driver.PullPackByReference(reference.Reference(ref))
+			reference, err := reference.Parse(referenceStr)
+			if err != nil {
+				cmd.PrintErrln(err)
+				return
+			}
+
+			err = srv.driver.PullPackByReference(reference)
 			if err != nil {
 				fmt.Println(err)
 				return
@@ -23,10 +29,8 @@ func (srv *Service) newPullCommand() *cobra.Command {
 		},
 	}
 
-	c.Flags().StringVarP(&ref, "ref", "r", "", "reference of the addon to get (required)")
-	if err := c.MarkFlagRequired("ref"); err != nil {
-		fmt.Println(err)
-	}
+	c.Flags().StringVarP(&referenceStr, "reference", "r", "", "reference of the addon to get (required)")
+	c.MarkFlagRequired("reference")
 
 	return c
 }

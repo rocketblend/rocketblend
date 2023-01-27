@@ -14,9 +14,10 @@ func (srv *Service) newOpenCommand() *cobra.Command {
 	var auto bool
 
 	c := &cobra.Command{
-		Use:   "open",
-		Short: "Opens blender with the specified version",
-		Long:  ``,
+		Use:   "open [flags]",
+		Short: "Run a project",
+		Long: `run a given .blend file using it's rocketfile.yaml configuration,
+or the just default build.`,
 		Run: func(cmd *cobra.Command, args []string) {
 			if auto && path == "" {
 				file, err := findBlendFile()
@@ -34,9 +35,9 @@ func (srv *Service) newOpenCommand() *cobra.Command {
 		},
 	}
 
-	c.Flags().StringVarP(&path, "path", "p", "", "The file path to a .blend file.")
-	c.Flags().StringVarP(&output, "output", "o", "cmd", "Output type of the command")
-	c.Flags().BoolVarP(&auto, "auto", "a", false, "Enables or disables the automatic detection of .blend files in the current directory.")
+	c.Flags().StringVarP(&path, "path", "p", "", "the file path to a .blend file to open.")
+	c.Flags().StringVarP(&output, "output", "o", "cmd", "output type of the command")
+	c.Flags().BoolVarP(&auto, "auto", "a", false, "enables or disables the automatic detection of .blend files in the current directory.")
 
 	return c
 }
