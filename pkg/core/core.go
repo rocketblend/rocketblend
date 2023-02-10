@@ -2,10 +2,12 @@ package core
 
 import (
 	"fmt"
+	"os"
+	"path/filepath"
 
-	"github.com/rocketblend/rocketblend/pkg/core/config"
 	"github.com/rocketblend/rocketblend/pkg/core/resource"
 	"github.com/rocketblend/rocketblend/pkg/core/rocketpack"
+	"github.com/rocketblend/rocketblend/pkg/core/runtime"
 	"github.com/rocketblend/rocketblend/pkg/jot"
 	"github.com/sirupsen/logrus"
 )
@@ -26,35 +28,52 @@ func New(options *Options) (*Driver, error) {
 		opts.Logger = l
 	}
 
-	if opts.Config == nil {
-		conf, err := config.Load()
+	// if not installation directory is provided, use the default
+	if opts.InstallationsDirectory == "" {
+		configDir, err := os.UserConfigDir()
 		if err != nil {
-			return nil, fmt.Errorf("failed to load config: %w", err)
+			return nil, fmt.Errorf("cannot find config directory: %v", err)
 		}
-		opts.Config = conf
+
+		dir := filepath.Join(configDir, Name, "installations")
+
+		if err := os.MkdirAll(dir, os.ModePerm); err != nil {
+			return nil, fmt.Errorf("failed to create main directory: %w", err)
+		}
+
+		opts.InstallationsDirectory = dir
 	}
 
-	// if no resource service is provided, create a default
-	if opts.ResourceService == nil {
-		srv := resource.NewService()
-		opts.ResourceService = srv
+	// if no default build is provided, use the default
+	if opts.DefaultBuild == "" {
+		opts.DefaultBuild = DefaultBuild
 	}
 
-	// if no pack service is provided, create a default
-	if opts.PackService == nil {
-		jot, err := jot.New(opts.Config.Directories.Installations, nil)
-		if err != nil {
-			return nil, err
+	// if no platform is provided, detect it
+	if opts.Platform == runtime.Undefined {
+		platform := runtime.DetectPlatform()
+		if platform == runtime.Undefined {
+			return nil, fmt.Errorf("cannot detect platform")
 		}
-		opts.PackService = rocketpack.NewService(jot, opts.Config.Platform)
+
+		opts.Platform = platform
+	}
+
+	jot, err := jot.New(opts.InstallationsDirectory, nil)
+	if err != nil {
+		return nil, err
 	}
 
 	// create driver
 	driver := Driver{
-		conf:     opts.Config,
-		log:      opts.Logger,
-		pack:     opts.PackService,
-		resource: opts.ResourceService,
+		log:                    opts.Logger,
+		pack:                   rocketpack.NewService(jot, opts.Platform),
+		resource:               resource.NewService(),
+		debug:                  opts.Debug,
+		installationsDirectory: opts.InstallationsDirectory,
+		defaultBuild:           opts.DefaultBuild,
+		platform:               opts.Platform,
+		addonsEnabled:          opts.AddonsEnabled,
 	}
 
 	return &driver, nil

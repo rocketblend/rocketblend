@@ -1,6 +1,7 @@
 package command
 
 import (
+	"github.com/rocketblend/rocketblend/pkg/cmd/cli/config"
 	"github.com/rocketblend/rocketblend/pkg/core"
 
 	"github.com/spf13/cobra"
@@ -8,12 +9,14 @@ import (
 
 type (
 	Service struct {
+		config *config.Service
 		driver *core.Driver
 	}
 )
 
-func NewService(driver *core.Driver) *Service {
+func NewService(config *config.Service, driver *core.Driver) *Service {
 	return &Service{
+		config: config,
 		driver: driver,
 	}
 }
@@ -34,6 +37,7 @@ func (srv *Service) NewCommand() *cobra.Command {
 	findCMD := srv.newFindCommand()
 	getCMD := srv.newGetCommand()
 	createCMD := srv.newCreateCommand()
+	configCMD := srv.newConfigCommand()
 
 	c.AddCommand(
 		openCMD,
@@ -42,6 +46,7 @@ func (srv *Service) NewCommand() *cobra.Command {
 		findCMD,
 		getCMD,
 		createCMD,
+		configCMD,
 	)
 
 	return c

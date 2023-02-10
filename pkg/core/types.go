@@ -1,9 +1,14 @@
 package core
 
 import (
-	"github.com/rocketblend/rocketblend/pkg/core/config"
 	"github.com/rocketblend/rocketblend/pkg/core/rocketpack"
+	"github.com/rocketblend/rocketblend/pkg/core/runtime"
 	"github.com/rocketblend/rocketblend/pkg/jot/reference"
+)
+
+const (
+	Name         = "rocketblend"
+	DefaultBuild = "github.com/rocketblend/official-library/builds/blender/stable/3.4.1"
 )
 
 type (
@@ -31,16 +36,22 @@ type (
 	}
 
 	Driver struct {
-		conf     *config.Config  // the config rocketblend will use
-		log      Logger          // the logger rocketblend will use for logging
-		resource ResourceService // the resource service rocketblend will use
-		pack     PackService     // the pack service rocketblend will use
+		log                    Logger          // the logger rocketblend will use for logging
+		resource               ResourceService // the resource service rocketblend will use
+		pack                   PackService     // the pack service rocketblend will use
+		debug                  bool
+		platform               runtime.Platform
+		defaultBuild           string
+		installationsDirectory string
+		addonsEnabled          bool
 	}
 
 	Options struct {
-		Config          *config.Config // the config rocketblend will use (configurable)
-		Logger                         // the logger jot will use (configurable)
-		ResourceService                // the resource service rocketblend will use (configurable)
-		PackService                    // the pack service rocketblend will use (configurable)
+		Logger                 Logger
+		Debug                  bool
+		Platform               runtime.Platform
+		DefaultBuild           string
+		InstallationsDirectory string
+		AddonsEnabled          bool
 	}
 )

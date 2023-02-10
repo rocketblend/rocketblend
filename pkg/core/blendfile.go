@@ -34,7 +34,7 @@ type (
 )
 
 func (d *Driver) Create(path string) error {
-	ref := d.conf.Defaults.Build
+	ref := d.defaultBuild
 	build, err := d.findBuildByReference(ref)
 	if err != nil {
 		return err
@@ -84,7 +84,7 @@ func (d *Driver) Load(path string) (*BlendFile, error) {
 
 func (d *Driver) Run(file *BlendFile) error {
 	args := []string{}
-	if d.conf.Features.Addons {
+	if d.addonsEnabled {
 		addons := append(*file.Build.Addons, *file.Addons...)
 		json, err := json.Marshal(addons)
 		if err != nil {
@@ -106,7 +106,7 @@ func (d *Driver) Run(file *BlendFile) error {
 
 	cmd := exec.Command(file.Build.Path, args...)
 
-	if d.conf.Debug {
+	if d.debug {
 		fmt.Println(strings.ReplaceAll(cmd.String(), "\"", "\\\""))
 	}
 
@@ -118,7 +118,7 @@ func (d *Driver) Run(file *BlendFile) error {
 }
 
 func (d *Driver) getDefaultBuild() (*Build, error) {
-	ref := d.conf.Defaults.Build
+	ref := d.defaultBuild
 	if ref == "" {
 		return nil, fmt.Errorf("no default build set")
 	}
@@ -176,7 +176,7 @@ func (d *Driver) findBuildByReference(ref string) (*Build, error) {
 	}
 
 	return &Build{
-		Path:   filepath.Join(d.conf.Directories.Installations, ref, pack.Build.GetSourceForPlatform(d.conf.Platform).Executable),
+		Path:   filepath.Join(d.installationsDirectory, ref, pack.Build.GetSourceForPlatform(d.platform).Executable),
 		Addons: addons,
 		ARGS:   pack.Build.Args,
 	}, nil
@@ -184,7 +184,7 @@ func (d *Driver) findBuildByReference(ref string) (*Build, error) {
 
 func (d *Driver) getAddonsByReference(ref []string) (*[]Addon, error) {
 	addons := []Addon{}
-	if d.conf.Features.Addons {
+	if d.addonsEnabled {
 		for _, r := range ref {
 			addon, err := d.getAddonByReference(r)
 			if err != nil {
@@ -211,7 +211,7 @@ func (d *Driver) getAddonByReference(ref string) (*Addon, error) {
 	return &Addon{
 		Name:    pack.Addon.Name,
 		Version: pack.Addon.Version,
-		Path:    filepath.Join(d.conf.Directories.Installations, ref, pack.Addon.Source.File),
+		Path:    filepath.Join(d.installationsDirectory, ref, pack.Addon.Source.File),
 	}, nil
 }
 
@@ -223,7 +223,7 @@ func (d *Driver) create(blendFile *BlendFile) error {
 
 	cmd := exec.Command(blendFile.Build.Path, "-b", "--python-expr", script)
 
-	if d.conf.Debug {
+	if d.debug {
 		fmt.Println(strings.ReplaceAll(cmd.String(), "\"", "\\\""))
 	}
 
