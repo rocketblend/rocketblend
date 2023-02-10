@@ -9,8 +9,8 @@ func (srv *Service) newConfigCommand() *cobra.Command {
 
 	c := &cobra.Command{
 		Use:   "config [key]",
-		Short: "manage the configuration for rocketblend",
-		Long:  `manage the configuration for rocketblend`,
+		Short: "Manage the configuration for rocketblend",
+		Long:  `Manage the configuration for rocketblend`,
 		Args:  cobra.MinimumNArgs(1),
 		Run: func(cmd *cobra.Command, args []string) {
 			key := args[0]

@@ -8,7 +8,7 @@ func (srv *Service) newNewCommand() *cobra.Command {
 
 	c := &cobra.Command{
 		Use:   "new [name]",
-		Short: "create a new project",
+		Short: "Create a new project",
 		Long:  `Create a new project`,
 		Args:  cobra.MinimumNArgs(1),
 		Run: func(cmd *cobra.Command, args []string) {

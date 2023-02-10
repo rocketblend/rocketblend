@@ -33,10 +33,24 @@ func (srv *Service) NewCommand() *cobra.Command {
 
 	configCMD := srv.newConfigCommand()
 	newCMD := srv.newNewCommand()
+	installCMD := srv.newInstallCommand()
+	uninstallCMD := srv.newUninstallCommand()
+	runCMD := srv.newRunCommand()
+	startCMD := srv.newStartCommand()
+	renderCMD := srv.newRenderCommand()
+	resolveCMD := srv.newResolveCommand()
+	listCMD := srv.newListCommand()
 
 	c.AddCommand(
 		configCMD,
 		newCMD,
+		installCMD,
+		uninstallCMD,
+		runCMD,
+		startCMD,
+		renderCMD,
+		resolveCMD,
+		listCMD,
 	)
 
 	return c
