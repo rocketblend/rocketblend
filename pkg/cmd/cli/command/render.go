@@ -12,8 +12,8 @@ func (srv *Service) newRenderCommand() *cobra.Command {
 
 	c := &cobra.Command{
 		Use:   "render",
-		Short: "Render a project",
-		Long:  `Render a project`,
+		Short: "Render project",
+		Long:  `Render project`,
 		Args:  cobra.NoArgs,
 		Run: func(cmd *cobra.Command, args []string) {
 			cmd.Println("render called")

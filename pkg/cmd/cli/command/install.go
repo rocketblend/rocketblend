@@ -7,7 +7,7 @@ func (srv *Service) newInstallCommand() *cobra.Command {
 
 	c := &cobra.Command{
 		Use:   "install [reference]",
-		Short: "Install a project dependencies",
+		Short: "Install project dependencies",
 		Long:  `Adds dependencies to the current project and installs them.`,
 		Args:  cobra.MinimumNArgs(1),
 		Run: func(cmd *cobra.Command, args []string) {

@@ -7,8 +7,8 @@ func (srv *Service) newRunCommand() *cobra.Command {
 
 	c := &cobra.Command{
 		Use:   "run",
-		Short: "Run a project",
-		Long:  `Run a project`,
+		Short: "Run project",
+		Long:  `Run project`,
 		Args:  cobra.NoArgs,
 		Run: func(cmd *cobra.Command, args []string) {
 			cmd.Println("run called")
