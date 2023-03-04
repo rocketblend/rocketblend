@@ -16,7 +16,7 @@ func (srv *Service) newResolveCommand() *cobra.Command {
 		Long:  `Output the resolved dependencies and paths for the project on the local machine.`,
 		Args:  cobra.NoArgs,
 		Run: func(cmd *cobra.Command, args []string) {
-			blend, err := srv.findBlendFile()
+			blend, err := srv.findBlendFile(srv.flags.workingDirectory)
 			if err != nil {
 				cmd.Println(err)
 				return
@@ -39,7 +39,7 @@ func (srv *Service) newResolveCommand() *cobra.Command {
 		},
 	}
 
-	c.Flags().StringVarP(&output, "output", "o", "pretty", "output format (pretty, json)")
+	c.Flags().StringVarP(&output, "output", "o", "json", "output format (pretty, json)")
 
 	return c
 }

@@ -11,7 +11,7 @@ func (srv *Service) newStartCommand() *cobra.Command {
 		Long:  `Start project`,
 		Args:  cobra.NoArgs,
 		Run: func(cmd *cobra.Command, args []string) {
-			blend, err := srv.findBlendFile()
+			blend, err := srv.findBlendFile(srv.flags.workingDirectory)
 			if err != nil {
 				cmd.Println(err)
 				return

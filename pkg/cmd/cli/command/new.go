@@ -10,7 +10,6 @@ import (
 )
 
 func (srv *Service) newNewCommand() *cobra.Command {
-	var dir string
 	var skipInstall bool
 
 	c := &cobra.Command{
@@ -24,7 +23,7 @@ func (srv *Service) newNewCommand() *cobra.Command {
 				return
 			}
 
-			path, err := srv.validatePath(dir)
+			path, err := srv.validatePath(srv.flags.workingDirectory)
 			if err != nil {
 				cmd.PrintErrln(err)
 				return
@@ -47,7 +46,6 @@ func (srv *Service) newNewCommand() *cobra.Command {
 		},
 	}
 
-	c.Flags().StringVarP(&dir, "directory", "d", ".", "creates project in the specified directory (default: current directory)")
 	c.Flags().BoolVarP(&skipInstall, "skip-install", "s", false, "skip installing dependencies")
 
 	return c
@@ -63,18 +61,4 @@ func (srv *Service) validateName(name string) error {
 	}
 
 	return nil
-}
-
-func (srv *Service) validatePath(path string) (string, error) {
-	if filepath.IsAbs(path) {
-		return path, nil
-	}
-
-	// get the absolute path
-	absPath, err := filepath.Abs(path)
-	if err != nil {
-		return "", err
-	}
-
-	return absPath, nil
 }

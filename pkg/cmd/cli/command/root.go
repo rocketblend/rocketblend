@@ -1,6 +1,8 @@
 package command
 
 import (
+	"path/filepath"
+
 	"github.com/rocketblend/rocketblend/pkg/cmd/cli/config"
 	"github.com/rocketblend/rocketblend/pkg/cmd/cli/helpers"
 	"github.com/rocketblend/rocketblend/pkg/core"
@@ -9,9 +11,14 @@ import (
 )
 
 type (
+	persistentFlags struct {
+		workingDirectory string
+	}
+
 	Service struct {
 		config *config.Service
 		driver *core.Driver
+		flags  *persistentFlags
 	}
 )
 
@@ -19,6 +26,7 @@ func NewService(config *config.Service, driver *core.Driver) *Service {
 	return &Service{
 		config: config,
 		driver: driver,
+		flags:  &persistentFlags{},
 	}
 }
 
@@ -56,11 +64,32 @@ Documentation is available at https://docs.rocketblend.io/`,
 		listCMD,
 	)
 
+	c.PersistentFlags().StringVarP(&srv.flags.workingDirectory, "directory", "d", ".", "specified directory to run the command (default: current directory)")
+
 	return c
 }
 
-func (srv *Service) findBlendFile() (*core.BlendFile, error) {
-	path, err := helpers.FindFilePathForExt(".blend")
+func (srv *Service) validatePath(path string) (string, error) {
+	if filepath.IsAbs(path) {
+		return path, nil
+	}
+
+	// get the absolute path
+	absPath, err := filepath.Abs(path)
+	if err != nil {
+		return "", err
+	}
+
+	return absPath, nil
+}
+
+func (srv *Service) findBlendFile(dir string) (*core.BlendFile, error) {
+	dir, err := srv.validatePath(dir)
+	if err != nil {
+		return nil, err
+	}
+
+	path, err := helpers.FindFilePathForExt(dir, ".blend")
 	if err != nil {
 		return nil, err
 	}

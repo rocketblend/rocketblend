@@ -13,11 +13,13 @@ func (srv *Service) newRunCommand() *cobra.Command {
 		Long:  `Run project`,
 		Args:  cobra.NoArgs,
 		Run: func(cmd *cobra.Command, args []string) {
-			blend, err := srv.findBlendFile()
+			blend, err := srv.findBlendFile(srv.flags.workingDirectory)
 			if err != nil {
 				cmd.Println(err)
 				return
 			}
+
+			cmd.Root()
 
 			err = srv.driver.Run(blend, background, []string{})
 			if err != nil {

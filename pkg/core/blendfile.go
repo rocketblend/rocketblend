@@ -101,9 +101,12 @@ func (d *Driver) Run(file *BlendFile, background bool, postArgs []string) error 
 		return err
 	}
 
-	if err := cmd.Run(); err != nil {
+	output, err := cmd.CombinedOutput()
+	if err != nil {
 		return fmt.Errorf("failed to open: %s", err)
 	}
+
+	fmt.Println(string(output))
 
 	return nil
 }
