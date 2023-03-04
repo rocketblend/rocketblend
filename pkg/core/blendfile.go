@@ -115,7 +115,7 @@ func (d *Driver) getCMD(file *BlendFile, background bool, postArgs []string) (*e
 	}
 
 	if file.Path != "" {
-		preArgs = append([]string{file.Path}, preArgs...)
+		preArgs = append(preArgs, []string{file.Path}...)
 	}
 
 	if d.addonsEnabled {
