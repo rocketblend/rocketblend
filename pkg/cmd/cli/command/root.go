@@ -2,6 +2,7 @@ package command
 
 import (
 	"github.com/rocketblend/rocketblend/pkg/cmd/cli/config"
+	"github.com/rocketblend/rocketblend/pkg/cmd/cli/helpers"
 	"github.com/rocketblend/rocketblend/pkg/core"
 
 	"github.com/spf13/cobra"
@@ -56,4 +57,18 @@ Documentation is available at https://docs.rocketblend.io/`,
 	)
 
 	return c
+}
+
+func (srv *Service) findBlendFile() (*core.BlendFile, error) {
+	path, err := helpers.FindFilePathForExt(".blend")
+	if err != nil {
+		return nil, err
+	}
+
+	blend, err := srv.driver.Load(path)
+	if err != nil {
+		return nil, err
+	}
+
+	return blend, nil
 }

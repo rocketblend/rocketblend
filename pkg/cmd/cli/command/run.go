@@ -1,6 +1,8 @@
 package command
 
-import "github.com/spf13/cobra"
+import (
+	"github.com/spf13/cobra"
+)
 
 func (srv *Service) newRunCommand() *cobra.Command {
 	var background bool
@@ -11,7 +13,17 @@ func (srv *Service) newRunCommand() *cobra.Command {
 		Long:  `Run project`,
 		Args:  cobra.NoArgs,
 		Run: func(cmd *cobra.Command, args []string) {
-			cmd.Println("run called")
+			blend, err := srv.findBlendFile()
+			if err != nil {
+				cmd.Println(err)
+				return
+			}
+
+			err = srv.driver.Run(blend, background, []string{})
+			if err != nil {
+				cmd.Println(err)
+				return
+			}
 		},
 	}
 
