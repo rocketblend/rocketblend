@@ -33,19 +33,10 @@ type (
 	}
 )
 
-func (d *Driver) Create(name string, path string, reference reference.Reference) error {
+func (d *Driver) Create(name string, path string, reference reference.Reference, skipDeps bool) error {
 	// TODO: convert all functions to use reference.Reference
 	build, err := d.findBuildByReference(reference.String())
 	if err != nil {
-		return err
-	}
-
-	blendFile := &BlendFile{
-		Build: build,
-		Path:  filepath.Join(path, name+BlenderFileExtension),
-	}
-
-	if err := d.create(blendFile); err != nil {
 		return err
 	}
 
@@ -55,6 +46,22 @@ func (d *Driver) Create(name string, path string, reference reference.Reference)
 
 	if err := rocketfile.Save(path, &rkt); err != nil {
 		return fmt.Errorf("failed to create rocketfile: %s", err)
+	}
+
+	if skipDeps {
+		err = d.InstallDependencies(path, nil, false)
+		if err != nil {
+			return err
+		}
+	}
+
+	blendFile := &BlendFile{
+		Build: build,
+		Path:  filepath.Join(path, name+BlenderFileExtension),
+	}
+
+	if err := d.create(blendFile); err != nil {
+		return err
 	}
 
 	return nil
@@ -82,8 +89,9 @@ func (d *Driver) Load(path string) (*BlendFile, error) {
 	return file, nil
 }
 
-func (d *Driver) Start(file *BlendFile, background bool, postArgs []string) error {
-	cmd, err := d.getCMD(file, background, postArgs)
+func (d *Driver) Start(file *BlendFile, postArgs []string) error {
+	// TODO: Remove this and just expose getCMD()
+	cmd, err := d.getCMD(file, false, postArgs)
 	if err != nil {
 		return err
 	}
@@ -96,6 +104,7 @@ func (d *Driver) Start(file *BlendFile, background bool, postArgs []string) erro
 }
 
 func (d *Driver) Run(file *BlendFile, background bool, postArgs []string) error {
+	// TODO: Remove this and just expose getCMD()
 	cmd, err := d.getCMD(file, background, postArgs)
 	if err != nil {
 		return err

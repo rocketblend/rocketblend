@@ -19,8 +19,6 @@ func (srv *Service) newRunCommand() *cobra.Command {
 				return
 			}
 
-			cmd.Root()
-
 			err = srv.driver.Run(blend, background, []string{})
 			if err != nil {
 				cmd.Println(err)

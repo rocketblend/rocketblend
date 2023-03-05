@@ -57,6 +57,38 @@ func (srv *Service) DescribeByReference(reference reference.Reference) (*RocketP
 	return pack, nil
 }
 
+func (srv *Service) InstallByReference(ref reference.Reference, force bool) error {
+	// Check if already installed.
+	pack, _ := srv.FindByReference(ref)
+
+	if pack == nil || force {
+		err := srv.fetchByReference(ref)
+		if err != nil {
+			return err
+		}
+
+		err = srv.pullByReference(ref)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (srv *Service) UninstallByReference(ref reference.Reference) error {
+	_, err := srv.FindByReference(ref)
+	if err != nil {
+		return err
+	}
+
+	if err := srv.driver.DeleteAll(ref); err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func (srv *Service) FindByReference(ref reference.Reference) (*RocketPack, error) {
 	b, err := srv.driver.Read(ref, PackgeFile)
 	if err != nil {
@@ -76,7 +108,7 @@ func (srv *Service) FindByReference(ref reference.Reference) (*RocketPack, error
 	return p, err
 }
 
-func (srv *Service) FetchByReference(ref reference.Reference) error {
+func (srv *Service) fetchByReference(ref reference.Reference) error {
 	// Validates reference is a valid pack.
 	_, err := srv.DescribeByReference(ref)
 	if err != nil {
@@ -96,7 +128,7 @@ func (srv *Service) FetchByReference(ref reference.Reference) error {
 	return nil
 }
 
-func (srv *Service) PullByReference(ref reference.Reference) error {
+func (srv *Service) pullByReference(ref reference.Reference) error {
 	pack, err := srv.FindByReference(ref)
 	if err != nil {
 		return err
@@ -134,7 +166,7 @@ func (srv *Service) writeBuild(ref reference.Reference, build *Build) error {
 	}
 
 	for _, pack := range build.Addons {
-		err = srv.PullByReference(reference.Reference(pack))
+		err = srv.pullByReference(reference.Reference(pack))
 		if err != nil {
 			return err
 		}

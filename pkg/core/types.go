@@ -33,8 +33,8 @@ type (
 	PackService interface {
 		DescribeByReference(reference reference.Reference) (*rocketpack.RocketPack, error)
 		FindByReference(ref reference.Reference) (*rocketpack.RocketPack, error)
-		FetchByReference(ref reference.Reference) error
-		PullByReference(ref reference.Reference) error
+		InstallByReference(reference reference.Reference, force bool) error
+		UninstallByReference(reference reference.Reference) error
 	}
 
 	Driver struct {

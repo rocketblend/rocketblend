@@ -17,7 +17,7 @@ func (srv *Service) newStartCommand() *cobra.Command {
 				return
 			}
 
-			err = srv.driver.Start(blend, false, []string{})
+			err = srv.driver.Start(blend, []string{})
 			if err != nil {
 				cmd.Println(err)
 				return
