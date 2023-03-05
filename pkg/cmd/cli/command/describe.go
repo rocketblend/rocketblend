@@ -12,8 +12,8 @@ func (srv *Service) newDescribeCommand() *cobra.Command {
 
 	c := &cobra.Command{
 		Use:   "describe [reference]",
-		Short: "Provides a description of the given rocketpack",
-		Long:  `Provides a description of the given rocketpack`,
+		Short: "Provide a description for a rocketpack",
+		Long:  `Provide a description for a rocketpack`,
 		Args:  cobra.ExactArgs(1),
 		Run: func(cmd *cobra.Command, args []string) {
 			reference, err := reference.Parse(args[0])
