@@ -27,6 +27,7 @@ func (srv *Service) newInstallCommand() *cobra.Command {
 					return
 				}
 
+				deps = append([]string{rkt.Build}, rkt.Addons...)
 				rkt = r // Assigning to rkt directly gives null pointer outside if statement
 			}
 
