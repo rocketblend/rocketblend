@@ -2,6 +2,8 @@ package rocketpack
 
 import (
 	"fmt"
+	"io"
+	"net/http"
 	"net/url"
 
 	"sigs.k8s.io/yaml"
@@ -25,6 +27,36 @@ func NewService(driver *jot.Driver, platform runtime.Platform) *Service {
 	}
 }
 
+func (srv *Service) DescribeByReference(reference reference.Reference) (*RocketPack, error) {
+	url, err := url.JoinPath(reference.Url(), PackgeFile)
+	if err != nil {
+		return nil, err
+	}
+
+	resp, err := http.Get(url)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	bodyBytes, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, err
+	}
+
+	pack := &RocketPack{}
+	if err := yaml.Unmarshal(bodyBytes, pack); err != nil {
+		return nil, err
+	}
+
+	err = validate(pack)
+	if err != nil {
+		return nil, err
+	}
+
+	return pack, nil
+}
+
 func (srv *Service) FindByReference(ref reference.Reference) (*RocketPack, error) {
 	b, err := srv.driver.Read(ref, PackgeFile)
 	if err != nil {
@@ -45,6 +77,12 @@ func (srv *Service) FindByReference(ref reference.Reference) (*RocketPack, error
 }
 
 func (srv *Service) FetchByReference(ref reference.Reference) error {
+	// Validates reference is a valid pack.
+	_, err := srv.DescribeByReference(ref)
+	if err != nil {
+		return err
+	}
+
 	downloadUrl, err := url.JoinPath(ref.Url(), PackgeFile)
 	if err != nil {
 		return err

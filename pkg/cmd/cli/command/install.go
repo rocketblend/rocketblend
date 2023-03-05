@@ -27,7 +27,6 @@ func (srv *Service) newInstallCommand() *cobra.Command {
 					return
 				}
 
-				deps = append([]string{r.Build}, r.Addons...)
 				rkt = r // Assigning to rkt directly gives null pointer outside if statement
 			}
 
@@ -40,7 +39,25 @@ func (srv *Service) newInstallCommand() *cobra.Command {
 					return
 				}
 
+				pack, err := srv.driver.DescribePackByReference(reference)
+				if err != nil {
+					cmd.PrintErrln(err)
+					return
+				}
+
 				deps = append(deps, reference.String())
+
+				if rkt != nil {
+					if pack.Addon != nil {
+						rkt.Addons = append(rkt.Addons, reference.String())
+					}
+
+					if pack.Build != nil {
+						rkt.Build = reference.String()
+					}
+
+					deps = append([]string{rkt.Build}, rkt.Addons...)
+				}
 			}
 
 			if len(deps) == 0 {
@@ -68,7 +85,7 @@ func (srv *Service) newInstallCommand() *cobra.Command {
 				}
 			}
 
-			if !global && len(args) == 1 {
+			if rkt != nil && len(args) == 1 {
 				cmd.Println("Updating rocketfile...")
 
 				rkt.Build = build
@@ -96,6 +113,7 @@ func (srv *Service) installPack(refString string, force bool) (*rocketpack.Rocke
 		return nil, err
 	}
 
+	// Check if already installed.
 	pack, err := srv.driver.FindPackByReference(reference)
 	if err != nil {
 		return nil, err
@@ -108,6 +126,11 @@ func (srv *Service) installPack(refString string, force bool) (*rocketpack.Rocke
 		}
 
 		err = srv.driver.PullPackByReference(reference)
+		if err != nil {
+			return nil, err
+		}
+
+		pack, err = srv.driver.FindPackByReference(reference)
 		if err != nil {
 			return nil, err
 		}
