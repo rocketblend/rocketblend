@@ -65,7 +65,7 @@ Documentation is available at https://docs.rocketblend.io/`,
 		listCMD,
 	)
 
-	c.PersistentFlags().StringVarP(&srv.flags.workingDirectory, "directory", "d", ".", "specified directory to run the command (default: current directory)")
+	c.PersistentFlags().StringVarP(&srv.flags.workingDirectory, "directory", "d", ".", "working directory to run the command (default: current directory)")
 	// TODO: add PersistentPreRunE to validate the working directory.
 
 	return c
