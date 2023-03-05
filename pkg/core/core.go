@@ -35,7 +35,7 @@ func New(options *Options) (*Driver, error) {
 			return nil, fmt.Errorf("cannot find config directory: %v", err)
 		}
 
-		dir := filepath.Join(configDir, Name, "installations")
+		dir := filepath.Join(configDir, Name, "packages")
 
 		if err := os.MkdirAll(dir, os.ModePerm); err != nil {
 			return nil, fmt.Errorf("failed to create main directory: %w", err)

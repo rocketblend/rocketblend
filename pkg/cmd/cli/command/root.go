@@ -51,7 +51,8 @@ Documentation is available at https://docs.rocketblend.io/`,
 	startCMD := srv.newStartCommand()
 	renderCMD := srv.newRenderCommand()
 	resolveCMD := srv.newResolveCommand()
-	listCMD := srv.newListCommand()
+	// listCMD := srv.newListCommand()
+	describeCMD := srv.newDescribeCommand()
 
 	c.AddCommand(
 		configCMD,
@@ -62,10 +63,11 @@ Documentation is available at https://docs.rocketblend.io/`,
 		startCMD,
 		renderCMD,
 		resolveCMD,
-		listCMD,
+		// listCMD,
+		describeCMD,
 	)
 
-	c.PersistentFlags().StringVarP(&srv.flags.workingDirectory, "directory", "d", ".", "working directory to run the command (default: current directory)")
+	c.PersistentFlags().StringVarP(&srv.flags.workingDirectory, "directory", "d", ".", "working directory for the command")
 	// TODO: add PersistentPreRunE to validate the working directory.
 
 	return c
