@@ -17,12 +17,13 @@ func (srv *Service) newInstallCommand() *cobra.Command {
 		Run: func(cmd *cobra.Command, args []string) {
 			var ref *reference.Reference
 			if len(args) > 0 {
-				var err error
-				*ref, err = reference.Parse(args[0])
+				r, err := reference.Parse(args[0])
 				if err != nil {
 					cmd.PrintErrln(err)
 					return
 				}
+
+				ref = &r
 			}
 
 			if !global {
@@ -39,7 +40,7 @@ func (srv *Service) newInstallCommand() *cobra.Command {
 				}
 			}
 
-			cmd.Println("dependencies installed!")
+			cmd.Println("Dependencies installed!")
 		},
 	}
 

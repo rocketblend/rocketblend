@@ -29,7 +29,7 @@ func (d *Downloader) Download(path string, downloadUrl string) error {
 	f, _ := os.OpenFile(tempPath, os.O_CREATE|os.O_WRONLY, 0644)
 	bar := progressbar.DefaultBytes(
 		resp.ContentLength,
-		"downloading",
+		"Downloading",
 	)
 
 	if _, err := io.Copy(io.MultiWriter(f, bar), resp.Body); err != nil {

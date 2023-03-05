@@ -1,11 +1,15 @@
 package extractor
 
 import (
+	"context"
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/mholt/archiver/v3"
+	"github.com/schollz/progressbar/v3"
 )
 
 type (
@@ -35,6 +39,15 @@ func New(options *Options) *Service {
 }
 
 func (s *Service) Extract(path string, extractPath string) error {
+	// Create a context with a cancel function
+	ctx, cancel := context.WithCancel(context.Background())
+
+	// Create a goroutine to display progress
+	go displayProgress(ctx)
+
+	// Defer the cancel function
+	defer cancel()
+
 	// mholt/archiver doesn't support .dmg files, so we need to handle them separately.
 	// This isn't a 100% golang solution, but it works for now.
 	switch strings.ToLower(filepath.Ext(path)) {
@@ -58,4 +71,23 @@ func (s *Service) Extract(path string, extractPath string) error {
 	}
 
 	return nil
+}
+
+func displayProgress(ctx context.Context) {
+	bar := progressbar.NewOptions(-1,
+		progressbar.OptionSetDescription("Extracting"),
+		progressbar.OptionShowIts(),
+		progressbar.OptionShowCount(),
+		progressbar.OptionSpinnerType(7),
+	)
+
+	for {
+		select {
+		case <-time.After(500 * time.Millisecond):
+			bar.Add(1)
+		case <-ctx.Done():
+			fmt.Println("Goroutine cancelled")
+			return
+		}
+	}
 }
