@@ -1,6 +1,7 @@
 package command
 
 import (
+	"github.com/rocketblend/rocketblend/pkg/cmd/cli/helpers"
 	"github.com/rocketblend/rocketblend/pkg/core/rocketfile"
 	"github.com/rocketblend/rocketblend/pkg/core/rocketpack"
 	"github.com/rocketblend/rocketblend/pkg/jot/reference"
@@ -17,80 +18,68 @@ func (srv *Service) newInstallCommand() *cobra.Command {
 		Long:  `Adds dependencies to the current project and installs them.`,
 		Args:  cobra.MaximumNArgs(1),
 		Run: func(cmd *cobra.Command, args []string) {
-			var deps []string
-			var rkt *rocketfile.RocketFile
-
-			if !global {
-				r, err := rocketfile.Load(srv.flags.workingDirectory)
-				if err != nil {
-					cmd.PrintErr(err)
-					return
-				}
-
-				deps = append([]string{r.Build}, r.Addons...)
-				rkt = r // Assigning to rkt directly gives null pointer outside if statement
-			}
-
-			cmd.Println("Installing dependencies...")
-
-			if len(args) == 1 {
+			// Parse reference if specified
+			var pack *rocketpack.RocketPack
+			if len(args) > 0 {
+				var err error
 				reference, err := reference.Parse(args[0])
 				if err != nil {
 					cmd.PrintErrln(err)
 					return
 				}
 
-				pack, err := srv.driver.DescribePackByReference(reference)
+				pack, err = srv.driver.DescribePackByReference(reference)
 				if err != nil {
 					cmd.PrintErrln(err)
 					return
 				}
+			}
 
-				deps = append(deps, reference.String())
+			var dependencies []string
+			var rkt *rocketfile.RocketFile
+			if !global {
+				var err error
+				rkt, err = rocketfile.Load(srv.flags.workingDirectory)
+				if err != nil {
+					cmd.PrintErr(err)
+					return
+				}
 
-				if rkt != nil {
+				// Add the specified pack to the rocketfile.
+				if pack != nil {
 					if pack.Addon != nil {
-						rkt.Addons = append(rkt.Addons, reference.String())
+						rkt.Addons = helpers.RemoveDuplicateStr(append(rkt.Addons, args[0]))
 					}
 
 					if pack.Build != nil {
-						rkt.Build = reference.String()
+						rkt.Build = args[0]
 					}
-
-					deps = append([]string{rkt.Build}, rkt.Addons...)
 				}
+
+				dependencies = append([]string{rkt.Build}, rkt.Addons...)
 			}
 
-			if len(deps) == 0 {
-				cmd.Println("No dependencies to install")
-				return
+			// Install a specific pack globally.
+			if global && pack != nil {
+				dependencies = append(dependencies, args[0])
 			}
 
-			var build string
-			var addons []string
-			for _, dep := range deps {
+			cmd.Println("Installing dependencies...")
+
+			for _, dep := range dependencies {
 				cmd.Println("Installing", dep)
 
-				pack, err := srv.installPack(dep, force)
+				err := srv.installPack(dep, force)
 				if err != nil {
 					cmd.PrintErrln(err)
 					return
 				}
-
-				if pack.Addon != nil {
-					addons = append(addons, dep)
-				}
-
-				if pack.Build != nil {
-					build = dep
-				}
 			}
 
-			if rkt != nil && len(args) == 1 {
+			// Save the rocketfile. This will only happen if the rocketfile was loaded and a pack was specified.
+			if rkt != nil && pack != nil {
 				cmd.Println("Updating rocketfile...")
 
-				rkt.Build = build
-				rkt.Addons = addons
 				err := rocketfile.Save(srv.flags.workingDirectory, rkt)
 				if err != nil {
 					cmd.PrintErr(err)
@@ -108,10 +97,10 @@ func (srv *Service) newInstallCommand() *cobra.Command {
 	return c
 }
 
-func (srv *Service) installPack(refString string, force bool) (*rocketpack.RocketPack, error) {
+func (srv *Service) installPack(refString string, force bool) error {
 	reference, err := reference.Parse(refString)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	// Check if already installed.
@@ -120,19 +109,14 @@ func (srv *Service) installPack(refString string, force bool) (*rocketpack.Rocke
 	if pack == nil || force {
 		err = srv.driver.FetchPackByReference(reference)
 		if err != nil {
-			return nil, err
+			return err
 		}
 
 		err = srv.driver.PullPackByReference(reference)
 		if err != nil {
-			return nil, err
-		}
-
-		pack, err = srv.driver.FindPackByReference(reference)
-		if err != nil {
-			return nil, err
+			return err
 		}
 	}
 
-	return pack, nil
+	return nil
 }

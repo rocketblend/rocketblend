@@ -3,7 +3,19 @@ package helpers
 import (
 	"fmt"
 	"path/filepath"
+	"sort"
 )
+
+func RemoveDuplicateStr(strs []string) []string {
+	sort.Strings(strs)
+	for i := len(strs) - 1; i > 0; i-- {
+		if strs[i] == strs[i-1] {
+			strs = append(strs[:i], strs[i+1:]...)
+		}
+	}
+
+	return strs
+}
 
 func FindFilePathForExt(dir string, ext string) (string, error) {
 	// Get a list of all files in the current directory.
