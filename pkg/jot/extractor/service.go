@@ -57,7 +57,6 @@ func (s *Service) Extract(path string, extractPath string) error {
 			// }),
 		)
 
-		defer bar.Finish()
 		defer wg.Done()
 
 		for {
@@ -65,6 +64,7 @@ func (s *Service) Extract(path string, extractPath string) error {
 			case <-time.After(100 * time.Millisecond):
 				bar.Add(1)
 			case <-ctx.Done():
+				bar.Finish()
 				return
 			}
 		}

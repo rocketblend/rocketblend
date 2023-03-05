@@ -62,7 +62,7 @@ func (srv *Service) InstallByReference(ref reference.Reference, force bool) erro
 	pack, _ := srv.FindByReference(ref)
 
 	if pack == nil || force {
-		fmt.Println("Installing pack", ref.String())
+		fmt.Println(ref.String())
 
 		err := srv.fetchByReference(ref)
 		if err != nil {
@@ -83,8 +83,6 @@ func (srv *Service) UninstallByReference(ref reference.Reference) error {
 	if err != nil {
 		return err
 	}
-
-	fmt.Println("Uninstalling pack", ref.String())
 
 	if err := srv.driver.DeleteAll(ref); err != nil {
 		return err
