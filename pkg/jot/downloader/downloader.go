@@ -4,6 +4,7 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"time"
 
 	"github.com/schollz/progressbar/v3"
 )
@@ -27,7 +28,7 @@ func (d *Downloader) Download(path string, downloadUrl string) error {
 	defer resp.Body.Close()
 
 	f, _ := os.OpenFile(tempPath, os.O_CREATE|os.O_WRONLY, 0644)
-	bar := progressbar.DefaultBytes(
+	bar := DefaultBar(
 		resp.ContentLength,
 		"Downloading",
 	)
@@ -45,4 +46,27 @@ func (d *Downloader) Download(path string, downloadUrl string) error {
 	}
 
 	return nil
+}
+
+func DefaultBar(maxBytes int64, description ...string) *progressbar.ProgressBar {
+	desc := ""
+	if len(description) > 0 {
+		desc = description[0]
+	}
+	return progressbar.NewOptions64(
+		maxBytes,
+		progressbar.OptionSetDescription(desc),
+		progressbar.OptionSetWriter(os.Stderr),
+		progressbar.OptionShowBytes(true),
+		progressbar.OptionSetWidth(10),
+		progressbar.OptionThrottle(65*time.Millisecond),
+		progressbar.OptionShowCount(),
+		progressbar.OptionSpinnerType(14),
+		progressbar.OptionFullWidth(),
+		progressbar.OptionSetRenderBlankState(true),
+		progressbar.OptionClearOnFinish(),
+		// progressbar.OptionOnCompletion(func() {
+		// 	fmt.Fprint(os.Stderr, "\n")
+		// }),
+	)
 }

@@ -39,8 +39,6 @@ func (srv *Service) newInstallCommand() *cobra.Command {
 					return
 				}
 			}
-
-			cmd.Println("Dependencies installed!")
 		},
 	}
 

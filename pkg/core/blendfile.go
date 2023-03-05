@@ -34,12 +34,6 @@ type (
 )
 
 func (d *Driver) Create(name string, path string, reference reference.Reference, skipDeps bool) error {
-	// TODO: convert all functions to use reference.Reference
-	build, err := d.findBuildByReference(reference.String())
-	if err != nil {
-		return err
-	}
-
 	rkt := rocketfile.RocketFile{
 		Build: reference.String(),
 	}
@@ -48,11 +42,17 @@ func (d *Driver) Create(name string, path string, reference reference.Reference,
 		return fmt.Errorf("failed to create rocketfile: %s", err)
 	}
 
-	if skipDeps {
-		err = d.InstallDependencies(path, nil, false)
+	if !skipDeps {
+		err := d.InstallDependencies(path, nil, false)
 		if err != nil {
 			return err
 		}
+	}
+
+	// TODO: convert all functions to use reference.Reference
+	build, err := d.findBuildByReference(reference.String())
+	if err != nil {
+		return err
 	}
 
 	blendFile := &BlendFile{

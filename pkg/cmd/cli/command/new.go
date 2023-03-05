@@ -23,15 +23,12 @@ func (srv *Service) newNewCommand() *cobra.Command {
 				return
 			}
 
-			cmd.Println("creating project...")
 			ref := reference.Reference(srv.config.GetValueByString("defaultBuild"))
 			err := srv.driver.Create(args[0], srv.flags.workingDirectory, ref, skipInstall)
 			if err != nil {
 				cmd.Println(err)
 				return
 			}
-
-			cmd.Println("project created!")
 		},
 	}
 

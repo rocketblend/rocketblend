@@ -58,12 +58,12 @@ func (srv *Service) DescribeByReference(reference reference.Reference) (*RocketP
 }
 
 func (srv *Service) InstallByReference(ref reference.Reference, force bool) error {
-	fmt.Println("Installing pack", ref.String())
-
 	// Check if already installed.
 	pack, _ := srv.FindByReference(ref)
 
 	if pack == nil || force {
+		fmt.Println("Installing pack", ref.String())
+
 		err := srv.fetchByReference(ref)
 		if err != nil {
 			return err
@@ -79,12 +79,12 @@ func (srv *Service) InstallByReference(ref reference.Reference, force bool) erro
 }
 
 func (srv *Service) UninstallByReference(ref reference.Reference) error {
-	fmt.Println("Uninstalling pack", ref.String())
-
 	_, err := srv.FindByReference(ref)
 	if err != nil {
 		return err
 	}
+
+	fmt.Println("Uninstalling pack", ref.String())
 
 	if err := srv.driver.DeleteAll(ref); err != nil {
 		return err

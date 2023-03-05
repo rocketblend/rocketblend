@@ -2,10 +2,10 @@ package extractor
 
 import (
 	"context"
-	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/mholt/archiver/v3"
@@ -42,11 +42,37 @@ func (s *Service) Extract(path string, extractPath string) error {
 	// Create a context with a cancel function
 	ctx, cancel := context.WithCancel(context.Background())
 
+	var wg sync.WaitGroup
+
+	wg.Add(1)
 	// Create a goroutine to display progress
-	go displayProgress(ctx)
+	go func(ctx context.Context) {
+		bar := progressbar.NewOptions(-1,
+			progressbar.OptionSetWriter(os.Stderr),
+			progressbar.OptionSetDescription("Extracting"),
+			progressbar.OptionSpinnerType(14),
+			progressbar.OptionClearOnFinish(),
+			// progressbar.OptionOnCompletion(func() {
+			// 	fmt.Fprint(os.Stderr, "\n")
+			// }),
+		)
+
+		defer bar.Finish()
+		defer wg.Done()
+
+		for {
+			select {
+			case <-time.After(100 * time.Millisecond):
+				bar.Add(1)
+			case <-ctx.Done():
+				return
+			}
+		}
+	}(ctx)
 
 	// Defer the cancel function
 	defer cancel()
+	defer wg.Wait()
 
 	// mholt/archiver doesn't support .dmg files, so we need to handle them separately.
 	// This isn't a 100% golang solution, but it works for now.
@@ -70,24 +96,9 @@ func (s *Service) Extract(path string, extractPath string) error {
 		}
 	}
 
+	// Call cancel function explicitly and wait for it to complete.
+	cancel()
+	wg.Wait()
+
 	return nil
-}
-
-func displayProgress(ctx context.Context) {
-	bar := progressbar.NewOptions(-1,
-		progressbar.OptionSetDescription("Extracting"),
-		progressbar.OptionShowIts(),
-		progressbar.OptionShowCount(),
-		progressbar.OptionSpinnerType(7),
-	)
-
-	for {
-		select {
-		case <-time.After(500 * time.Millisecond):
-			bar.Add(1)
-		case <-ctx.Done():
-			fmt.Println("Goroutine cancelled")
-			return
-		}
-	}
 }
