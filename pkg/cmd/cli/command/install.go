@@ -114,10 +114,7 @@ func (srv *Service) installPack(refString string, force bool) (*rocketpack.Rocke
 	}
 
 	// Check if already installed.
-	pack, err := srv.driver.FindPackByReference(reference)
-	if err != nil {
-		return nil, err
-	}
+	pack, _ := srv.driver.FindPackByReference(reference)
 
 	if pack == nil || force {
 		err = srv.driver.FetchPackByReference(reference)
