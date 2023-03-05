@@ -23,11 +23,11 @@ func (srv *Service) newNewCommand() *cobra.Command {
 				return
 			}
 
-			path, err := srv.validatePath(srv.flags.workingDirectory)
-			if err != nil {
-				cmd.PrintErrln(err)
-				return
-			}
+			// path, err := srv.validatePath(srv.flags.workingDirectory)
+			// if err != nil {
+			// 	cmd.PrintErrln(err)
+			// 	return
+			// }
 
 			if !skipInstall {
 				// TODO: install dependencies
@@ -36,7 +36,7 @@ func (srv *Service) newNewCommand() *cobra.Command {
 
 			cmd.Println("creating project...")
 			ref := reference.Reference(srv.config.GetValueByString("defaultBuild"))
-			err = srv.driver.Create(args[0], path, ref)
+			err := srv.driver.Create(args[0], srv.flags.workingDirectory, ref)
 			if err != nil {
 				cmd.Println(err)
 				return

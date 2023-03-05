@@ -38,6 +38,7 @@ func (srv *Service) NewCommand() *cobra.Command {
 builds and add-ons for Blender, making installation and maintenance easier.
 
 Documentation is available at https://docs.rocketblend.io/`,
+		PersistentPreRun: srv.persistentPreRun,
 	}
 
 	c.SetVersionTemplate("{{.Version}}\n")
@@ -65,8 +66,19 @@ Documentation is available at https://docs.rocketblend.io/`,
 	)
 
 	c.PersistentFlags().StringVarP(&srv.flags.workingDirectory, "directory", "d", ".", "specified directory to run the command (default: current directory)")
+	// TODO: add PersistentPreRunE to validate the working directory.
 
 	return c
+}
+
+func (srv *Service) persistentPreRun(cmd *cobra.Command, args []string) {
+	path, err := srv.validatePath(srv.flags.workingDirectory)
+	if err != nil {
+		cmd.Println(err)
+		return
+	}
+
+	srv.flags.workingDirectory = path
 }
 
 func (srv *Service) validatePath(path string) (string, error) {
