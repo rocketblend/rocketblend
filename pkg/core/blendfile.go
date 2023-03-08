@@ -33,7 +33,22 @@ type (
 	}
 )
 
-func (d *Driver) Create(name string, path string, reference reference.Reference) error {
+func (d *Driver) Create(name string, path string, reference reference.Reference, skipDeps bool) error {
+	rkt := rocketfile.RocketFile{
+		Build: reference.String(),
+	}
+
+	if err := rocketfile.Save(path, &rkt); err != nil {
+		return fmt.Errorf("failed to create rocketfile: %s", err)
+	}
+
+	if !skipDeps {
+		err := d.InstallDependencies(path, nil, false)
+		if err != nil {
+			return err
+		}
+	}
+
 	// TODO: convert all functions to use reference.Reference
 	build, err := d.findBuildByReference(reference.String())
 	if err != nil {
@@ -42,19 +57,11 @@ func (d *Driver) Create(name string, path string, reference reference.Reference)
 
 	blendFile := &BlendFile{
 		Build: build,
-		Path:  filepath.Join(path, name, ".blend"),
+		Path:  filepath.Join(path, name+BlenderFileExtension),
 	}
 
 	if err := d.create(blendFile); err != nil {
 		return err
-	}
-
-	rkt := rocketfile.RocketFile{
-		Build: reference.String(),
-	}
-
-	if err := rocketfile.Save(path, &rkt); err != nil {
-		return fmt.Errorf("failed to create rocketfile: %s", err)
 	}
 
 	return nil
@@ -82,32 +89,11 @@ func (d *Driver) Load(path string) (*BlendFile, error) {
 	return file, nil
 }
 
-func (d *Driver) Run(file *BlendFile) error {
-	args := []string{}
-	if d.conf.Features.Addons {
-		addons := append(*file.Build.Addons, *file.Addons...)
-		json, err := json.Marshal(addons)
-		if err != nil {
-			return fmt.Errorf("failed to marshal addons: %s", err)
-		}
-
-		args = append(args, []string{
-			"--python-expr",
-			d.resource.GetAddonScript(),
-			"--",
-			"-a",
-			string(json),
-		}...)
-	}
-
-	if file.Path != "" {
-		args = append([]string{file.Path}, args...)
-	}
-
-	cmd := exec.Command(file.Build.Path, args...)
-
-	if d.conf.Debug {
-		fmt.Println(strings.ReplaceAll(cmd.String(), "\"", "\\\""))
+func (d *Driver) Start(file *BlendFile, postArgs []string) error {
+	// TODO: Remove this and just expose getCMD()
+	cmd, err := d.getCMD(file, false, postArgs)
+	if err != nil {
+		return err
 	}
 
 	if err := cmd.Start(); err != nil {
@@ -117,8 +103,65 @@ func (d *Driver) Run(file *BlendFile) error {
 	return nil
 }
 
+func (d *Driver) Run(file *BlendFile, background bool, postArgs []string) error {
+	// TODO: Remove this and just expose getCMD()
+	cmd, err := d.getCMD(file, background, postArgs)
+	if err != nil {
+		return err
+	}
+
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		return fmt.Errorf("failed to open: %s", err)
+	}
+
+	fmt.Println(string(output))
+
+	return nil
+}
+
+func (d *Driver) getCMD(file *BlendFile, background bool, postArgs []string) (*exec.Cmd, error) {
+	preArgs := []string{}
+	if background {
+		preArgs = append(preArgs, "-b")
+	}
+
+	if file.Path != "" {
+		preArgs = append(preArgs, []string{file.Path}...)
+	}
+
+	if d.addonsEnabled {
+		addons := append(*file.Build.Addons, *file.Addons...)
+		json, err := json.Marshal(addons)
+		if err != nil {
+			return nil, fmt.Errorf("failed to marshal addons: %s", err)
+		}
+
+		postArgs = append([]string{
+			"--python-expr",
+			d.resource.GetAddonScript(),
+		}, postArgs...)
+
+		postArgs = append(postArgs, []string{
+			"--",
+			"-a",
+			string(json),
+		}...)
+	}
+
+	// Blender requires arguments to be in a specific order
+	args := append(preArgs, postArgs...)
+	cmd := exec.Command(file.Build.Path, args...)
+
+	if d.debug {
+		fmt.Println(strings.ReplaceAll(cmd.String(), "\"", "\\\""))
+	}
+
+	return cmd, nil
+}
+
 func (d *Driver) getDefaultBuild() (*Build, error) {
-	ref := d.conf.Defaults.Build
+	ref := d.defaultBuild
 	if ref == "" {
 		return nil, fmt.Errorf("no default build set")
 	}
@@ -176,7 +219,7 @@ func (d *Driver) findBuildByReference(ref string) (*Build, error) {
 	}
 
 	return &Build{
-		Path:   filepath.Join(d.conf.Directories.Installations, ref, pack.Build.GetSourceForPlatform(d.conf.Platform).Executable),
+		Path:   filepath.Join(d.installationsDirectory, ref, pack.Build.GetSourceForPlatform(d.platform).Executable),
 		Addons: addons,
 		ARGS:   pack.Build.Args,
 	}, nil
@@ -184,7 +227,7 @@ func (d *Driver) findBuildByReference(ref string) (*Build, error) {
 
 func (d *Driver) getAddonsByReference(ref []string) (*[]Addon, error) {
 	addons := []Addon{}
-	if d.conf.Features.Addons {
+	if d.addonsEnabled {
 		for _, r := range ref {
 			addon, err := d.getAddonByReference(r)
 			if err != nil {
@@ -211,7 +254,7 @@ func (d *Driver) getAddonByReference(ref string) (*Addon, error) {
 	return &Addon{
 		Name:    pack.Addon.Name,
 		Version: pack.Addon.Version,
-		Path:    filepath.Join(d.conf.Directories.Installations, ref, pack.Addon.Source.File),
+		Path:    filepath.Join(d.installationsDirectory, ref, pack.Addon.Source.File),
 	}, nil
 }
 
@@ -223,7 +266,7 @@ func (d *Driver) create(blendFile *BlendFile) error {
 
 	cmd := exec.Command(blendFile.Build.Path, "-b", "--python-expr", script)
 
-	if d.conf.Debug {
+	if d.debug {
 		fmt.Println(strings.ReplaceAll(cmd.String(), "\"", "\\\""))
 	}
 

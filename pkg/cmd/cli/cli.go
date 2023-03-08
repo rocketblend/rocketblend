@@ -3,16 +3,34 @@ package cli
 import (
 	cc "github.com/ivanpirog/coloredcobra"
 	"github.com/rocketblend/rocketblend/pkg/cmd/cli/command"
+	"github.com/rocketblend/rocketblend/pkg/cmd/cli/config"
 	"github.com/rocketblend/rocketblend/pkg/core"
 )
 
 func Execute() error {
-	driver, err := core.New(nil)
+	cs, err := config.New()
 	if err != nil {
 		return err
 	}
 
-	srv := command.NewService(driver)
+	config, err := cs.Get()
+	if err != nil {
+		return err
+	}
+
+	rocketblendOptions := core.Options{
+		Debug:         config.Debug,
+		Platform:      config.Platform,
+		DefaultBuild:  config.DefaultBuild,
+		AddonsEnabled: config.Features.Addons,
+	}
+
+	driver, err := core.New(&rocketblendOptions)
+	if err != nil {
+		return err
+	}
+
+	srv := command.NewService(cs, driver)
 	rootCMD := srv.NewCommand()
 
 	// Configure help template colours

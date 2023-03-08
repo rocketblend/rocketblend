@@ -2,6 +2,8 @@ package rocketpack
 
 import (
 	"fmt"
+	"io"
+	"net/http"
 	"net/url"
 
 	"sigs.k8s.io/yaml"
@@ -25,6 +27,70 @@ func NewService(driver *jot.Driver, platform runtime.Platform) *Service {
 	}
 }
 
+func (srv *Service) DescribeByReference(reference reference.Reference) (*RocketPack, error) {
+	url, err := url.JoinPath(reference.Url(), PackgeFile)
+	if err != nil {
+		return nil, err
+	}
+
+	resp, err := http.Get(url)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	bodyBytes, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, err
+	}
+
+	pack := &RocketPack{}
+	if err := yaml.Unmarshal(bodyBytes, pack); err != nil {
+		return nil, err
+	}
+
+	err = validate(pack)
+	if err != nil {
+		return nil, err
+	}
+
+	return pack, nil
+}
+
+func (srv *Service) InstallByReference(ref reference.Reference, force bool) error {
+	// Check if already installed.
+	pack, _ := srv.FindByReference(ref)
+
+	if pack == nil || force {
+		fmt.Println(ref.String())
+
+		err := srv.fetchByReference(ref)
+		if err != nil {
+			return err
+		}
+
+		err = srv.pullByReference(ref)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (srv *Service) UninstallByReference(ref reference.Reference) error {
+	_, err := srv.FindByReference(ref)
+	if err != nil {
+		return err
+	}
+
+	if err := srv.driver.DeleteAll(ref); err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func (srv *Service) FindByReference(ref reference.Reference) (*RocketPack, error) {
 	b, err := srv.driver.Read(ref, PackgeFile)
 	if err != nil {
@@ -44,7 +110,13 @@ func (srv *Service) FindByReference(ref reference.Reference) (*RocketPack, error
 	return p, err
 }
 
-func (srv *Service) FetchByReference(ref reference.Reference) error {
+func (srv *Service) fetchByReference(ref reference.Reference) error {
+	// Validates reference is a valid pack.
+	_, err := srv.DescribeByReference(ref)
+	if err != nil {
+		return err
+	}
+
 	downloadUrl, err := url.JoinPath(ref.Url(), PackgeFile)
 	if err != nil {
 		return err
@@ -58,7 +130,7 @@ func (srv *Service) FetchByReference(ref reference.Reference) error {
 	return nil
 }
 
-func (srv *Service) PullByReference(ref reference.Reference) error {
+func (srv *Service) pullByReference(ref reference.Reference) error {
 	pack, err := srv.FindByReference(ref)
 	if err != nil {
 		return err
@@ -96,7 +168,7 @@ func (srv *Service) writeBuild(ref reference.Reference, build *Build) error {
 	}
 
 	for _, pack := range build.Addons {
-		err = srv.PullByReference(reference.Reference(pack))
+		err = srv.InstallByReference(reference.Reference(pack), false)
 		if err != nil {
 			return err
 		}

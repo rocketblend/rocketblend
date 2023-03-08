@@ -22,7 +22,6 @@ benchmark: ## Run benchmarks
 dep:
 	@go mod download
 	@go mod tidy
-	@go mod vendor
 
 run:
 	@go run ./cmd/rocketblend
@@ -34,7 +33,7 @@ build:
 	@go build ./cmd/rocketblend
 
 image:
-	@svg-term --command rocketblend --out docs/assets/rocketblend-about.svg --window --no-cursor --at 50 --width 85
+	@svg-term --command rocketblend --out docs/assets/rocketblend-about.svg --window --no-cursor --at 50 --width 85 --height 28
 
 dry:
 	@goreleaser release --snapshot --rm-dist

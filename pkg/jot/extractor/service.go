@@ -1,11 +1,15 @@
 package extractor
 
 import (
+	"context"
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
+	"time"
 
 	"github.com/mholt/archiver/v3"
+	"github.com/schollz/progressbar/v3"
 )
 
 type (
@@ -35,6 +39,41 @@ func New(options *Options) *Service {
 }
 
 func (s *Service) Extract(path string, extractPath string) error {
+	// Create a context with a cancel function
+	ctx, cancel := context.WithCancel(context.Background())
+
+	var wg sync.WaitGroup
+
+	wg.Add(1)
+	// Create a goroutine to display progress
+	go func(ctx context.Context) {
+		bar := progressbar.NewOptions(-1,
+			progressbar.OptionSetWriter(os.Stderr),
+			progressbar.OptionSetDescription("Extracting"),
+			progressbar.OptionSpinnerType(14),
+			progressbar.OptionClearOnFinish(),
+			// progressbar.OptionOnCompletion(func() {
+			// 	fmt.Fprint(os.Stderr, "\n")
+			// }),
+		)
+
+		defer wg.Done()
+
+		for {
+			select {
+			case <-time.After(100 * time.Millisecond):
+				bar.Add(1)
+			case <-ctx.Done():
+				bar.Finish()
+				return
+			}
+		}
+	}(ctx)
+
+	// Defer the cancel function
+	defer cancel()
+	defer wg.Wait()
+
 	// mholt/archiver doesn't support .dmg files, so we need to handle them separately.
 	// This isn't a 100% golang solution, but it works for now.
 	switch strings.ToLower(filepath.Ext(path)) {
@@ -56,6 +95,10 @@ func (s *Service) Extract(path string, extractPath string) error {
 			return err
 		}
 	}
+
+	// Call cancel function explicitly and wait for it to complete.
+	cancel()
+	wg.Wait()
 
 	return nil
 }

@@ -19,16 +19,6 @@ type (
 	}
 )
 
-func New(rocketFile *RocketFile) (*RocketFile, error) {
-	rkt := RocketFile{}
-
-	if rocketFile != nil {
-		rkt = *rocketFile
-	}
-
-	return &rkt, nil
-}
-
 func Load(dir string) (*RocketFile, error) {
 	f, err := os.ReadFile(filepath.Join(dir, FileName))
 	if err != nil {
