@@ -83,11 +83,10 @@ class Addon(object):
     This class represents an addon, and is used to parse the command line
     argument.
     """
-    def __init__(self, name: str, version: str, path: str, pre_installed: bool = False):
+    def __init__(self, name: str, version: str, path: str):
         self.name = name
         self.version = self._parse_version(version)
-        self.path = path
-        self.pre_installed = pre_installed
+        self.path = path # Empty paths are used to indicate that the addon is pre-installed.
 
     def __str__(self):
         return f"Addon(name={self.name}, version={self.version}, path={self.path})"
@@ -106,33 +105,15 @@ class Addon(object):
         return version
 
 class AddonManager(object):
-    default_addons = [
-        "io_anim_bvh",
-        "io_curve_svg",
-        "io_mesh_ply",
-        "io_mesh_stl",
-        "io_mesh_uv_layout",
-        "io_scene_fbx",
-        "io_scene_gltf2",
-        "io_scene_obj",
-        "io_scene_x3d",
-        "node_wrangler",
-        "cycles"
-    ]
-    
     def __init__(self, addons: list[dict]):
         self.addons = []
         for addon in addons:
             path = Path(addon["path"])
-            if path.exists():
+            if path.exists() or path == "":
                 self.addons.append(Addon(addon["name"], addon["version"], addon["path"]))
 
-        for addon in self.default_addons:
-            if self.find(addon) is None:
-                self.addons.append(Addon(addon, None, None, True))
-
     def get(self, ignore_pre_installed: bool = False) -> list[Addon]:
-        return [addon for addon in self.addons if not addon.pre_installed or not ignore_pre_installed]
+        return [addon for addon in self.addons if addon.path != "" or not ignore_pre_installed]
 
     def find(self, name: str) -> Addon:
         for addon in self.addons:
@@ -151,7 +132,7 @@ class Startup():
 
         self.manager = AddonManager(addons)
 
-        self.install_addons()
+        self.install_addons(True)
         self.reset_addons()
 
         logging.debug(f"Finished loading addons")
@@ -165,7 +146,7 @@ class Startup():
         for mod in addon_utils.modules():
             addon = self.manager.find(mod.__name__)
 
-            if addon is not None and addon.version == mod.bl_info.get('version', (-1, -1, -1)):
+            if addon is not None and addon.version == mod.bl_info.get('version', (0, 0, 0)):
                 installed.append(mod.__name__)
 
         for addon in self.manager.get(ignore_pre_installed=True):
@@ -181,36 +162,36 @@ class Startup():
 
         for addon in bpy.context.preferences.addons:
             if addon.module not in enable:
-                self.disable_addon(addon)
+                self.disable_addon(addon.module)
             else:
                 enable.remove(addon.module)
 
-        for addon in enable:
-            self.enable_addon(addon)
+        for addonName in enable:
+            self.enable_addon(addonName)
 
-    def enable_addon(self, addon: str) -> None:
+    def enable_addon(self, addon_name: str) -> None:
         """
         Enables the addon with the given name.
         """
-        mod = addon_utils.enable(addon, default_set=True)
+        mod = addon_utils.enable(addon_name, default_set=True)
 
         if mod:
-            logging.debug(f"Enabled addon {addon}")
+            logging.debug(f"Enabled addon {addon_name}")
 
             info = addon_utils.module_bl_info(mod)
             info_ver = info.get("blender", (0, 0, 0))
 
             if info_ver > bpy.app.version:
-                logging.debug(f"Addon {addon} was written in Blender {info_ver[0]}.{info_ver[1]} and may not work correctly in Blender {bpy.app.version[0]}.{bpy.app.version[1]}")
+                logging.debug(f"Addon {addon_name} was written in Blender {info_ver[0]}.{info_ver[1]} and may not work correctly in Blender {bpy.app.version[0]}.{bpy.app.version[1]}")
         else:
-            logging.debug(f"Failed to enable addon {addon}")
+            logging.debug(f"Failed to enable addon {addon_name}")
 
-    def disable_addon(self, addon: str) -> None:
+    def disable_addon(self, addon_name: str) -> None:
         """
         Disables the addon with the given name.
         """
-        addon_utils.disable(addon.module, default_set=True)
-        logging.debug(f"Disabled addon {addon.module}")
+        addon_utils.disable(addon_name, default_set=True)
+        logging.debug(f"Disabled addon {addon_name}")
 
 parser = ArgumentParserForBlender()
 parser.add_argument("-a", "--addons", help="Addons to load", type=ast.literal_eval, default={})

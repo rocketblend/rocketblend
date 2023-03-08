@@ -36,8 +36,13 @@ func (d *Driver) write(reference reference.Reference, resource string, downloadU
 	}
 
 	// ensure there is a resource (name) to save record as
-	if reference.String() == "" {
+	if resource == "" {
 		return "", fmt.Errorf("missing resource - unable to save record (no name)")
+	}
+
+	// ensure there is a download url to download record from
+	if downloadUrl == "" {
+		return "", fmt.Errorf("missing download url - unable to save record (no url)")
 	}
 
 	// create mutex on reference

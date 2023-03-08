@@ -229,6 +229,7 @@ func (d *Driver) getAddonsByReference(ref []string) (*[]Addon, error) {
 	addons := []Addon{}
 	if d.addonsEnabled {
 		for _, r := range ref {
+			fmt.Println(r)
 			addon, err := d.getAddonByReference(r)
 			if err != nil {
 				return nil, fmt.Errorf("failed to find addon: %s", err)
@@ -251,10 +252,15 @@ func (d *Driver) getAddonByReference(ref string) (*Addon, error) {
 		return nil, fmt.Errorf("packge has no addon")
 	}
 
+	var path string
+	if pack.Addon.Source != nil {
+		path = filepath.Join(d.installationsDirectory, ref, pack.Addon.Source.File)
+	}
+
 	return &Addon{
 		Name:    pack.Addon.Name,
-		Version: pack.Addon.Version,
-		Path:    filepath.Join(d.installationsDirectory, ref, pack.Addon.Source.File),
+		Version: *pack.Addon.Version,
+		Path:    path,
 	}, nil
 }
 
