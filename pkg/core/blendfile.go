@@ -229,7 +229,6 @@ func (d *Driver) getAddonsByReference(ref []string) (*[]Addon, error) {
 	addons := []Addon{}
 	if d.addonsEnabled {
 		for _, r := range ref {
-			fmt.Println(r)
 			addon, err := d.getAddonByReference(r)
 			if err != nil {
 				return nil, fmt.Errorf("failed to find addon: %s", err)
