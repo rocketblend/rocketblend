@@ -54,7 +54,17 @@ func (srv *Service) InstallByReference(ref reference.Reference, force bool) erro
 	// Check if already installed.
 	pack, _ := srv.FindByReference(ref)
 
-	// Pack found is a build pack, install addons.
+	// Pack found but force is true, delete it.
+	if pack != nil && force {
+		err := srv.driver.DeleteAll(ref)
+		if err != nil {
+			return err
+		}
+
+		pack = nil
+	}
+
+	// Pack found is a build pack, also check it's addons.
 	if pack != nil && pack.Build != nil {
 		err := srv.installBuildAddons(pack.Build, force)
 		if err != nil {
@@ -64,8 +74,8 @@ func (srv *Service) InstallByReference(ref reference.Reference, force bool) erro
 		return nil
 	}
 
-	// Pack was not found installed, install it.
-	if pack == nil || !force {
+	// Pack was not found installed, try to install it.
+	if pack == nil {
 		fmt.Println(ref.String())
 
 		err := srv.fetchByReference(ref)
@@ -145,7 +155,7 @@ func (srv *Service) pullByReference(ref reference.Reference, force bool) error {
 			return err
 		}
 
-		err = srv.installBuildAddons(pack.Build, false)
+		err = srv.installBuildAddons(pack.Build, force)
 		if err != nil {
 			return err
 		}
