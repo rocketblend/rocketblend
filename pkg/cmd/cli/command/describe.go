@@ -12,8 +12,8 @@ func (srv *Service) newDescribeCommand() *cobra.Command {
 
 	c := &cobra.Command{
 		Use:   "describe [reference]",
-		Short: "Get the definition for a rocketpack",
-		Long:  `Get the definition for a rocketpack`,
+		Short: "Get the definition for a package",
+		Long:  `Get the definition for a package`,
 		Args:  cobra.ExactArgs(1),
 		Run: func(cmd *cobra.Command, args []string) {
 			reference, err := reference.Parse(args[0])
@@ -30,7 +30,7 @@ func (srv *Service) newDescribeCommand() *cobra.Command {
 
 			json, err := json.Marshal(pack)
 			if err != nil {
-				cmd.PrintErrln("failed to describe pack:", err)
+				cmd.PrintErrln("failed to describe package:", err)
 				return
 			}
 
