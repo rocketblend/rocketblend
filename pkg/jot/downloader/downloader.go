@@ -19,21 +19,33 @@ func New() *Downloader {
 func (d *Downloader) Download(path string, downloadUrl string) error {
 	tempPath := path + ".tmp"
 
-	req, _ := http.NewRequest("GET", downloadUrl, nil)
-	resp, err := http.DefaultClient.Do(req)
+	req, err := http.NewRequest("GET", downloadUrl, nil)
 	if err != nil {
 		return err
 	}
 
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return err
+	}
 	defer resp.Body.Close()
 
-	f, _ := os.OpenFile(tempPath, os.O_CREATE|os.O_WRONLY, 0644)
-	bar := DefaultBar(
+	f, err := os.OpenFile(tempPath, os.O_CREATE|os.O_WRONLY, 0644)
+	if err != nil {
+		return err
+	}
+
+	bar := progressBar(
 		resp.ContentLength,
 		"Downloading",
 	)
 
-	if _, err := io.Copy(io.MultiWriter(f, bar), resp.Body); err != nil {
+	// Close the progress bar when the download is complete
+	defer bar.Finish()
+
+	bufferSize := 1 << 20 // 1MB
+	buffer := make([]byte, bufferSize)
+	if _, err := io.CopyBuffer(io.MultiWriter(f, bar), resp.Body, buffer); err != nil {
 		f.Close()
 		return err
 	}
@@ -48,7 +60,7 @@ func (d *Downloader) Download(path string, downloadUrl string) error {
 	return nil
 }
 
-func DefaultBar(maxBytes int64, description ...string) *progressbar.ProgressBar {
+func progressBar(maxBytes int64, description ...string) *progressbar.ProgressBar {
 	desc := ""
 	if len(description) > 0 {
 		desc = description[0]
@@ -65,8 +77,5 @@ func DefaultBar(maxBytes int64, description ...string) *progressbar.ProgressBar 
 		progressbar.OptionFullWidth(),
 		progressbar.OptionSetRenderBlankState(true),
 		progressbar.OptionClearOnFinish(),
-		// progressbar.OptionOnCompletion(func() {
-		// 	fmt.Fprint(os.Stderr, "\n")
-		// }),
 	)
 }

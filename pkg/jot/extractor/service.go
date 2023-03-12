@@ -5,7 +5,6 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/mholt/archiver/v3"
@@ -41,23 +40,19 @@ func New(options *Options) *Service {
 func (s *Service) Extract(path string, extractPath string) error {
 	// Create a context with a cancel function
 	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
 
-	var wg sync.WaitGroup
+	// Create a channel to signal completion of the progress bar
+	done := make(chan struct{})
 
-	wg.Add(1)
 	// Create a goroutine to display progress
-	go func(ctx context.Context) {
+	go func(ctx context.Context, done chan<- struct{}) {
 		bar := progressbar.NewOptions(-1,
 			progressbar.OptionSetWriter(os.Stderr),
 			progressbar.OptionSetDescription("Extracting"),
 			progressbar.OptionSpinnerType(14),
 			progressbar.OptionClearOnFinish(),
-			// progressbar.OptionOnCompletion(func() {
-			// 	fmt.Fprint(os.Stderr, "\n")
-			// }),
 		)
-
-		defer wg.Done()
 
 		for {
 			select {
@@ -65,40 +60,35 @@ func (s *Service) Extract(path string, extractPath string) error {
 				bar.Add(1)
 			case <-ctx.Done():
 				bar.Finish()
+				done <- struct{}{}
 				return
 			}
 		}
-	}(ctx)
-
-	// Defer the cancel function
-	defer cancel()
-	defer wg.Wait()
+	}(ctx, done)
 
 	// mholt/archiver doesn't support .dmg files, so we need to handle them separately.
 	// This isn't a 100% golang solution, but it works for now.
+	var err error
 	switch strings.ToLower(filepath.Ext(path)) {
 	case ".dmg":
-		err := extractDMG(path, extractPath)
-		if err != nil {
-			return err
-		}
+		err = extractDMG(path, extractPath)
 	default:
-		err := archiver.Unarchive(path, extractPath)
-		if err != nil {
-			return err
-		}
+		err = archiver.Unarchive(path, extractPath)
+	}
+	if err != nil {
+		return err
 	}
 
 	if s.cleanup {
-		err := os.Remove(path)
+		err = os.Remove(path)
 		if err != nil {
 			return err
 		}
 	}
 
-	// Call cancel function explicitly and wait for it to complete.
+	// If we get here, the file has been cleaned up, so we can complete the progress bar goroutine
 	cancel()
-	wg.Wait()
+	<-done
 
 	return nil
 }

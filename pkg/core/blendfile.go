@@ -251,10 +251,15 @@ func (d *Driver) getAddonByReference(ref string) (*Addon, error) {
 		return nil, fmt.Errorf("packge has no addon")
 	}
 
+	var path string
+	if pack.Addon.Source != nil {
+		path = filepath.Join(d.installationsDirectory, ref, pack.Addon.Source.File)
+	}
+
 	return &Addon{
 		Name:    pack.Addon.Name,
-		Version: pack.Addon.Version,
-		Path:    filepath.Join(d.installationsDirectory, ref, pack.Addon.Source.File),
+		Version: *pack.Addon.Version,
+		Path:    path,
 	}, nil
 }
 

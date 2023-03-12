@@ -7,18 +7,19 @@ import (
 	"github.com/go-playground/validator/v10"
 	"github.com/rocketblend/rocketblend/pkg/core/runtime"
 	"github.com/rocketblend/rocketblend/pkg/semver"
+	"sigs.k8s.io/yaml"
 )
 
 type (
 	AddonSource struct {
 		File string `json:"file" validate:"required"`
-		URL  string `json:"url" validate:"omitempty,url"`
+		URL  string `json:"url,omitempty" validate:"url"`
 	}
 
 	Addon struct {
-		Name    string         `json:"name" validate:"required"`
-		Version semver.Version `json:"version"`
-		Source  AddonSource    `json:"source" validate:"required"`
+		Name    string          `json:"name" validate:"required"`
+		Version *semver.Version `json:"version,omitempty"`
+		Source  *AddonSource    `json:"source,omitempty"`
 	}
 
 	BuildSource struct {
@@ -29,21 +30,22 @@ type (
 
 	Build struct {
 		Args    string          `json:"args,omitempty"`
-		Version *semver.Version `json:"version"`
+		Version *semver.Version `json:"version,omitempty"`
 		Sources []*BuildSource  `json:"sources" validate:"required"`
 		Addons  []string        `json:"addons,omitempty"`
 	}
 
 	RocketPack struct {
-		// Version *semver.Version `json:"version"`
-		// PackVersion *semver.Version `json:"packVersion"`
-		// Explorable bool   `json:"explorable"`
 		Build *Build `json:"build,omitempty"`
 		Addon *Addon `json:"addon,omitempty"`
 	}
 )
 
 func (i *Build) GetSourceForPlatform(platform runtime.Platform) *BuildSource {
+	if i.Sources == nil {
+		return nil
+	}
+
 	for _, s := range i.Sources {
 		if s.Platform == platform {
 			return s
@@ -60,6 +62,28 @@ func (p *RocketPack) ToString() string {
 	}
 
 	return string(j)
+}
+
+func load(bytes []byte) (*RocketPack, error) {
+	pack := &RocketPack{}
+	if err := yaml.Unmarshal(bytes, pack); err != nil {
+		return nil, err
+	}
+
+	if pack.Build != nil && pack.Build.Version == nil {
+		pack.Build.Version = &semver.Version{}
+	}
+
+	if pack.Addon != nil && pack.Addon.Version == nil {
+		pack.Addon.Version = &semver.Version{}
+	}
+
+	err := validate(pack)
+	if err != nil {
+		return nil, err
+	}
+
+	return pack, nil
 }
 
 func validate(rp *RocketPack) error {

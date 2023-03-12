@@ -6,8 +6,6 @@ import (
 	"net/http"
 	"net/url"
 
-	"sigs.k8s.io/yaml"
-
 	"github.com/rocketblend/rocketblend/pkg/core/runtime"
 	"github.com/rocketblend/rocketblend/pkg/jot"
 	"github.com/rocketblend/rocketblend/pkg/jot/reference"
@@ -44,12 +42,7 @@ func (srv *Service) DescribeByReference(reference reference.Reference) (*RocketP
 		return nil, err
 	}
 
-	pack := &RocketPack{}
-	if err := yaml.Unmarshal(bodyBytes, pack); err != nil {
-		return nil, err
-	}
-
-	err = validate(pack)
+	pack, err := load(bodyBytes)
 	if err != nil {
 		return nil, err
 	}
@@ -61,7 +54,28 @@ func (srv *Service) InstallByReference(ref reference.Reference, force bool) erro
 	// Check if already installed.
 	pack, _ := srv.FindByReference(ref)
 
-	if pack == nil || force {
+	// Pack found but force is true, delete it.
+	if pack != nil && force {
+		err := srv.driver.DeleteAll(ref)
+		if err != nil {
+			return err
+		}
+
+		pack = nil
+	}
+
+	// Pack found is a build pack, also check it's addons.
+	if pack != nil && pack.Build != nil {
+		err := srv.installBuildAddons(pack.Build, force)
+		if err != nil {
+			return err
+		}
+
+		return nil
+	}
+
+	// Pack was not found installed, try to install it.
+	if pack == nil {
 		fmt.Println(ref.String())
 
 		err := srv.fetchByReference(ref)
@@ -69,7 +83,7 @@ func (srv *Service) InstallByReference(ref reference.Reference, force bool) erro
 			return err
 		}
 
-		err = srv.pullByReference(ref)
+		err = srv.pullByReference(ref, force)
 		if err != nil {
 			return err
 		}
@@ -92,22 +106,17 @@ func (srv *Service) UninstallByReference(ref reference.Reference) error {
 }
 
 func (srv *Service) FindByReference(ref reference.Reference) (*RocketPack, error) {
-	b, err := srv.driver.Read(ref, PackgeFile)
+	bytes, err := srv.driver.Read(ref, PackgeFile)
 	if err != nil {
 		return nil, err
 	}
 
-	p := &RocketPack{}
-	if err := yaml.Unmarshal(b, p); err != nil {
-		return nil, err
-	}
-
-	err = validate(p)
+	pack, err := load(bytes)
 	if err != nil {
 		return nil, err
 	}
 
-	return p, err
+	return pack, err
 }
 
 func (srv *Service) fetchByReference(ref reference.Reference) error {
@@ -130,7 +139,7 @@ func (srv *Service) fetchByReference(ref reference.Reference) error {
 	return nil
 }
 
-func (srv *Service) pullByReference(ref reference.Reference) error {
+func (srv *Service) pullByReference(ref reference.Reference, force bool) error {
 	pack, err := srv.FindByReference(ref)
 	if err != nil {
 		return err
@@ -141,13 +150,28 @@ func (srv *Service) pullByReference(ref reference.Reference) error {
 	}
 
 	if pack.Build != nil {
-		return srv.writeBuild(ref, pack.Build)
+		err := srv.writeBuild(ref, pack.Build)
+		if err != nil {
+			return err
+		}
+
+		err = srv.installBuildAddons(pack.Build, force)
+		if err != nil {
+			return err
+		}
+
+		return nil
 	}
 
 	return fmt.Errorf("no build or addon found in rocketpack %s", ref)
 }
 
 func (srv *Service) writeAddon(ref reference.Reference, addon *Addon) error {
+	// Don't write if no source is provided. Addon might be preinstalled or local only.
+	if addon.Source == nil || addon.Source.URL == "" {
+		return nil
+	}
+
 	err := srv.driver.Write(ref, addon.Source.File, addon.Source.URL)
 	if err != nil {
 		return err
@@ -167,8 +191,12 @@ func (srv *Service) writeBuild(ref reference.Reference, build *Build) error {
 		return err
 	}
 
+	return nil
+}
+
+func (srv *Service) installBuildAddons(build *Build, force bool) error {
 	for _, pack := range build.Addons {
-		err = srv.InstallByReference(reference.Reference(pack), false)
+		err := srv.InstallByReference(reference.Reference(pack), force)
 		if err != nil {
 			return err
 		}
