@@ -13,10 +13,15 @@
 
 * [CLI](reference/cli/README.md)
   * [Commands](reference/cli/commands/README.md)
-    * [Init](reference/cli/commands/init.md)
+    * [Config](reference/cli/commands/config.md)
+    * [Describe](reference/cli/commands/describe.md)
     * [Install](reference/cli/commands/install.md)
-    * [Get](reference/cli/commands/get.md)
-    * [Open](reference/cli/commands/open.md)
+    * [New](reference/cli/commands/new.md)
+    * [Render](reference/cli/commands/render.md)
+    * [Resolve](reference/cli/commands/resolve.md)
+    * [Run](reference/cli/commands/run.md)
+    * [Start](reference/cli/commands/start.md)
+    * [Uninstall](reference/cli/commands/uninstall.md)
   * [Packages](reference/cli/packages.md)
   * [Configuration](reference/cli/configuration.md)
 
