@@ -4,18 +4,26 @@ import (
 	cc "github.com/ivanpirog/coloredcobra"
 	"github.com/rocketblend/rocketblend/pkg/cmd/cli/command"
 	"github.com/rocketblend/rocketblend/pkg/cmd/cli/config"
+	"github.com/rocketblend/rocketblend/pkg/cmd/cli/generator"
 	"github.com/rocketblend/rocketblend/pkg/core"
+	"github.com/spf13/cobra"
 )
 
-func Execute() error {
+const linkTemplate = `
+{% content-ref url="commands/" %}
+[commands](commands/)
+{% endcontent-ref %}
+`
+
+func setup() (*cobra.Command, error) {
 	cs, err := config.New()
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	config, err := cs.Get()
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	rocketblendOptions := core.Options{
@@ -27,7 +35,7 @@ func Execute() error {
 
 	driver, err := core.New(&rocketblendOptions)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	srv := command.NewService(cs, driver)
@@ -45,6 +53,29 @@ func Execute() error {
 		NoExtraNewlines: true,
 		NoBottomNewline: true,
 	})
+
+	return rootCMD, nil
+}
+
+func GenerateDocs(path string) error {
+	cmd, err := setup()
+	if err != nil {
+		return err
+	}
+
+	err = generator.CommandDocs(cmd, path)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func Execute() error {
+	rootCMD, err := setup()
+	if err != nil {
+		return err
+	}
 
 	return rootCMD.Execute()
 }

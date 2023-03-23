@@ -32,8 +32,11 @@ install:
 build:
 	@go build ./cmd/rocketblend
 
-image:
+gen-image:
 	@svg-term --command rocketblend --out docs/assets/rocketblend-about.svg --window --no-cursor --at 50 --width 85 --height 28
+
+gen-docs:
+	@go run ./cmd/doc-gen
 
 dry:
 	@goreleaser release --snapshot --rm-dist
