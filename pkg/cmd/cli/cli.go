@@ -9,12 +9,6 @@ import (
 	"github.com/spf13/cobra"
 )
 
-const linkTemplate = `
-{% content-ref url="commands/" %}
-[commands](commands/)
-{% endcontent-ref %}
-`
-
 func setup() (*cobra.Command, error) {
 	cs, err := config.New()
 	if err != nil {
@@ -63,7 +57,12 @@ func GenerateDocs(path string) error {
 		return err
 	}
 
-	err = generator.CommandDocs(cmd, path)
+	// err = doc.GenMarkdownTree(cmd, path)
+	// if err != nil {
+	// 	return err
+	// }
+
+	err = generator.MarkdownTree(cmd, path)
 	if err != nil {
 		return err
 	}
