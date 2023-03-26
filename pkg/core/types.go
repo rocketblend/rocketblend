@@ -8,7 +8,7 @@ import (
 
 const (
 	Name                 = "rocketblend"
-	DefaultBuild         = "github.com/rocketblend/official-library/builds/blender/stable/3.4.1"
+	DefaultBuild         = "github.com/rocketblend/official-library/packages/blender/builds/stable/3.4.1"
 	BlenderFileExtension = ".blend"
 )
 
