@@ -176,7 +176,7 @@ func (d *Driver) getDefaultBuild() (*Build, error) {
 
 func (d *Driver) load(path string) (*BlendFile, error) {
 	ext := filepath.Ext(path)
-	if ext != ".blend" {
+	if ext != BlenderFileExtension {
 		return nil, fmt.Errorf("invalid file extension: %s", ext)
 	}
 

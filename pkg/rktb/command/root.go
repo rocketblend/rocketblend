@@ -3,6 +3,7 @@ package command
 import (
 	"path/filepath"
 
+	"github.com/rocketblend/rocketblend/pkg/rktb/common"
 	"github.com/rocketblend/rocketblend/pkg/rktb/config"
 	"github.com/rocketblend/rocketblend/pkg/rktb/helpers"
 	"github.com/rocketblend/rocketblend/pkg/rocketblend"
@@ -32,7 +33,7 @@ func NewService(config *config.Service, driver *rocketblend.Driver) *Service {
 
 func (srv *Service) NewCommand() *cobra.Command {
 	c := &cobra.Command{
-		Use:   "rktb",
+		Use:   common.Alias,
 		Short: "RocketBlend is a build and add-ons manager for Blender.",
 		Long: `RocketBlend is a powerful CLI tool that streamlines the process of managing
 builds and add-ons for Blender, making installation and maintenance easier.
@@ -103,7 +104,7 @@ func (srv *Service) findBlendFile(dir string) (*rocketblend.BlendFile, error) {
 		return nil, err
 	}
 
-	path, err := helpers.FindFilePathForExt(dir, ".blend")
+	path, err := helpers.FindFilePathForExt(dir, rocketblend.BlenderFileExtension)
 	if err != nil {
 		return nil, err
 	}

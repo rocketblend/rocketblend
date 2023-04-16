@@ -8,7 +8,6 @@ import (
 
 const (
 	Name                 = "rocketblend"
-	DefaultBuild         = "github.com/rocketblend/official-library/packages/blender/builds/stable/3.4.1"
 	BlenderFileExtension = ".blend"
 )
 
@@ -52,7 +51,6 @@ type (
 		Logger                 Logger
 		Debug                  bool
 		Platform               runtime.Platform
-		DefaultBuild           string
 		InstallationsDirectory string
 		AddonsEnabled          bool
 	}

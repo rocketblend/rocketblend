@@ -44,11 +44,6 @@ func New(options *Options) (*Driver, error) {
 		opts.InstallationsDirectory = dir
 	}
 
-	// if no default build is provided, use the default
-	if opts.DefaultBuild == "" {
-		opts.DefaultBuild = DefaultBuild
-	}
-
 	// if no platform is provided, detect it
 	if opts.Platform == runtime.Undefined {
 		platform := runtime.DetectPlatform()
@@ -71,7 +66,6 @@ func New(options *Options) (*Driver, error) {
 		resource:               resource.NewService(),
 		debug:                  opts.Debug,
 		installationsDirectory: opts.InstallationsDirectory,
-		defaultBuild:           opts.DefaultBuild,
 		platform:               opts.Platform,
 		addonsEnabled:          opts.AddonsEnabled,
 	}
