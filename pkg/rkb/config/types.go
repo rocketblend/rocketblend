@@ -1,7 +1,7 @@
 package config
 
 import (
-	"github.com/rocketblend/rocketblend/pkg/core/runtime"
+	"github.com/rocketblend/rocketblend/pkg/rocketblend/runtime"
 )
 
 type (

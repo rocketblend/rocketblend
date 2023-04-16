@@ -1,8 +1,8 @@
-package core
+package rocketblend
 
 import (
-	"github.com/rocketblend/rocketblend/pkg/core/rocketpack"
 	"github.com/rocketblend/rocketblend/pkg/jot/reference"
+	"github.com/rocketblend/rocketblend/pkg/rocketblend/rocketpack"
 )
 
 func (d *Driver) DescribePackByReference(ref reference.Reference) (*rocketpack.RocketPack, error) {

@@ -8,8 +8,8 @@ import (
 
 	"github.com/go-playground/validator/v10"
 	"github.com/mitchellh/mapstructure"
-	"github.com/rocketblend/rocketblend/pkg/core"
-	"github.com/rocketblend/rocketblend/pkg/core/runtime"
+	"github.com/rocketblend/rocketblend/pkg/rocketblend"
+	"github.com/rocketblend/rocketblend/pkg/rocketblend/runtime"
 	"github.com/spf13/viper"
 )
 
@@ -122,7 +122,7 @@ func load() (*viper.Viper, error) {
 		return nil, fmt.Errorf("cannot detect platform")
 	}
 
-	appDir := filepath.Join(configDir, core.Name)
+	appDir := filepath.Join(configDir, rocketblend.Name)
 
 	if err := os.MkdirAll(appDir, os.ModePerm); err != nil {
 		return nil, fmt.Errorf("failed to create main directory: %w", err)
@@ -130,7 +130,7 @@ func load() (*viper.Viper, error) {
 
 	v.SetDefault("debug", false)
 	v.SetDefault("platform", platform.String())
-	v.SetDefault("defaultBuild", core.DefaultBuild)
+	v.SetDefault("defaultBuild", rocketblend.DefaultBuild)
 	v.SetDefault("features.addons", false)
 
 	v.SetConfigName("settings") // Set the name of the configuration file

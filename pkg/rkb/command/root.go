@@ -3,9 +3,9 @@ package command
 import (
 	"path/filepath"
 
-	"github.com/rocketblend/rocketblend/pkg/cmd/cli/config"
-	"github.com/rocketblend/rocketblend/pkg/cmd/cli/helpers"
-	"github.com/rocketblend/rocketblend/pkg/core"
+	"github.com/rocketblend/rocketblend/pkg/rkb/config"
+	"github.com/rocketblend/rocketblend/pkg/rkb/helpers"
+	"github.com/rocketblend/rocketblend/pkg/rocketblend"
 
 	"github.com/spf13/cobra"
 )
@@ -17,12 +17,12 @@ type (
 
 	Service struct {
 		config *config.Service
-		driver *core.Driver
+		driver *rocketblend.Driver
 		flags  *persistentFlags
 	}
 )
 
-func NewService(config *config.Service, driver *core.Driver) *Service {
+func NewService(config *config.Service, driver *rocketblend.Driver) *Service {
 	return &Service{
 		config: config,
 		driver: driver,
@@ -32,7 +32,7 @@ func NewService(config *config.Service, driver *core.Driver) *Service {
 
 func (srv *Service) NewCommand() *cobra.Command {
 	c := &cobra.Command{
-		Use:   "rocketblend",
+		Use:   "rkb",
 		Short: "RocketBlend is a build and add-ons manager for Blender.",
 		Long: `RocketBlend is a powerful CLI tool that streamlines the process of managing
 builds and add-ons for Blender, making installation and maintenance easier.
@@ -97,7 +97,7 @@ func (srv *Service) validatePath(path string) (string, error) {
 	return absPath, nil
 }
 
-func (srv *Service) findBlendFile(dir string) (*core.BlendFile, error) {
+func (srv *Service) findBlendFile(dir string) (*rocketblend.BlendFile, error) {
 	dir, err := srv.validatePath(dir)
 	if err != nil {
 		return nil, err

@@ -1,4 +1,4 @@
-package core
+package rocketblend
 
 import (
 	"encoding/json"
@@ -7,8 +7,8 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/rocketblend/rocketblend/pkg/core/rocketfile"
 	"github.com/rocketblend/rocketblend/pkg/jot/reference"
+	"github.com/rocketblend/rocketblend/pkg/rocketblend/rocketfile"
 	"github.com/rocketblend/rocketblend/pkg/semver"
 )
 

@@ -1,14 +1,14 @@
-package core
+package rocketblend
 
 import (
 	"fmt"
 	"os"
 	"path/filepath"
 
-	"github.com/rocketblend/rocketblend/pkg/core/resource"
-	"github.com/rocketblend/rocketblend/pkg/core/rocketpack"
-	"github.com/rocketblend/rocketblend/pkg/core/runtime"
 	"github.com/rocketblend/rocketblend/pkg/jot"
+	"github.com/rocketblend/rocketblend/pkg/rocketblend/resource"
+	"github.com/rocketblend/rocketblend/pkg/rocketblend/rocketpack"
+	"github.com/rocketblend/rocketblend/pkg/rocketblend/runtime"
 	"github.com/sirupsen/logrus"
 )
 

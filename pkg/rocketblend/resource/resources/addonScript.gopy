@@ -30,7 +30,7 @@ logging.basicConfig(
 
 log = logging.getLogger(__name__)
 
-# This is the script that is run when Blender is started from the CLI.
+# This is the script that is run when Blender is started from the rkb.
 # It is used to load the addons specified in the command line.
 # The script is called with the following arguments:
 # -a, --addons: a comma-separated list of addons to load.
@@ -43,7 +43,7 @@ class ArgumentParserForBlender(argparse.ArgumentParser):
     """
     This class is identical to its superclass, except for the parse_args
     method (see docstring). It resolves the ambiguity generated when calling
-    Blender from the CLI with a python script, and both Blender and the script
+    Blender from the rkb with a python script, and both Blender and the script
     have arguments. E.g., the following call will make Blender crash because
     it will try to process the script's -a and -b flags:
     >>> blender --python my_script.py -a 1 -b 2

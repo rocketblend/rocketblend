@@ -6,9 +6,9 @@ import (
 	"net/http"
 	"net/url"
 
-	"github.com/rocketblend/rocketblend/pkg/core/runtime"
 	"github.com/rocketblend/rocketblend/pkg/jot"
 	"github.com/rocketblend/rocketblend/pkg/jot/reference"
+	"github.com/rocketblend/rocketblend/pkg/rocketblend/runtime"
 )
 
 const PackgeFile = "rocketpack.yaml"

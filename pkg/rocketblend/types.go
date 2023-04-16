@@ -1,9 +1,9 @@
-package core
+package rocketblend
 
 import (
-	"github.com/rocketblend/rocketblend/pkg/core/rocketpack"
-	"github.com/rocketblend/rocketblend/pkg/core/runtime"
 	"github.com/rocketblend/rocketblend/pkg/jot/reference"
+	"github.com/rocketblend/rocketblend/pkg/rocketblend/rocketpack"
+	"github.com/rocketblend/rocketblend/pkg/rocketblend/runtime"
 )
 
 const (

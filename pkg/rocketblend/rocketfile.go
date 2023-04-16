@@ -1,10 +1,10 @@
-package core
+package rocketblend
 
 import (
 	"sort"
 
-	"github.com/rocketblend/rocketblend/pkg/core/rocketfile"
 	"github.com/rocketblend/rocketblend/pkg/jot/reference"
+	"github.com/rocketblend/rocketblend/pkg/rocketblend/rocketfile"
 )
 
 func (d *Driver) InstallDependencies(dir string, ref *reference.Reference, force bool) error {
