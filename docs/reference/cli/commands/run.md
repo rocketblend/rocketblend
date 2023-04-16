@@ -1,22 +1,22 @@
 ---
-description: Creating a new project
+description: Running a project
 ---
 
-# New
+# Run
 
 ## Synopsis
 
-Create a new project
+Run project in the terminal current session
 
 ```shell-session
-$ rktb new [name] [flags]
+$ rktb run [flags]
 ```
 
 ## Options
 
 ```shell-session
-  -h, --help           help for new
-  -s, --skip-install   skip installing dependencies
+  -b, --background   run the project in the background
+  -h, --help         help for run
 ```
 
 ### Options inherited from parent commands
