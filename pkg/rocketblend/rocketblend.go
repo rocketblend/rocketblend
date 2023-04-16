@@ -28,20 +28,20 @@ func New(options *Options) (*Driver, error) {
 		opts.Logger = l
 	}
 
-	// if not installation directory is provided, use the default
-	if opts.InstallationsDirectory == "" {
-		configDir, err := os.UserConfigDir()
+	// if not installation path is provided, use the default
+	if opts.InstallationPath == "" {
+		configPath, err := os.UserConfigDir()
 		if err != nil {
 			return nil, fmt.Errorf("cannot find config directory: %v", err)
 		}
 
-		dir := filepath.Join(configDir, Name, "packages")
+		path := filepath.Join(configPath, Name, "packages")
 
-		if err := os.MkdirAll(dir, os.ModePerm); err != nil {
+		if err := os.MkdirAll(path, os.ModePerm); err != nil {
 			return nil, fmt.Errorf("failed to create main directory: %w", err)
 		}
 
-		opts.InstallationsDirectory = dir
+		opts.InstallationPath = path
 	}
 
 	// if no platform is provided, detect it
@@ -54,20 +54,20 @@ func New(options *Options) (*Driver, error) {
 		opts.Platform = platform
 	}
 
-	jot, err := jot.New(opts.InstallationsDirectory, nil)
+	jot, err := jot.New(opts.InstallationPath, nil)
 	if err != nil {
 		return nil, err
 	}
 
 	// create driver
 	driver := Driver{
-		log:                    opts.Logger,
-		pack:                   rocketpack.NewService(jot, opts.Platform),
-		resource:               resource.NewService(),
-		debug:                  opts.Debug,
-		installationsDirectory: opts.InstallationsDirectory,
-		platform:               opts.Platform,
-		addonsEnabled:          opts.AddonsEnabled,
+		log:              opts.Logger,
+		pack:             rocketpack.NewService(jot, opts.Platform),
+		resource:         resource.NewService(),
+		debug:            opts.Debug,
+		installationPath: opts.InstallationPath,
+		platform:         opts.Platform,
+		addonsEnabled:    opts.AddonsEnabled,
 	}
 
 	return &driver, nil

@@ -112,7 +112,7 @@ func platformHookFunc() mapstructure.DecodeHookFuncType {
 func load() (*viper.Viper, error) {
 	v := viper.New()
 
-	configDir, err := os.UserConfigDir()
+	configPath, err := os.UserConfigDir()
 	if err != nil {
 		return nil, fmt.Errorf("cannot find config directory: %v", err)
 	}
@@ -122,10 +122,10 @@ func load() (*viper.Viper, error) {
 		return nil, fmt.Errorf("cannot detect platform")
 	}
 
-	appDir := filepath.Join(configDir, common.Alias)
-	installDir := filepath.Join(appDir, "packages")
+	appPath := filepath.Join(configPath, common.Alias)
+	installPath := filepath.Join(appPath, "packages")
 
-	if err := os.MkdirAll(installDir, os.ModePerm); err != nil {
+	if err := os.MkdirAll(installPath, os.ModePerm); err != nil {
 		return nil, fmt.Errorf("failed to create main directory: %w", err)
 	}
 
@@ -133,10 +133,10 @@ func load() (*viper.Viper, error) {
 	v.SetDefault("platform", platform.String())
 	v.SetDefault("defaultBuild", common.DefaultBuild)
 	v.SetDefault("features.addons", false)
-	v.SetDefault("installDir", installDir)
+	v.SetDefault("installPath", installPath)
 
 	v.SetConfigName("settings") // Set the name of the configuration file
-	v.AddConfigPath(appDir)     // Look for the configuration file at the home directory
+	v.AddConfigPath(appPath)    // Look for the configuration file at the home directory
 	v.SetConfigType("json")     // Set the config type to JSON
 
 	v.SafeWriteConfig()

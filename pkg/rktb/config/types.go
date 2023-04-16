@@ -12,7 +12,7 @@ type (
 	Config struct {
 		Debug        bool             `mapstructure:"debug"`
 		Platform     runtime.Platform `mapstructure:"platform"`
-		InstallDir   string           `mapstructure:"installDir"`
+		InstallPath  string           `mapstructure:"installPath"`
 		DefaultBuild string           `mapstructure:"defaultBuild"`
 		Features     *Features        `mapstructure:"features"`
 	}

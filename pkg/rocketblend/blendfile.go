@@ -219,7 +219,7 @@ func (d *Driver) findBuildByReference(ref string) (*Build, error) {
 	}
 
 	return &Build{
-		Path:   filepath.Join(d.installationsDirectory, ref, pack.Build.GetSourceForPlatform(d.platform).Executable),
+		Path:   filepath.Join(d.installationPath, ref, pack.Build.GetSourceForPlatform(d.platform).Executable),
 		Addons: addons,
 		ARGS:   pack.Build.Args,
 	}, nil
@@ -253,7 +253,7 @@ func (d *Driver) getAddonByReference(ref string) (*Addon, error) {
 
 	var path string
 	if pack.Addon.Source != nil {
-		path = filepath.Join(d.installationsDirectory, ref, pack.Addon.Source.File)
+		path = filepath.Join(d.installationPath, ref, pack.Addon.Source.File)
 	}
 
 	return &Addon{
