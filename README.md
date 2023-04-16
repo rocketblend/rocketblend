@@ -7,8 +7,6 @@
 [![Go Report Card](https://goreportcard.com/badge/github.com/rocketblend/rocketblend)](https://goreportcard.com/report/github.com/rocketblend/rocketblend)
 [![GitHub](https://img.shields.io/github/license/rocketblend/rocketblend)](https://github.com/rocketblend/rocketblend/blob/master/LICENSE)
 
-### Currently under development. Not suitable for use.
-
 ![Hero image of RocketBlend CLI](docs/assets/rocketblend-about.svg)
 
 > RocketBlend is a CLI tool that streamlines the process of managing builds and addons for [Blender](https://www.blender.org/) projects.
