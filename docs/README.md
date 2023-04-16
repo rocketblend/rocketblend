@@ -10,7 +10,7 @@ Please note that RocketBlend is still in the early stages of development and may
 
 ## What is RocketBlend?
 
-[RocketBlend ](https://github.com/rocketblend/rocketblend)is an open-source CLI tool that offers build and addon management for the 3D graphics software, [Blender](https://www.blender.org/).
+[RocketBlend ](https://github.com/rocketblend/rocketblend)is a package manager for the 3D graphics software, [Blender](https://www.blender.org/). Offering build and addon management for your projects.
 
 ## Want to jump right in?
 
@@ -28,14 +28,18 @@ Dive a little deeper and start exploring our references documentation to get an 
 [cli](reference/cli/)
 {% endcontent-ref %}
 
+{% content-ref url="reference/packages/" %}
+[packages](reference/packages/)
+{% endcontent-ref %}
+
 ## Looking for something else?
 
 Check out the other RocketBlend related projects:
 
-{% content-ref url="https://app.gitbook.com/o/4FesCgkV4J6qvlt8rzNP/s/JYAvMxX4q5tA7nq6MNBH/" %}
-[Launcher](https://app.gitbook.com/o/4FesCgkV4J6qvlt8rzNP/s/JYAvMxX4q5tA7nq6MNBH/)
+{% content-ref url="http://localhost:5000/o/4FesCgkV4J6qvlt8rzNP/s/JYAvMxX4q5tA7nq6MNBH/" %}
+[Launcher](http://localhost:5000/o/4FesCgkV4J6qvlt8rzNP/s/JYAvMxX4q5tA7nq6MNBH/)
 {% endcontent-ref %}
 
-{% content-ref url="https://app.gitbook.com/o/4FesCgkV4J6qvlt8rzNP/s/m6ZeaZBwoSUNJBkqXOCz/" %}
-[Collector](https://app.gitbook.com/o/4FesCgkV4J6qvlt8rzNP/s/m6ZeaZBwoSUNJBkqXOCz/)
+{% content-ref url="http://localhost:5000/o/4FesCgkV4J6qvlt8rzNP/s/m6ZeaZBwoSUNJBkqXOCz/" %}
+[Collector](http://localhost:5000/o/4FesCgkV4J6qvlt8rzNP/s/m6ZeaZBwoSUNJBkqXOCz/)
 {% endcontent-ref %}

@@ -1,7 +1,5 @@
 ---
-description: >-
-  This guide explains how to set up your environment for developing on
-  RocketBlend.
+description: How to set up an environment for developing on RocketBlend.
 ---
 
 # Getting Setup
@@ -22,12 +20,6 @@ We use Make to build our programs. The simplest way to get started is:
 {% tab title="CLI" %}
 ```bash
 make build
-```
-{% endtab %}
-
-{% tab title="Launcher" %}
-```bash
-make launcher
 ```
 {% endtab %}
 {% endtabs %}

@@ -1,22 +1,21 @@
 ---
-description: Creating a new project
+description: Starting a project
 ---
 
-# New
+# Start
 
 ## Synopsis
 
-Create a new project
+Start project
 
 ```shell-session
-$ rktb new [name] [flags]
+$ rktb start [flags]
 ```
 
 ## Options
 
 ```shell-session
-  -h, --help           help for new
-  -s, --skip-install   skip installing dependencies
+  -h, --help   help for start
 ```
 
 ### Options inherited from parent commands

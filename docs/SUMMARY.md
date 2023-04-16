@@ -5,20 +5,28 @@
 ## Getting Started
 
 * [Quick Start](getting-started/quick-start.md)
-* [How to use](getting-started/how-to-use.md)
 * [Installation](getting-started/installation.md)
-* [Configuration](getting-started/configuration.md)
 
 ## Reference
 
 * [CLI](reference/cli/README.md)
   * [Commands](reference/cli/commands/README.md)
-    * [Init](reference/cli/commands/init.md)
+    * [RKTB](reference/cli/commands/commands.md)
+    * [New](reference/cli/commands/open.md)
     * [Install](reference/cli/commands/install.md)
-    * [Get](reference/cli/commands/get.md)
-    * [Open](reference/cli/commands/open.md)
-  * [Packages](reference/cli/packages.md)
+    * [Uninstall](reference/cli/commands/uninstall.md)
+    * [Start](reference/cli/commands/start.md)
+    * [Run](reference/cli/commands/run.md)
+    * [Render](reference/cli/commands/render.md)
+    * [Resolve](reference/cli/commands/resolve.md)
+    * [Describe](reference/cli/commands/get.md)
+    * [Config](reference/cli/commands/init.md)
+    * [Completion](reference/cli/commands/completion.md)
   * [Configuration](reference/cli/configuration.md)
+* [Packages](reference/packages/README.md)
+  * [References](reference/packages/references.md)
+  * [Builds](reference/packages/builds.md)
+  * [Addons](reference/packages/addons.md)
 
 ## Development
 
@@ -27,6 +35,4 @@
 
 ## Frequently Asked Questions
 
-* [Uninstalling](frequently-asked-questions/uninstalling.md)
-* [Installing](frequently-asked-questions/installing.md)
 * [Troubleshooting](frequently-asked-questions/troubleshooting.md)
