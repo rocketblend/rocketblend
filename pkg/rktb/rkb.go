@@ -19,10 +19,10 @@ func Execute() error {
 	}
 
 	rocketblendOptions := rocketblend.Options{
-		Debug:                  config.Debug,
-		Platform:               config.Platform,
-		InstallationsDirectory: config.InstallDir,
-		AddonsEnabled:          config.Features.Addons,
+		Debug:                 config.Debug,
+		Platform:              config.Platform,
+		InstallationDirectory: config.InstallDir,
+		AddonsEnabled:         config.Features.Addons,
 	}
 
 	driver, err := rocketblend.New(&rocketblendOptions)

@@ -37,21 +37,21 @@ type (
 	}
 
 	Driver struct {
-		log                    Logger          // the logger rocketblend will use for logging
-		resource               ResourceService // the resource service rocketblend will use
-		pack                   PackService     // the pack service rocketblend will use
-		debug                  bool
-		platform               runtime.Platform
-		defaultBuild           string
-		installationsDirectory string
-		addonsEnabled          bool
+		log                   Logger          // the logger rocketblend will use for logging
+		resource              ResourceService // the resource service rocketblend will use
+		pack                  PackService     // the pack service rocketblend will use
+		debug                 bool
+		platform              runtime.Platform
+		defaultBuild          string
+		InstallationDirectory string
+		addonsEnabled         bool
 	}
 
 	Options struct {
-		Logger                 Logger
-		Debug                  bool
-		Platform               runtime.Platform
-		InstallationsDirectory string
-		AddonsEnabled          bool
+		Logger                Logger
+		Debug                 bool
+		Platform              runtime.Platform
+		InstallationDirectory string
+		AddonsEnabled         bool
 	}
 )

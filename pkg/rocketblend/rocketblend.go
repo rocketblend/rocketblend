@@ -29,7 +29,7 @@ func New(options *Options) (*Driver, error) {
 	}
 
 	// if not installation directory is provided, use the default
-	if opts.InstallationsDirectory == "" {
+	if opts.InstallationDirectory == "" {
 		configDir, err := os.UserConfigDir()
 		if err != nil {
 			return nil, fmt.Errorf("cannot find config directory: %v", err)
@@ -41,7 +41,7 @@ func New(options *Options) (*Driver, error) {
 			return nil, fmt.Errorf("failed to create main directory: %w", err)
 		}
 
-		opts.InstallationsDirectory = dir
+		opts.InstallationDirectory = dir
 	}
 
 	// if no platform is provided, detect it
@@ -54,20 +54,20 @@ func New(options *Options) (*Driver, error) {
 		opts.Platform = platform
 	}
 
-	jot, err := jot.New(opts.InstallationsDirectory, nil)
+	jot, err := jot.New(opts.InstallationDirectory, nil)
 	if err != nil {
 		return nil, err
 	}
 
 	// create driver
 	driver := Driver{
-		log:                    opts.Logger,
-		pack:                   rocketpack.NewService(jot, opts.Platform),
-		resource:               resource.NewService(),
-		debug:                  opts.Debug,
-		installationsDirectory: opts.InstallationsDirectory,
-		platform:               opts.Platform,
-		addonsEnabled:          opts.AddonsEnabled,
+		log:                   opts.Logger,
+		pack:                  rocketpack.NewService(jot, opts.Platform),
+		resource:              resource.NewService(),
+		debug:                 opts.Debug,
+		InstallationDirectory: opts.InstallationDirectory,
+		platform:              opts.Platform,
+		addonsEnabled:         opts.AddonsEnabled,
 	}
 
 	return &driver, nil
