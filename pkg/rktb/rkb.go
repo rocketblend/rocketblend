@@ -1,10 +1,10 @@
-package cli
+package rktb
 
 import (
 	cc "github.com/ivanpirog/coloredcobra"
-	"github.com/rocketblend/rocketblend/pkg/cmd/cli/command"
-	"github.com/rocketblend/rocketblend/pkg/cmd/cli/config"
-	"github.com/rocketblend/rocketblend/pkg/core"
+	"github.com/rocketblend/rocketblend/pkg/rktb/command"
+	"github.com/rocketblend/rocketblend/pkg/rktb/config"
+	"github.com/rocketblend/rocketblend/pkg/rocketblend"
 )
 
 func Execute() error {
@@ -18,14 +18,14 @@ func Execute() error {
 		return err
 	}
 
-	rocketblendOptions := core.Options{
-		Debug:         config.Debug,
-		Platform:      config.Platform,
-		DefaultBuild:  config.DefaultBuild,
-		AddonsEnabled: config.Features.Addons,
+	rocketblendOptions := rocketblend.Options{
+		Debug:                 config.Debug,
+		Platform:              config.Platform,
+		InstallationDirectory: config.InstallDir,
+		AddonsEnabled:         config.Features.Addons,
 	}
 
-	driver, err := core.New(&rocketblendOptions)
+	driver, err := rocketblend.New(&rocketblendOptions)
 	if err != nil {
 		return err
 	}

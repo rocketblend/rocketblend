@@ -5,7 +5,7 @@ import (
 	"fmt"
 
 	"github.com/go-playground/validator/v10"
-	"github.com/rocketblend/rocketblend/pkg/core/runtime"
+	"github.com/rocketblend/rocketblend/pkg/rocketblend/runtime"
 	"github.com/rocketblend/rocketblend/pkg/semver"
 	"sigs.k8s.io/yaml"
 )

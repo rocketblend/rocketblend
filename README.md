@@ -1,6 +1,6 @@
 ### [Discussions](https://github.com/rocketblend/rocketblend/discussions) │ [Documentation](https://docs.rocketblend.io) │ [Latest Release](https://github.com/rocketblend/rocketblend/releases/latest)
 
-# RocketBlend
+# RocketBlend (RKTB)
 
 [![Github tag](https://badgen.net/github/tag/rocketblend/rocketblend)](https://github.com/rocketblend/rocketblend/tags)
 [![Go Doc](https://img.shields.io/badge/go-documentation-blue.svg?style=flat-square)](https://pkg.go.dev/github.com/rocketblend/rocketblend)
@@ -11,7 +11,7 @@
 
 ![Hero image of RocketBlend CLI](docs/assets/rocketblend-about.svg)
 
-> RocketBlend is a powerful CLI tool that streamlines the process of managing builds and add-ons for [Blender](https://www.blender.org/), making installation and maintenance easier.
+> RocketBlend is a CLI tool that streamlines the process of managing builds and addons for [Blender](https://www.blender.org/) projects.
 
 ## Getting Started
 

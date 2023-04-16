@@ -1,14 +1,14 @@
-package core
+package rocketblend
 
 import (
 	"fmt"
 	"os"
 	"path/filepath"
 
-	"github.com/rocketblend/rocketblend/pkg/core/resource"
-	"github.com/rocketblend/rocketblend/pkg/core/rocketpack"
-	"github.com/rocketblend/rocketblend/pkg/core/runtime"
 	"github.com/rocketblend/rocketblend/pkg/jot"
+	"github.com/rocketblend/rocketblend/pkg/rocketblend/resource"
+	"github.com/rocketblend/rocketblend/pkg/rocketblend/rocketpack"
+	"github.com/rocketblend/rocketblend/pkg/rocketblend/runtime"
 	"github.com/sirupsen/logrus"
 )
 
@@ -29,7 +29,7 @@ func New(options *Options) (*Driver, error) {
 	}
 
 	// if not installation directory is provided, use the default
-	if opts.InstallationsDirectory == "" {
+	if opts.InstallationDirectory == "" {
 		configDir, err := os.UserConfigDir()
 		if err != nil {
 			return nil, fmt.Errorf("cannot find config directory: %v", err)
@@ -41,12 +41,7 @@ func New(options *Options) (*Driver, error) {
 			return nil, fmt.Errorf("failed to create main directory: %w", err)
 		}
 
-		opts.InstallationsDirectory = dir
-	}
-
-	// if no default build is provided, use the default
-	if opts.DefaultBuild == "" {
-		opts.DefaultBuild = DefaultBuild
+		opts.InstallationDirectory = dir
 	}
 
 	// if no platform is provided, detect it
@@ -59,21 +54,20 @@ func New(options *Options) (*Driver, error) {
 		opts.Platform = platform
 	}
 
-	jot, err := jot.New(opts.InstallationsDirectory, nil)
+	jot, err := jot.New(opts.InstallationDirectory, nil)
 	if err != nil {
 		return nil, err
 	}
 
 	// create driver
 	driver := Driver{
-		log:                    opts.Logger,
-		pack:                   rocketpack.NewService(jot, opts.Platform),
-		resource:               resource.NewService(),
-		debug:                  opts.Debug,
-		installationsDirectory: opts.InstallationsDirectory,
-		defaultBuild:           opts.DefaultBuild,
-		platform:               opts.Platform,
-		addonsEnabled:          opts.AddonsEnabled,
+		log:                   opts.Logger,
+		pack:                  rocketpack.NewService(jot, opts.Platform),
+		resource:              resource.NewService(),
+		debug:                 opts.Debug,
+		InstallationDirectory: opts.InstallationDirectory,
+		platform:              opts.Platform,
+		addonsEnabled:         opts.AddonsEnabled,
 	}
 
 	return &driver, nil

@@ -1,14 +1,13 @@
-package core
+package rocketblend
 
 import (
-	"github.com/rocketblend/rocketblend/pkg/core/rocketpack"
-	"github.com/rocketblend/rocketblend/pkg/core/runtime"
 	"github.com/rocketblend/rocketblend/pkg/jot/reference"
+	"github.com/rocketblend/rocketblend/pkg/rocketblend/rocketpack"
+	"github.com/rocketblend/rocketblend/pkg/rocketblend/runtime"
 )
 
 const (
 	Name                 = "rocketblend"
-	DefaultBuild         = "github.com/rocketblend/official-library/packages/blender/builds/stable/3.4.1"
 	BlenderFileExtension = ".blend"
 )
 
@@ -38,22 +37,21 @@ type (
 	}
 
 	Driver struct {
-		log                    Logger          // the logger rocketblend will use for logging
-		resource               ResourceService // the resource service rocketblend will use
-		pack                   PackService     // the pack service rocketblend will use
-		debug                  bool
-		platform               runtime.Platform
-		defaultBuild           string
-		installationsDirectory string
-		addonsEnabled          bool
+		log                   Logger          // the logger rocketblend will use for logging
+		resource              ResourceService // the resource service rocketblend will use
+		pack                  PackService     // the pack service rocketblend will use
+		debug                 bool
+		platform              runtime.Platform
+		defaultBuild          string
+		InstallationDirectory string
+		addonsEnabled         bool
 	}
 
 	Options struct {
-		Logger                 Logger
-		Debug                  bool
-		Platform               runtime.Platform
-		DefaultBuild           string
-		InstallationsDirectory string
-		AddonsEnabled          bool
+		Logger                Logger
+		Debug                 bool
+		Platform              runtime.Platform
+		InstallationDirectory string
+		AddonsEnabled         bool
 	}
 )
