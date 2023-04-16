@@ -3,8 +3,8 @@ package command
 import (
 	"path/filepath"
 
-	"github.com/rocketblend/rocketblend/pkg/rkb/config"
-	"github.com/rocketblend/rocketblend/pkg/rkb/helpers"
+	"github.com/rocketblend/rocketblend/pkg/rktb/config"
+	"github.com/rocketblend/rocketblend/pkg/rktb/helpers"
 	"github.com/rocketblend/rocketblend/pkg/rocketblend"
 
 	"github.com/spf13/cobra"
@@ -32,7 +32,7 @@ func NewService(config *config.Service, driver *rocketblend.Driver) *Service {
 
 func (srv *Service) NewCommand() *cobra.Command {
 	c := &cobra.Command{
-		Use:   "rkb",
+		Use:   "rktb",
 		Short: "RocketBlend is a build and add-ons manager for Blender.",
 		Long: `RocketBlend is a powerful CLI tool that streamlines the process of managing
 builds and add-ons for Blender, making installation and maintenance easier.

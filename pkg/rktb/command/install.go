@@ -47,27 +47,3 @@ func (srv *Service) newInstallCommand() *cobra.Command {
 
 	return c
 }
-
-// func (srv *Service) installPack(refString string, force bool) error {
-// 	reference, err := reference.Parse(refString)
-// 	if err != nil {
-// 		return err
-// 	}
-
-// 	// Check if already installed.
-// 	pack, _ := srv.driver.FindPackByReference(reference)
-
-// 	if pack == nil || force {
-// 		err = srv.driver.FetchPackByReference(reference)
-// 		if err != nil {
-// 			return err
-// 		}
-
-// 		err = srv.driver.PullPackByReference(reference)
-// 		if err != nil {
-// 			return err
-// 		}
-// 	}
-
-// 	return nil
-// }
