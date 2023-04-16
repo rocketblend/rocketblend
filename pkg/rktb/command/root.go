@@ -34,9 +34,9 @@ func NewService(config *config.Service, driver *rocketblend.Driver) *Service {
 func (srv *Service) NewCommand() *cobra.Command {
 	c := &cobra.Command{
 		Use:   common.Alias,
-		Short: "RocketBlend is a build and add-ons manager for Blender.",
-		Long: `RocketBlend is a powerful CLI tool that streamlines the process of managing
-builds and add-ons for Blender, making installation and maintenance easier.
+		Short: "RocketBlend is a build and addon manager for Blender projects.",
+		Long: `RocketBlend is a CLI tool that streamlines the process of managing
+builds and addons for Blender projects.
 
 Documentation is available at https://docs.rocketblend.io/`,
 		PersistentPreRun: srv.persistentPreRun,
