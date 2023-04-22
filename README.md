@@ -15,6 +15,17 @@
 
 See [Quick Start](https://docs.rocketblend.io/getting-started/quick-start) in our documentation.
 
+## Installation
+
+You can install `rktb` using the following methods:
+
+1. **Go Install**: `go install github.com/rocketblend/rocketblend/cmd/rktb@latest`
+2. **Pre-compiled binaries**: Download and run the installer for your platform:
+   - Windows: [install.ps1](https://raw.githubusercontent.com/rocketblend/rocketblend/master/install.ps1)
+   - macOS/Linux: [install.sh](https://raw.githubusercontent.com/rocketblend/rocketblend/master/install.sh)
+
+For more detailed installation instructions, please refer to the [full documentation](https://docs.rocketblend.io/getting-started/installation).
+
 ## See Also
 
 - [RocketBlend Launcher](https://github.com/rocketblend/rocketblend-launcher) - Replacement launcher for Blender that utilises RocketBlend.
