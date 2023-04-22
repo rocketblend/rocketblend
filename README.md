@@ -17,15 +17,6 @@ See [Quick Start](https://docs.rocketblend.io/getting-started/quick-start) in ou
 
 ## Installation
 
-### Homebrew (macOS)
-
-MacOS users can install `rktb` using [Homebrew](https://brew.sh/).
-
-```bash
-brew tap rocketblend/homebrew-tap
-brew install rktb
-```
-
 ### Scoop (Windows)
 
 Windows users can install `rktb` using [Scoop](https://scoop.sh/).
@@ -33,6 +24,15 @@ Windows users can install `rktb` using [Scoop](https://scoop.sh/).
 ```powershell
 scoop bucket add rocketblend https://github.com/rocketblend/scoop-bucket
 scoop install rktb
+```
+
+### Homebrew (macOS)
+
+MacOS users can install `rktb` using [Homebrew](https://brew.sh/).
+
+```bash
+brew tap rocketblend/homebrew-tap
+brew install rktb
 ```
 
 ### Pre-compiled binaries
