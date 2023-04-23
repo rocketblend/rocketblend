@@ -9,7 +9,7 @@ description: Describing a package
 Get the definition of a package
 
 ```shell-session
-$ rktb describe [reference] [flags]
+$ rocketblend describe [reference] [flags]
 ```
 
 ## Options
