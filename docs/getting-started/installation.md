@@ -10,7 +10,7 @@ For macOS users, you can install using [Homebrew](https://brew.sh/):
 
 ```shell-session
 $ brew tap "rocketblend/homebrew-tap"
-$ brew install rktb
+$ brew install rocketblend
 ```
 
 ## Scoop (Windows)
@@ -19,7 +19,7 @@ For Windows users, you can install using [Scoop](https://scoop.sh/):
 
 ```powershell
 scoop bucket add rocketblend "https://github.com/rocketblend/scoop-bucket"
-scoop install rktb
+scoop install rocketblend
 ```
 
 ## Pre-compiled binaries
@@ -65,10 +65,10 @@ $ ./install.sh
 For users wanting to install directly from source, you can use the `go install` command:
 
 ```shell-session
-$ go install github.com/rocketblend/rocketblend/cmd/rktb@latest
+$ go install github.com/rocketblend/rocketblend/cmd/rocketblend@latest
 ```
 
-This command will download the latest version of the `rktb` source code and compile the binary for your platform. Ensure you have Go 1.19 or later installed on your system.
+This command will download the latest version of the `rocketblend` source code and compile the binary for your platform. Ensure you have Go 1.19 or later installed on your system.
 
 
 

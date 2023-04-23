@@ -1,6 +1,6 @@
 $ErrorActionPreference = 'Stop'
 
-$ExecutableName = "rktb"
+$ExecutableName = "rocketblend"
 
 $APIUrl = "https://api.github.com/repos/rocketblend/rocketblend/releases/latest"
 

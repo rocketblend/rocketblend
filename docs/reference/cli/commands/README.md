@@ -1,6 +1,6 @@
 ---
 description: >-
-  Here you’ll find the list of CLI commands for RKTB, with help info on their
+  Here you’ll find the list of CLI commands for Rocketblend, with help info on their
   usage.
 ---
 

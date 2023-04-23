@@ -9,7 +9,7 @@ description: Rendering a project
 Render project
 
 ```shell-session
-$ rktb render [flags]
+$ rocketblend render [flags]
 ```
 
 ## Options

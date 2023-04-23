@@ -9,7 +9,7 @@ description: Adding dependencies
 Adds dependencies to the current project and installs them.
 
 ```shell-session
-$ rktb install [reference] [flags]
+$ rocketblend install [reference] [flags]
 ```
 
 ## Options

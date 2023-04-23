@@ -1,10 +1,10 @@
 ---
-description: Learn more about RocketBlends CLI tool
+description: Learn more about the CLI tool
 ---
 
 # CLI
 
-Dive into the specifics of RKTB, RocketBlends CLI tool, by checking out our reference documentation.
+Dive into the specifics of the CLI tool, by checking out our reference documentation.
 
 ## Commands
 

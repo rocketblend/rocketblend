@@ -1,7 +1,7 @@
 #!/bin/sh
 set -e
 
-EXECUTABLE_NAME="rktb"
+EXECUTABLE_NAME="rocketblend"
 
 API_URL="https://api.github.com/repos/rocketblend/rocketblend/releases/latest"
 

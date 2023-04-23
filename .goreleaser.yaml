@@ -1,10 +1,10 @@
-project_name: rktb
+project_name: rocketblend
 
 before:
   hooks:
     - make check
 builds:
-  - main: ./cmd/rktb
+  - main: ./cmd/rocketblend
     env:
       - CGO_ENABLED=0
     goos:

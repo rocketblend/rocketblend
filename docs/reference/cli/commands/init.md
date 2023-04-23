@@ -9,7 +9,7 @@ description: Managing configuration
 The config command allows you to manage your RocketBlend configuration file directly from the command line.
 
 ```shell-session
-$ rktb config [key] [flags]
+$ rocketblend config [key] [flags]
 ```
 
 ## Options

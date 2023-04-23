@@ -24,16 +24,16 @@ dep:
 	@go mod tidy
 
 run:
-	@go run ./cmd/rktb
+	@go run ./cmd/rocketblend
 
 install:
-	@go install ./cmd/rktb
+	@go install ./cmd/rocketblend
 
 build:
-	@go build ./cmd/rktb
+	@go build ./cmd/rocketblend
 
 image:
-	@svg-term --command rktb --out docs/assets/rocketblend-about.svg --window --no-cursor --at 50 --width 85 --height 28
+	@svg-term --command rocketblend --out docs/assets/rocketblend-about.svg --window --no-cursor --at 50 --width 85 --height 28
 
 dry:
 	@goreleaser release --snapshot --rm-dist
