@@ -6,7 +6,7 @@ description: A quick guide to getting started with RocketBlend.
 
 ## Install RocketBlend <a href="#install-helm" id="install-helm"></a>
 
-Download a binary release of the RocketBlend CLI (RKTB). You can use tools like `go install`, or look at [the official releases page](https://github.com/rocketblend/rocketblend/releases).
+Before getting started with RocketBlend (RKTB), ensure it's installed on your system. You can use tools like `go install`, package managers like Homebrew and Scoop or grab a pre-compiled binary at [the official releases page](https://github.com/rocketblend/rocketblend/releases).
 
 For more details, or for other options, see [the installation guide](installation.md).
 
@@ -14,18 +14,20 @@ For more details, or for other options, see [the installation guide](installatio
 
 Once you have everything ready, you can create your first project! Open a terminal in your desired location and run the command `rktb new hello-world`
 
-<pre class="language-shell-session"><code class="lang-shell-session"><strong>$ rktb new hello-world
-</strong>github.com/rocketblend/official-library/packages/blender/builds/stable/3.4.1
+```shell-session
+$ rktb new hello-world
+github.com/rocketblend/official-library/packages/blender/builds/stable/3.4.1
 Downloading  31% |██████████████████        | (68/213 MB, 6.0 MB/s) [13s:24s]
-</code></pre>
+```
 
 In the example above we can see it installing the default build `github.com/rocketblend/official-library/packages/blender/builds/stable/3.4.1`
 
 Once complete you'll have a new `.blend` project and a `rocketfile.yaml` file used to define all your packages for your project.&#x20;
 
-<pre class="language-shell-session"><code class="lang-shell-session">$ ls
-<strong>hello-world.blend  rocketfile.yaml
-</strong></code></pre>
+```shell-session
+$ ls
+hello-world.blend  rocketfile.yaml
+```
 
 ## Install a package <a href="#install-an-example-chart" id="install-an-example-chart"></a>
 
