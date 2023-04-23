@@ -19,7 +19,7 @@ For Windows users, you can install using [Scoop](https://scoop.sh/):
 
 ```powershell
 scoop bucket add rocketblend "https://github.com/rocketblend/scoop-bucket"
-scoop install rocketblend/rocketblend
+scoop install "rocketblend/rocketblend"
 ```
 
 ## Pre-compiled binaries
