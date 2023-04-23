@@ -31,7 +31,7 @@ scoop install rktb
 MacOS users can install `rktb` using [Homebrew](https://brew.sh/).
 
 ```bash
-brew tap rocketblend/homebrew-tap
+brew tap "rocketblend/homebrew-tap"
 brew install rktb
 ```
 
