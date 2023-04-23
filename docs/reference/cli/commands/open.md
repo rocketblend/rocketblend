@@ -9,7 +9,7 @@ description: Creating a new project
 Create a new project
 
 ```shell-session
-$ rktb new [name] [flags]
+$ rocketblend new [name] [flags]
 ```
 
 ## Options

@@ -9,7 +9,7 @@ description: Running a project
 Run project in the terminal current session
 
 ```shell-session
-$ rktb run [flags]
+$ rocketblend run [flags]
 ```
 
 ## Options

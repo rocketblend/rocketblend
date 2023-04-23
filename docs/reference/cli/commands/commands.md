@@ -2,7 +2,7 @@
 description: A package manager for Blender.
 ---
 
-# RKTB
+# Rocketblend
 
 ## Synopsis
 
@@ -10,24 +10,24 @@ A blender package manager.
 
 Common actions for RocketBlend:
 
-* rktb new: create a new project
-* rktb describe: gives information for a given package
-* rktb install: add a dependency to a project
-* rktb start: starts a project
-* rktb render: renders out a project
+* rocketblend new: create a new project
+* rocketblend describe: gives information for a given package
+* rocketblend install: add a dependency to a project
+* rocketblend start: starts a project
+* rocketblend render: renders out a project
 
 Documentation is available at https://docs.rocketblend.io/
 
 ### Usage
 
 ```shell-session
-$ rktb [commands] [flags]
+$ rocketblend [commands] [flags]
 ```
 
 ### Options
 
 ```shell-session
   -d, --directory string   working directory for the command (default ".")
-  -h, --help               help for rktb
+  -h, --help               help for rocketblend
 ```
 

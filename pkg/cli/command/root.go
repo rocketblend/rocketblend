@@ -3,9 +3,8 @@ package command
 import (
 	"path/filepath"
 
-	"github.com/rocketblend/rocketblend/pkg/rktb/common"
-	"github.com/rocketblend/rocketblend/pkg/rktb/config"
-	"github.com/rocketblend/rocketblend/pkg/rktb/helpers"
+	"github.com/rocketblend/rocketblend/pkg/cli/config"
+	"github.com/rocketblend/rocketblend/pkg/cli/helpers"
 	"github.com/rocketblend/rocketblend/pkg/rocketblend"
 
 	"github.com/spf13/cobra"
@@ -33,7 +32,7 @@ func NewService(config *config.Service, driver *rocketblend.Driver) *Service {
 
 func (srv *Service) NewCommand() *cobra.Command {
 	c := &cobra.Command{
-		Use:   common.Alias,
+		Use:   rocketblend.Name,
 		Short: "RocketBlend is a build and addon manager for Blender projects.",
 		Long: `RocketBlend is a CLI tool that streamlines the process of managing
 builds and addons for Blender projects.

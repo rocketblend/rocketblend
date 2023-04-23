@@ -4,11 +4,11 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/rocketblend/rocketblend/pkg/rktb"
+	"github.com/rocketblend/rocketblend/pkg/cli"
 )
 
 func main() {
-	if err := rktb.Execute(); err != nil {
+	if err := cli.Execute(); err != nil {
 		fmt.Println(err)
 		os.Exit(1)
 	}

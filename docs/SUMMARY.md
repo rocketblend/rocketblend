@@ -11,7 +11,7 @@
 
 * [CLI](reference/cli/README.md)
   * [Commands](reference/cli/commands/README.md)
-    * [RKTB](reference/cli/commands/commands.md)
+    * [Rocketblend](reference/cli/commands/commands.md)
     * [New](reference/cli/commands/open.md)
     * [Install](reference/cli/commands/install.md)
     * [Uninstall](reference/cli/commands/uninstall.md)

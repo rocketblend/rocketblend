@@ -9,7 +9,7 @@ description: Starting a project
 Start project
 
 ```shell-session
-$ rktb start [flags]
+$ rocketblend start [flags]
 ```
 
 ## Options

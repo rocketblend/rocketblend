@@ -8,7 +8,7 @@ description: Removing Dependencies
 
 Remove dependencies on the current project
 
-<pre class="language-shell-session"><code class="lang-shell-session"><strong>$ rktb uninstall [reference] [flags]
+<pre class="language-shell-session"><code class="lang-shell-session"><strong>$ rocketblend uninstall [reference] [flags]
 </strong></code></pre>
 
 ## Options

@@ -1,6 +1,6 @@
 ### [Discussions](https://github.com/rocketblend/rocketblend/discussions) │ [Documentation](https://docs.rocketblend.io) │ [Latest Release](https://github.com/rocketblend/rocketblend/releases/latest)
 
-# RocketBlend (RKTB)
+# RocketBlend
 
 [![Github tag](https://badgen.net/github/tag/rocketblend/rocketblend)](https://github.com/rocketblend/rocketblend/tags)
 [![Go Doc](https://img.shields.io/badge/go-documentation-blue.svg?style=flat-square)](https://pkg.go.dev/github.com/rocketblend/rocketblend)
@@ -19,40 +19,40 @@ See [Quick Start](https://docs.rocketblend.io/getting-started/quick-start) in ou
 
 ### Scoop (Windows)
 
-Windows users can install `rktb` using [Scoop](https://scoop.sh/).
+Windows users can install `rocketblend` using [Scoop](https://scoop.sh/).
 
 ```powershell
 scoop bucket add rocketblend "https://github.com/rocketblend/scoop-bucket"
-scoop install rktb
+scoop install "rocketblend/rocketblend"
 ```
 
 ### Homebrew (macOS)
 
-MacOS users can install `rktb` using [Homebrew](https://brew.sh/).
+MacOS users can install `rocketblend` using [Homebrew](https://brew.sh/).
 
 ```bash
 brew tap "rocketblend/homebrew-tap"
-brew install rktb
+brew install rocketblend
 ```
 
 ### Pre-compiled binaries
 
-To install pre-compiled binaries for `rktb`, you can either manually download the latest release or use the provided scripts to automate the process:
+To install pre-compiled binaries for `rocketblend`, you can either manually download the latest release or use the provided scripts to automate the process:
 
 1. **Manual installation**: Download the latest release from the [releases page](https://github.com/rocketblend/rocketblend/releases) and extract the binary to a directory included in your `PATH`.
-2. **Automated installation**: Run the appropriate script for your platform to download and install `rktb`:
+2. **Automated installation**: Run the appropriate script for your platform to download and install `rocketblend`:
    - Windows: [install.ps1](https://raw.githubusercontent.com/rocketblend/rocketblend/master/install.ps1)
    - macOS/Linux: [install.sh](https://raw.githubusercontent.com/rocketblend/rocketblend/master/install.sh)
 
 ### Source
 
-To install `rktb` directly from source code, you can use the `go install` command:
+To install `rocketblend` directly from source code, you can use the `go install` command:
 
 ```bash
-go install github.com/rocketblend/rocketblend/cmd/rktb@latest
+go install github.com/rocketblend/rocketblend/cmd/rocketblend@latest
 ```
 
-This command will download the latest version of the `rktb` source code and compile the binary for your platform. Ensure you have Go 1.19 or later installed on your system.
+This command will download the latest version of the `rocketblend` source code and compile the binary for your platform. Ensure you have Go 1.19 or later installed on your system.
 
 For more detailed installation instructions, please refer to the [full documentation](https://docs.rocketblend.io/getting-started/installation).
 

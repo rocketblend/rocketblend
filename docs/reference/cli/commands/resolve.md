@@ -9,7 +9,7 @@ description: Resolving project information
 Output the resolved dependencies and paths for the project on the local machine.
 
 ```shell-session
-$ rktb resolve [flags]
+$ rocketblend resolve [flags]
 ```
 
 ## Options
