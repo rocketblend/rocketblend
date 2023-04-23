@@ -39,3 +39,4 @@ sudo mv "$TEMP_DIR/$EXECUTABLE_NAME" "$INSTALL_PATH"
 rm -rf "$TEMP_DIR"
 
 printf "%s has been installed successfully!\n" "$EXECUTABLE_NAME"
+print "You may need to restart your terminal session to refresh your PATH\n"
