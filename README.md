@@ -23,7 +23,7 @@ Windows users can install `rocketblend` using [Scoop](https://scoop.sh/).
 
 ```powershell
 scoop bucket add rocketblend "https://github.com/rocketblend/scoop-bucket"
-scoop install rocketblend
+scoop install rocketblend/rocketblend
 ```
 
 ### Homebrew (macOS)
