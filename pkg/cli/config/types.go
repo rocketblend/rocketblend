@@ -4,6 +4,10 @@ import (
 	"github.com/rocketblend/rocketblend/pkg/rocketblend/runtime"
 )
 
+var (
+	DefaultBuild = "github.com/rocketblend/official-library/packages/blender/builds/stable/3.4.1"
+)
+
 type (
 	Features struct {
 		Addons bool `mapstructure:"addons"`

@@ -8,7 +8,6 @@ import (
 
 	"github.com/go-playground/validator/v10"
 	"github.com/mitchellh/mapstructure"
-	"github.com/rocketblend/rocketblend/pkg/cli/common"
 	"github.com/rocketblend/rocketblend/pkg/rocketblend"
 	"github.com/rocketblend/rocketblend/pkg/rocketblend/runtime"
 	"github.com/spf13/viper"
@@ -132,7 +131,7 @@ func load() (*viper.Viper, error) {
 
 	v.SetDefault("debug", false)
 	v.SetDefault("platform", platform.String())
-	v.SetDefault("defaultBuild", common.DefaultBuild)
+	v.SetDefault("defaultBuild", DefaultBuild)
 	v.SetDefault("features.addons", false)
 	v.SetDefault("installDir", installDir)
 
