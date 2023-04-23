@@ -17,6 +17,8 @@ See [Quick Start](https://docs.rocketblend.io/getting-started/quick-start) in ou
 
 ## Installation
 
+For more detailed installation instructions, please refer to the [full documentation](https://docs.rocketblend.io/getting-started/installation).
+
 ### Scoop (Windows)
 
 Windows users can install `rocketblend` using [Scoop](https://scoop.sh/).
@@ -53,8 +55,6 @@ go install github.com/rocketblend/rocketblend/cmd/rocketblend@latest
 ```
 
 This command will download the latest version of the `rocketblend` source code and compile the binary for your platform. Ensure you have Go 1.19 or later installed on your system.
-
-For more detailed installation instructions, please refer to the [full documentation](https://docs.rocketblend.io/getting-started/installation).
 
 ## See Also
 

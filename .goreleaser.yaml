@@ -17,6 +17,7 @@ scoop:
     owner: rocketblend
     name: scoop-bucket
     branch: master
+  folder: bucket
   homepage: "https://docs.rocketblend.io/"
   description: "Build and addon management for Blender projects."
   license: "GPL-3.0"
@@ -26,6 +27,7 @@ brews:
       owner: rocketblend
       name: homebrew-tap
       branch: master
+    folder: Formula
     homepage: "https://docs.rocketblend.io/"
     description: "Build and addon management for Blender projects."
     license: "GPL-3.0"
