@@ -8,7 +8,8 @@ import (
 
 	"github.com/go-playground/validator/v10"
 	"github.com/mitchellh/mapstructure"
-	"github.com/rocketblend/rocketblend/pkg/rktb/common"
+	"github.com/rocketblend/rocketblend/pkg/cli/common"
+	"github.com/rocketblend/rocketblend/pkg/rocketblend"
 	"github.com/rocketblend/rocketblend/pkg/rocketblend/runtime"
 	"github.com/spf13/viper"
 )
@@ -122,7 +123,7 @@ func load() (*viper.Viper, error) {
 		return nil, fmt.Errorf("cannot detect platform")
 	}
 
-	appDir := filepath.Join(configDir, common.Alias)
+	appDir := filepath.Join(configDir, rocketblend.Name)
 	installDir := filepath.Join(appDir, "packages")
 
 	if err := os.MkdirAll(installDir, os.ModePerm); err != nil {
