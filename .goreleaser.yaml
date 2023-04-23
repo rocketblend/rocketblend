@@ -12,6 +12,24 @@ builds:
       - windows
       - darwin
 
+scoop:
+  bucket:
+    owner: rocketblend
+    name: scoop-bucket
+    branch: master
+  homepage: "https://docs.rocketblend.io/"
+  description: "Build and addon management for Blender projects."
+  license: "GPL-3.0"
+
+brews:
+  - tap:
+      owner: rocketblend
+      name: homebrew-tap
+      branch: master
+    homepage: "https://docs.rocketblend.io/"
+    description: "Build and addon management for Blender projects."
+    license: "GPL-3.0"
+
 archives:
   - format: tar.gz
     # this name template makes the OS and Arch compatible with the results of uname.
