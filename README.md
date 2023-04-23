@@ -22,7 +22,7 @@ See [Quick Start](https://docs.rocketblend.io/getting-started/quick-start) in ou
 Windows users can install `rktb` using [Scoop](https://scoop.sh/).
 
 ```powershell
-scoop bucket add rocketblend https://github.com/rocketblend/scoop-bucket
+scoop bucket add rocketblend "https://github.com/rocketblend/scoop-bucket"
 scoop install rktb
 ```
 
