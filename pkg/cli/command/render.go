@@ -27,11 +27,14 @@ func (srv *Service) newRenderCommand() *cobra.Command {
 		Short: "Render project",
 		Long:  `Render project`,
 		Args:  cobra.NoArgs,
-		Run: func(cmd *cobra.Command, args []string) {
+		RunE: func(cmd *cobra.Command, args []string) error {
+			if frameEnd < frameStart || frameStep <= 0 {
+				return fmt.Errorf("invalid frame range or step")
+			}
+
 			blend, err := srv.findBlendFile(srv.flags.workingDirectory)
 			if err != nil {
-				cmd.Println(err)
-				return
+				return fmt.Errorf("failed to find blend file: %w", err)
 			}
 
 			name := filepath.Base(blend.Path)
@@ -41,8 +44,7 @@ func (srv *Service) newRenderCommand() *cobra.Command {
 
 			out, err := srv.parseOutputTemplate(output, data)
 			if err != nil {
-				cmd.Println(err)
-				return
+				return fmt.Errorf("failed to parse output template: %w", err)
 			}
 
 			runArgs := []string{
@@ -63,9 +65,10 @@ func (srv *Service) newRenderCommand() *cobra.Command {
 
 			err = srv.driver.Run(blend, true, runArgs)
 			if err != nil {
-				cmd.Println(err)
-				return
+				return fmt.Errorf("failed to run driver: %w", err)
 			}
+
+			return nil
 		},
 	}
 
@@ -92,6 +95,5 @@ func (srv *Service) parseOutputTemplate(str string, data interface{}) (string, e
 		return "", err
 	}
 
-	// Return the output string
 	return buf.String(), nil
 }

@@ -1,28 +1,38 @@
 package command
 
 import (
+	"fmt"
+
 	"github.com/spf13/cobra"
 )
 
+// newConfigCommand creates a new cobra command that manages the configuration for RocketBlend.
+// It either sets a new configuration value if the 'set' flag is used, or retrieves a value for the provided key.
 func (srv *Service) newConfigCommand() *cobra.Command {
 	var value string
 
 	c := &cobra.Command{
 		Use:   "config [key]",
-		Short: "Manage the configuration for rocketblend",
-		Long:  `Manage the configuration for rocketblend`,
+		Short: "Manage the configuration for RocketBlend",
+		Long:  `Fetches or sets a configuration value for RocketBlend. Provide a key to retrieve its value, or use the 'set' flag to set a new value for the key.`,
 		Args:  cobra.MinimumNArgs(1),
-		Run: func(cmd *cobra.Command, args []string) {
+		RunE: func(cmd *cobra.Command, args []string) error {
 			key := args[0]
+
+			// If the 'set' flag is used, update the configuration value for the key.
 			if value != "" {
 				err := srv.config.SetValueByString(key, value)
 				if err != nil {
-					cmd.PrintErr(err)
-					return
+					return fmt.Errorf("failed to set value: %w", err)
 				}
-			} else {
-				cmd.Println(srv.config.GetValueByString(key))
+
+				return nil
 			}
+
+			// If the 'set' flag is not used, print the current value for the key.
+			cmd.Println(srv.config.GetValueByString(key))
+
+			return nil
 		},
 	}
 

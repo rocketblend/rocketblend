@@ -1,20 +1,25 @@
 package command
 
 import (
+	"fmt"
 	"path/filepath"
 
 	"github.com/rocketblend/rocketblend/pkg/cli/config"
 	"github.com/rocketblend/rocketblend/pkg/cli/helpers"
+	"github.com/rocketblend/rocketblend/pkg/jot/reference"
 	"github.com/rocketblend/rocketblend/pkg/rocketblend"
 
 	"github.com/spf13/cobra"
 )
 
 type (
+	// persistentFlags holds the flags that are available across all the subcommands
 	persistentFlags struct {
 		workingDirectory string
 	}
 
+	// Service acts as a container for the CLI services,
+	// holding instances of config service, driver, and persistent flags.
 	Service struct {
 		config *config.Service
 		driver *rocketblend.Driver
@@ -22,6 +27,7 @@ type (
 	}
 )
 
+// NewService creates a new Service instance.
 func NewService(config *config.Service, driver *rocketblend.Driver) *Service {
 	return &Service{
 		config: config,
@@ -30,6 +36,8 @@ func NewService(config *config.Service, driver *rocketblend.Driver) *Service {
 	}
 }
 
+// NewCommand initializes a new cobra.Command object. This is the root command.
+// All other commands are subcommands of this root command.
 func (srv *Service) NewCommand() *cobra.Command {
 	c := &cobra.Command{
 		Use:   rocketblend.Name,
@@ -39,6 +47,7 @@ builds and addons for Blender projects.
 
 Documentation is available at https://docs.rocketblend.io/`,
 		PersistentPreRun: srv.persistentPreRun,
+		SilenceUsage:     true,
 	}
 
 	c.SetVersionTemplate("{{.Version}}\n")
@@ -51,7 +60,6 @@ Documentation is available at https://docs.rocketblend.io/`,
 	startCMD := srv.newStartCommand()
 	renderCMD := srv.newRenderCommand()
 	resolveCMD := srv.newResolveCommand()
-	// listCMD := srv.newListCommand()
 	describeCMD := srv.newDescribeCommand()
 
 	c.AddCommand(
@@ -63,16 +71,15 @@ Documentation is available at https://docs.rocketblend.io/`,
 		startCMD,
 		renderCMD,
 		resolveCMD,
-		// listCMD,
 		describeCMD,
 	)
 
 	c.PersistentFlags().StringVarP(&srv.flags.workingDirectory, "directory", "d", ".", "working directory for the command")
-	// TODO: add PersistentPreRunE to validate the working directory.
 
 	return c
 }
 
+// persistentPreRun validates the working directory before running the command.
 func (srv *Service) persistentPreRun(cmd *cobra.Command, args []string) {
 	path, err := srv.validatePath(srv.flags.workingDirectory)
 	if err != nil {
@@ -83,6 +90,7 @@ func (srv *Service) persistentPreRun(cmd *cobra.Command, args []string) {
 	srv.flags.workingDirectory = path
 }
 
+// validatePath checks if the path is valid and returns the absolute path.
 func (srv *Service) validatePath(path string) (string, error) {
 	if filepath.IsAbs(path) {
 		return path, nil
@@ -97,6 +105,7 @@ func (srv *Service) validatePath(path string) (string, error) {
 	return absPath, nil
 }
 
+// findBlendFile searches for a blend file in the provided directory.
 func (srv *Service) findBlendFile(dir string) (*rocketblend.BlendFile, error) {
 	dir, err := srv.validatePath(dir)
 	if err != nil {
@@ -114,4 +123,14 @@ func (srv *Service) findBlendFile(dir string) (*rocketblend.BlendFile, error) {
 	}
 
 	return blend, nil
+}
+
+// parseReference converts a reference string into a reference struct.
+func (srv *Service) parseReference(arg string) (*reference.Reference, error) {
+	r, err := reference.Parse(arg)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse reference: %w", err)
+	}
+
+	return &r, nil
 }

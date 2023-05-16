@@ -7,6 +7,7 @@ require (
 	github.com/ivanpirog/coloredcobra v1.0.1
 	github.com/mholt/archiver/v3 v3.5.1
 	github.com/mitchellh/mapstructure v1.5.0
+	github.com/olekukonko/tablewriter v0.0.5
 	github.com/schollz/progressbar/v3 v3.12.2
 	github.com/sirupsen/logrus v1.9.0
 	github.com/spf13/cobra v1.5.0

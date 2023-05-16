@@ -2,43 +2,120 @@ package command
 
 import (
 	"encoding/json"
+	"fmt"
+	"strings"
 
+	"github.com/olekukonko/tablewriter"
 	"github.com/rocketblend/rocketblend/pkg/jot/reference"
+	"github.com/rocketblend/rocketblend/pkg/rocketblend/rocketpack"
 	"github.com/spf13/cobra"
 )
 
+// newDescribeCommand creates a new cobra command that fetches the definition of a package.
+// It retrieves the definition based on the reference provided as an argument and formats the output based on the 'output' flag.
 func (srv *Service) newDescribeCommand() *cobra.Command {
 	var output string
 
 	c := &cobra.Command{
 		Use:   "describe [reference]",
-		Short: "Get the definition for a package",
-		Long:  `Get the definition for a package`,
+		Short: "Fetches a package definition",
+		Long:  `Fetches the definition of a package by its reference. The output can be formatted by specifying the 'output' flag.`,
 		Args:  cobra.ExactArgs(1),
-		Run: func(cmd *cobra.Command, args []string) {
-			reference, err := reference.Parse(args[0])
+		RunE: func(cmd *cobra.Command, args []string) error {
+			ref, err := srv.parseReference(args[0])
 			if err != nil {
-				cmd.PrintErrln(err)
-				return
+				return err
 			}
 
-			pack, err := srv.driver.DescribePackByReference(reference)
+			pack, err := srv.getPackageDescription(ref)
 			if err != nil {
-				cmd.PrintErrln(err)
-				return
+				return err
 			}
 
-			json, err := json.Marshal(pack)
+			display, err := srv.getPackageOutput(pack, output)
 			if err != nil {
-				cmd.PrintErrln("failed to describe package:", err)
-				return
+				return err
 			}
 
-			cmd.Println(string(json))
+			cmd.Println(display)
+
+			return nil
 		},
 	}
 
 	c.Flags().StringVarP(&output, "output", "o", "json", "output format")
 
 	return c
+}
+
+// getPackageDescription returns the description of a package by reference.
+func (srv *Service) getPackageDescription(ref *reference.Reference) (*rocketpack.RocketPack, error) {
+	pack, err := srv.driver.DescribePackByReference(*ref)
+	if err != nil {
+		return nil, fmt.Errorf("failed to describe package: %w", err)
+	}
+
+	return pack, nil
+}
+
+// getPackageOutput returns a string representation of the package based on the output format.
+func (srv *Service) getPackageOutput(pack *rocketpack.RocketPack, output string) (string, error) {
+	var displayString string
+	var err error
+
+	switch output {
+	case "json":
+		packJSON, err := json.Marshal(pack)
+		if err != nil {
+			return "", fmt.Errorf("failed to marshal package to JSON: %w", err)
+		}
+		displayString = string(packJSON)
+	case "table":
+		displayString, err = srv.renderRocketPackTable(pack)
+		if err != nil {
+			return "", fmt.Errorf("failed to print package table: %w", err)
+		}
+	default:
+		return "", fmt.Errorf("unsupported output format: %s", output)
+	}
+
+	return displayString, nil
+}
+
+// renderRocketPackTable renders a table representation of a RocketPack.
+func (srv *Service) renderRocketPackTable(pack *rocketpack.RocketPack) (string, error) {
+	if pack.Addon == nil && pack.Build == nil {
+		return "", fmt.Errorf("no addon or build present in the package")
+	}
+
+	tableString := &strings.Builder{}
+	table := tablewriter.NewWriter(tableString)
+
+	table.SetCaption(true, "Package Description")
+
+	if pack.Addon != nil {
+		table.SetHeader([]string{"Addon Name", "Addon Version", "Addon File Source", "Addon URL Source"})
+
+		addonName := pack.Addon.Name
+		addonVersion := pack.Addon.Version.String()
+		addonFileSource, addonURLSource := "", ""
+		if pack.Addon.Source != nil {
+			addonFileSource = pack.Addon.Source.File
+			addonURLSource = pack.Addon.Source.URL
+		}
+
+		table.Append([]string{addonName, addonVersion, addonFileSource, addonURLSource})
+	}
+
+	if pack.Build != nil {
+		table.SetHeader([]string{"Build Version", "Build Args"})
+
+		buildVersion := pack.Build.Version.String()
+		buildArgs := pack.Build.Args
+
+		table.Append([]string{buildVersion, buildArgs})
+	}
+
+	table.Render()
+	return tableString.String(), nil
 }
