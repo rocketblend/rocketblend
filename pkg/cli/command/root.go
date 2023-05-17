@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"path/filepath"
 
+	"github.com/rocketblend/rocketblend/pkg/cli/build"
 	"github.com/rocketblend/rocketblend/pkg/cli/config"
 	"github.com/rocketblend/rocketblend/pkg/cli/helpers"
 	"github.com/rocketblend/rocketblend/pkg/jot/reference"
@@ -40,8 +41,9 @@ func NewService(config *config.Service, driver *rocketblend.Driver) *Service {
 // All other commands are subcommands of this root command.
 func (srv *Service) NewCommand() *cobra.Command {
 	c := &cobra.Command{
-		Use:   rocketblend.Name,
-		Short: "RocketBlend is a build and addon manager for Blender projects.",
+		Version: build.Version,
+		Use:     rocketblend.Name,
+		Short:   "RocketBlend is a build and addon manager for Blender projects.",
 		Long: `RocketBlend is a CLI tool that streamlines the process of managing
 builds and addons for Blender projects.
 
