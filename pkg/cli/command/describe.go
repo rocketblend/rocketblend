@@ -37,13 +37,13 @@ func (srv *Service) newDescribeCommand() *cobra.Command {
 				return err
 			}
 
-			cmd.Println(display)
+			cmd.Print(display)
 
 			return nil
 		},
 	}
 
-	c.Flags().StringVarP(&output, "output", "o", "json", "output format")
+	c.Flags().StringVarP(&output, "output", "o", "table", "output format (table, json)")
 
 	return c
 }

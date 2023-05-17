@@ -11,7 +11,7 @@ import (
 func (srv *Service) newStartCommand() *cobra.Command {
 	c := &cobra.Command{
 		Use:   "start",
-		Short: "Start project",
+		Short: "Starts the project",
 		Long:  `Starts the project located in the current working directory.`,
 		Args:  cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {

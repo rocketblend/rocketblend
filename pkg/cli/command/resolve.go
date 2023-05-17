@@ -31,13 +31,13 @@ func (srv *Service) newResolveCommand() *cobra.Command {
 				return err
 			}
 
-			cmd.Println(blendOutput)
+			cmd.Print(blendOutput)
 
 			return nil
 		},
 	}
 
-	c.Flags().StringVarP(&output, "output", "o", "json", "output format (table, json)")
+	c.Flags().StringVarP(&output, "output", "o", "table", "output format (table, json)")
 
 	return c
 }
