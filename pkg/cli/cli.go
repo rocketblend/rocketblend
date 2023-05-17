@@ -5,17 +5,18 @@ import (
 	"github.com/rocketblend/rocketblend/pkg/cli/command"
 	"github.com/rocketblend/rocketblend/pkg/cli/config"
 	"github.com/rocketblend/rocketblend/pkg/rocketblend"
+	"github.com/spf13/cobra"
 )
 
-func Execute() error {
+func New() (*cobra.Command, error) {
 	cs, err := config.New()
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	config, err := cs.Get()
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	rocketblendOptions := rocketblend.Options{
@@ -27,7 +28,7 @@ func Execute() error {
 
 	driver, err := rocketblend.New(&rocketblendOptions)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	srv := command.NewService(cs, driver)
@@ -46,5 +47,5 @@ func Execute() error {
 		NoBottomNewline: true,
 	})
 
-	return rootCMD.Execute()
+	return rootCMD, nil
 }

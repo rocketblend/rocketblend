@@ -9,26 +9,32 @@ import (
 	"github.com/spf13/cobra"
 )
 
+// newNewCommand creates a new cobra.Command object initialized for creating a new project.
+// It expects a single argument which is the name of the project.
+// It uses the 'skip-install' flag to decide whether or not to install dependencies.
 func (srv *Service) newNewCommand() *cobra.Command {
 	var skipInstall bool
 
 	c := &cobra.Command{
 		Use:   "new [name]",
 		Short: "Create a new project",
-		Long:  `Create a new project`,
+		Long:  `Creates a new project with a specified name. Use the 'skip-install' flag to skip installing dependencies.`,
 		Args:  cobra.MinimumNArgs(1),
-		Run: func(cmd *cobra.Command, args []string) {
+		RunE: func(cmd *cobra.Command, args []string) error {
 			if err := srv.validateName(args[0]); err != nil {
-				cmd.PrintErrln(err)
-				return
+				return fmt.Errorf("validation failed for name '%s': %w", args[0], err)
 			}
 
-			ref := reference.Reference(srv.config.GetValueByString("defaultBuild"))
-			err := srv.driver.Create(args[0], srv.flags.workingDirectory, ref, skipInstall)
+			ref, err := srv.parseReference(srv.config.GetValueByString("defaultBuild"))
 			if err != nil {
-				cmd.Println(err)
-				return
+				return fmt.Errorf("failed to parse default build reference: %w", err)
 			}
+
+			if err := srv.createProject(args[0], ref, skipInstall); err != nil {
+				return fmt.Errorf("failed to create project '%s': %w", args[0], err)
+			}
+
+			return nil
 		},
 	}
 
@@ -37,6 +43,16 @@ func (srv *Service) newNewCommand() *cobra.Command {
 	return c
 }
 
+// createProject uses the driver to create a new project.
+func (srv *Service) createProject(name string, buildRef *reference.Reference, skipInstall bool) error {
+	if err := srv.driver.Create(name, srv.flags.workingDirectory, *buildRef, skipInstall); err != nil {
+		return fmt.Errorf("driver failed to create project: %w", err)
+	}
+
+	return nil
+}
+
+// validateName checks if the provided name is valid.
 func (srv *Service) validateName(name string) error {
 	if filepath.IsAbs(name) || strings.Contains(name, string(filepath.Separator)) {
 		return fmt.Errorf("%q is not a valid project name, it should not contain any path separators", name)

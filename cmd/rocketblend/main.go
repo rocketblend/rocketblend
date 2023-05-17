@@ -1,15 +1,18 @@
 package main
 
 import (
-	"fmt"
-	"os"
+	"log"
 
 	"github.com/rocketblend/rocketblend/pkg/cli"
 )
 
 func main() {
-	if err := cli.Execute(); err != nil {
-		fmt.Println(err)
-		os.Exit(1)
+	app, err := cli.New()
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	if err := app.Execute(); err != nil {
+		return
 	}
 }

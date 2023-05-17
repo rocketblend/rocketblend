@@ -14,6 +14,8 @@ type templateData struct {
 	Project string
 }
 
+// newRenderCommand creates a new cobra command for rendering the project.
+// It sets up all necessary flags and executes the rendering through the driver.
 func (srv *Service) newRenderCommand() *cobra.Command {
 	var frameStart int
 	var frameEnd int
@@ -24,14 +26,17 @@ func (srv *Service) newRenderCommand() *cobra.Command {
 
 	c := &cobra.Command{
 		Use:   "render",
-		Short: "Render project",
-		Long:  `Render project`,
+		Short: "Renders the project",
+		Long:  `Renders the project from the specified start frame to the end frame, with the given step. Outputs the render in the provided format.`,
 		Args:  cobra.NoArgs,
-		Run: func(cmd *cobra.Command, args []string) {
+		RunE: func(cmd *cobra.Command, args []string) error {
+			if frameEnd < frameStart || frameStep <= 0 {
+				return fmt.Errorf("invalid frame range or step")
+			}
+
 			blend, err := srv.findBlendFile(srv.flags.workingDirectory)
 			if err != nil {
-				cmd.Println(err)
-				return
+				return fmt.Errorf("failed to find blend file: %w", err)
 			}
 
 			name := filepath.Base(blend.Path)
@@ -41,8 +46,7 @@ func (srv *Service) newRenderCommand() *cobra.Command {
 
 			out, err := srv.parseOutputTemplate(output, data)
 			if err != nil {
-				cmd.Println(err)
-				return
+				return fmt.Errorf("failed to parse output template: %w", err)
 			}
 
 			runArgs := []string{
@@ -63,9 +67,10 @@ func (srv *Service) newRenderCommand() *cobra.Command {
 
 			err = srv.driver.Run(blend, true, runArgs)
 			if err != nil {
-				cmd.Println(err)
-				return
+				return fmt.Errorf("failed to run driver: %w", err)
 			}
+
+			return nil
 		},
 	}
 
@@ -92,6 +97,5 @@ func (srv *Service) parseOutputTemplate(str string, data interface{}) (string, e
 		return "", err
 	}
 
-	// Return the output string
 	return buf.String(), nil
 }
