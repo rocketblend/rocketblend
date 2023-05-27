@@ -22,7 +22,7 @@ func (srv *Service) newRunCommand() *cobra.Command {
 				return fmt.Errorf("unable to locate project file: %w", err)
 			}
 
-			err = srv.driver.Run(blend, background, []string{})
+			err = srv.run(blend, background, []string{})
 			if err != nil {
 				return fmt.Errorf("failed to run project: %w", err)
 			}
