@@ -45,12 +45,10 @@ func (srv *Service) run(ctx context.Context, file *rocketblend.BlendFile, backgr
 		return err
 	}
 
-	output, err := cmd.CombinedOutput()
+	err = cmd.Run()
 	if err != nil {
 		return fmt.Errorf("failed to open: %s", err)
 	}
-
-	fmt.Println(string(output))
 
 	return nil
 }
