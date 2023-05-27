@@ -1,6 +1,7 @@
 package rocketblend
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"os/exec"
@@ -89,7 +90,7 @@ func (d *Driver) Load(path string) (*BlendFile, error) {
 	return file, nil
 }
 
-func (d *Driver) GetCMD(file *BlendFile, background bool, postArgs []string) (*exec.Cmd, error) {
+func (d *Driver) GetCMD(ctx context.Context, file *BlendFile, background bool, postArgs []string) (*exec.Cmd, error) {
 	preArgs := []string{}
 	if background {
 		preArgs = append(preArgs, "-b")
@@ -120,7 +121,7 @@ func (d *Driver) GetCMD(file *BlendFile, background bool, postArgs []string) (*e
 
 	// Blender requires arguments to be in a specific order
 	args := append(preArgs, postArgs...)
-	cmd := exec.Command(file.Build.Path, args...)
+	cmd := exec.CommandContext(ctx, file.Build.Path, args...)
 
 	if d.debug {
 		fmt.Println(strings.ReplaceAll(cmd.String(), "\"", "\\\""))

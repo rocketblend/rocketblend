@@ -3,6 +3,7 @@ package command
 import (
 	"bufio"
 	"bytes"
+	"context"
 	"fmt"
 	"path/filepath"
 	"strings"
@@ -69,7 +70,7 @@ func (srv *Service) newRenderCommand() *cobra.Command {
 				"-a", // Render frames from start to end
 			}
 
-			err = srv.render(blend, true, runArgs)
+			err = srv.render(cmd.Context(), blend, true, runArgs)
 			if err != nil {
 				return fmt.Errorf("failed to run driver: %w", err)
 			}
@@ -88,46 +89,47 @@ func (srv *Service) newRenderCommand() *cobra.Command {
 	return c
 }
 
-func (srv *Service) render(file *rocketblend.BlendFile, background bool, args []string) error {
-	cmd, err := srv.driver.GetCMD(file, background, args)
+func (srv *Service) render(ctx context.Context, file *rocketblend.BlendFile, background bool, args []string) error {
+	cmd, err := srv.driver.GetCMD(ctx, file, background, args)
 	if err != nil {
 		return err
 	}
 
-	// Print the command that is being executed.
-	fmt.Println("Command: ", color.HiBlueString(cmd.String()))
+	if !background {
+		// Print the command that is being executed.
+		fmt.Println("Command: ", color.HiBlueString(cmd.String()))
 
-	cmdReader, err := cmd.StdoutPipe()
-	if err != nil {
-		return fmt.Errorf("creating stdout pipe: %w", err)
-	}
-
-	// Print separator
-	fmt.Println((strings.Repeat("-", 80)))
-
-	scanner := bufio.NewScanner(cmdReader)
-
-	fmt.Println(color.GreenString("Starting render..."))
-
-	go func() {
-		for scanner.Scan() {
-			info, err := blenderparser.ParseRenderOutput(scanner.Text())
-			if err != nil {
-				// fmt.Println("Error parsing blender output:", err)
-				continue
-			} else {
-				output := fmt.Sprintf("Frame: %s Memory: %s Peak Memory: %-10s Time: %-10s Operation: %s\t",
-					color.New(color.FgCyan, color.Bold).Sprint(info.FrameNumber),
-					color.New(color.FgCyan).Sprint(info.Memory),
-					color.New(color.FgHiMagenta).Sprint(info.PeakMemory),
-					color.New(color.FgHiGreen).Sprint(info.Time),
-					color.New(color.FgHiBlue).Sprint(info.Operation),
-				)
-
-				fmt.Println(output)
-			}
+		cmdReader, err := cmd.StdoutPipe()
+		if err != nil {
+			return fmt.Errorf("creating stdout pipe: %w", err)
 		}
-	}()
+
+		// Print separator
+		fmt.Println((strings.Repeat("-", 80)))
+		fmt.Println(color.GreenString("Starting render..."))
+
+		scanner := bufio.NewScanner(cmdReader)
+
+		go func() {
+			for scanner.Scan() {
+				info, err := blenderparser.ParseRenderOutput(scanner.Text())
+				if err != nil {
+					// fmt.Println("Error parsing blender output:", err)
+					continue
+				} else {
+					output := fmt.Sprintf("Frame: %s Memory: %s Peak Memory: %-10s Time: %-10s Operation: %s\t",
+						color.New(color.FgCyan, color.Bold).Sprint(info.FrameNumber),
+						color.New(color.FgCyan).Sprint(info.Memory),
+						color.New(color.FgHiMagenta).Sprint(info.PeakMemory),
+						color.New(color.FgHiGreen).Sprint(info.Time),
+						color.New(color.FgHiBlue).Sprint(info.Operation),
+					)
+
+					fmt.Println(output)
+				}
+			}
+		}()
+	}
 
 	err = cmd.Start()
 	if err != nil {
@@ -139,7 +141,9 @@ func (srv *Service) render(file *rocketblend.BlendFile, background bool, args []
 		return fmt.Errorf("waiting for command: %w", err)
 	}
 
-	fmt.Println(color.GreenString("Render complete!"))
+	if !background {
+		fmt.Println(color.GreenString("Render complete!"))
+	}
 
 	return nil
 }
