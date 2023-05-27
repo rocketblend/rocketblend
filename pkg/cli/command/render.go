@@ -70,7 +70,7 @@ func (srv *Service) newRenderCommand() *cobra.Command {
 				"-a", // Render frames from start to end
 			}
 
-			err = srv.render(cmd.Context(), blend, true, runArgs)
+			err = srv.render(cmd.Context(), blend, runArgs, true)
 			if err != nil {
 				return fmt.Errorf("failed to run driver: %w", err)
 			}
@@ -89,13 +89,13 @@ func (srv *Service) newRenderCommand() *cobra.Command {
 	return c
 }
 
-func (srv *Service) render(ctx context.Context, file *rocketblend.BlendFile, background bool, args []string) error {
-	cmd, err := srv.driver.GetCMD(ctx, file, background, args)
+func (srv *Service) render(ctx context.Context, file *rocketblend.BlendFile, args []string, verbose bool) error {
+	cmd, err := srv.driver.GetCMD(ctx, file, true, args)
 	if err != nil {
 		return err
 	}
 
-	if !background {
+	if verbose {
 		// Print the command that is being executed.
 		fmt.Println("Command: ", color.HiBlueString(cmd.String()))
 
@@ -141,7 +141,7 @@ func (srv *Service) render(ctx context.Context, file *rocketblend.BlendFile, bac
 		return fmt.Errorf("waiting for command: %w", err)
 	}
 
-	if !background {
+	if verbose {
 		fmt.Println(color.GreenString("Render complete!"))
 	}
 
