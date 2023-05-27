@@ -3,6 +3,7 @@ package command
 import (
 	"fmt"
 
+	"github.com/rocketblend/rocketblend/pkg/rocketblend"
 	"github.com/spf13/cobra"
 )
 
@@ -22,7 +23,7 @@ func (srv *Service) newRunCommand() *cobra.Command {
 				return fmt.Errorf("unable to locate project file: %w", err)
 			}
 
-			err = srv.run(blend, background, []string{})
+			err = srv.run(blend, background)
 			if err != nil {
 				return fmt.Errorf("failed to run project: %w", err)
 			}
@@ -35,4 +36,20 @@ func (srv *Service) newRunCommand() *cobra.Command {
 	c.Flags().BoolVarP(&background, "background", "b", false, "run the project in the background")
 
 	return c
+}
+
+func (srv *Service) run(file *rocketblend.BlendFile, background bool) error {
+	cmd, err := srv.driver.GetCMD(file, background, []string{})
+	if err != nil {
+		return err
+	}
+
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		return fmt.Errorf("failed to open: %s", err)
+	}
+
+	fmt.Println(string(output))
+
+	return nil
 }

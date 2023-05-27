@@ -8,6 +8,7 @@ import (
 	"strings"
 	"text/template"
 
+	"github.com/fatih/color"
 	"github.com/rocketblend/rocketblend/pkg/blenderparser"
 	"github.com/rocketblend/rocketblend/pkg/rocketblend"
 	"github.com/spf13/cobra"
@@ -68,7 +69,7 @@ func (srv *Service) newRenderCommand() *cobra.Command {
 				"-a", // Render frames from start to end
 			}
 
-			err = srv.run(blend, true, runArgs)
+			err = srv.render(blend, true, runArgs)
 			if err != nil {
 				return fmt.Errorf("failed to run driver: %w", err)
 			}
@@ -87,27 +88,43 @@ func (srv *Service) newRenderCommand() *cobra.Command {
 	return c
 }
 
-func (srv *Service) run(file *rocketblend.BlendFile, background bool, args []string) error {
+func (srv *Service) render(file *rocketblend.BlendFile, background bool, args []string) error {
 	cmd, err := srv.driver.GetCMD(file, background, args)
 	if err != nil {
 		return err
 	}
+
+	// Print the command that is being executed.
+	fmt.Println("Command: ", color.HiBlueString(cmd.String()))
 
 	cmdReader, err := cmd.StdoutPipe()
 	if err != nil {
 		return fmt.Errorf("creating stdout pipe: %w", err)
 	}
 
+	// Print separator
+	fmt.Println((strings.Repeat("-", 80)))
+
 	scanner := bufio.NewScanner(cmdReader)
+
+	fmt.Println(color.GreenString("Starting render..."))
+
 	go func() {
 		for scanner.Scan() {
 			info, err := blenderparser.ParseRenderOutput(scanner.Text())
 			if err != nil {
-				fmt.Println("Error parsing blender output:", err)
+				// fmt.Println("Error parsing blender output:", err)
+				continue
 			} else {
-				// Print or use the render info
-				fmt.Printf("Frame: %d, Memory: %s, Peak Memory: %s, Time: %s, Operation: %s\n",
-					info.FrameNumber, info.Memory, info.PeakMemory, info.Time, info.Operation)
+				output := fmt.Sprintf("Frame: %s Memory: %s Peak Memory: %-10s Time: %-10s Operation: %s\t",
+					color.New(color.FgCyan, color.Bold).Sprint(info.FrameNumber),
+					color.New(color.FgCyan).Sprint(info.Memory),
+					color.New(color.FgHiMagenta).Sprint(info.PeakMemory),
+					color.New(color.FgHiGreen).Sprint(info.Time),
+					color.New(color.FgHiBlue).Sprint(info.Operation),
+				)
+
+				fmt.Println(output)
 			}
 		}
 	}()
@@ -121,6 +138,8 @@ func (srv *Service) run(file *rocketblend.BlendFile, background bool, args []str
 	if err != nil {
 		return fmt.Errorf("waiting for command: %w", err)
 	}
+
+	fmt.Println(color.GreenString("Render complete!"))
 
 	return nil
 }
