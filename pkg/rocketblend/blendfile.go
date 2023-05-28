@@ -1,6 +1,7 @@
 package rocketblend
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"os/exec"
@@ -33,7 +34,7 @@ type (
 	}
 )
 
-func (d *Driver) Create(name string, path string, reference reference.Reference, skipDeps bool) error {
+func (d *Driver) Create(ctx context.Context, name string, path string, reference reference.Reference, skipDeps bool) error {
 	rkt := rocketfile.RocketFile{
 		Build: reference.String(),
 	}
@@ -43,7 +44,7 @@ func (d *Driver) Create(name string, path string, reference reference.Reference,
 	}
 
 	if !skipDeps {
-		err := d.InstallDependencies(path, nil, false)
+		err := d.InstallDependencies(ctx, path, nil, false)
 		if err != nil {
 			return err
 		}
