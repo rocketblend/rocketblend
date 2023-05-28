@@ -15,6 +15,7 @@ func GetFilenameFromURL(downloadURL string) string {
 	if err != nil {
 		return ""
 	}
+
 	return path.Base(u.Path)
 }
 
@@ -26,5 +27,6 @@ func isArchive(filePath string) bool {
 			return true
 		}
 	}
+
 	return false
 }

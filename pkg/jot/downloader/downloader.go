@@ -101,7 +101,7 @@ func (d *downloader) DownloadWithContext(ctx context.Context, path string, downl
 	wg.Wait() // Wait for the logging goroutine to finish
 
 	if err != nil {
-		d.logger.Error("Error downloading file", map[string]interface{}{"error": err.Error()})
+		d.logger.Error("Error downloading file", map[string]interface{}{"error": err.Error(), "url": downloadUrl, "path": path})
 		return err
 	}
 

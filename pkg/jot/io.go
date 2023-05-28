@@ -5,14 +5,6 @@ import (
 	"sync"
 )
 
-// stat checks for dir, if path isn't a directory check to see if it's a file
-func stat(path string) (fi os.FileInfo, err error) {
-	if fi, err = os.Stat(path); os.IsNotExist(err) {
-		fi, err = os.Stat(path)
-	}
-	return
-}
-
 // getOrCreateMutex creates a new reference specific mutex any time a reference
 // is being modfied to avoid unsafe operations
 func (d *Driver) getOrCreateMutex(reference string) *sync.Mutex {
@@ -25,7 +17,18 @@ func (d *Driver) getOrCreateMutex(reference string) *sync.Mutex {
 	if !ok {
 		m = &sync.Mutex{}
 		d.mutexes[reference] = m
+		d.logger.Debug("Created new mutex", map[string]interface{}{"reference": reference})
+	} else {
+		d.logger.Debug("Retrieved existing mutex", map[string]interface{}{"reference": reference})
 	}
 
 	return m
+}
+
+// stat checks for dir, if path isn't a directory check to see if it's a file
+func stat(path string) (fi os.FileInfo, err error) {
+	if fi, err = os.Stat(path); os.IsNotExist(err) {
+		fi, err = os.Stat(path)
+	}
+	return
 }
