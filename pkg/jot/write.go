@@ -24,7 +24,7 @@ func (d *Driver) WriteWithContext(ctx context.Context, reference reference.Refer
 	if isArchive(path) {
 		extractionPath := filepath.Dir(path)
 		d.logger.Debug("Starting archive extraction", map[string]interface{}{"path": path, "extractionPath": extractionPath})
-		err = d.extractor.Extract(path, extractionPath)
+		err = d.extractor.ExtractWithContext(ctx, path, extractionPath)
 		if err != nil {
 			d.logger.Error("Error during archive extraction", map[string]interface{}{"error": err.Error(), "path": path, "extractionPath": extractionPath})
 			return err
