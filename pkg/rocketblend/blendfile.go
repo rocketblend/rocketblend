@@ -90,38 +90,7 @@ func (d *Driver) Load(path string) (*BlendFile, error) {
 	return file, nil
 }
 
-func (d *Driver) Start(file *BlendFile, postArgs []string) error {
-	// TODO: Remove this and just expose getCMD()
-	cmd, err := d.getCMD(file, false, postArgs)
-	if err != nil {
-		return err
-	}
-
-	if err := cmd.Start(); err != nil {
-		return fmt.Errorf("failed to open: %s", err)
-	}
-
-	return nil
-}
-
-func (d *Driver) Run(file *BlendFile, background bool, postArgs []string) error {
-	// TODO: Remove this and just expose getCMD()
-	cmd, err := d.getCMD(file, background, postArgs)
-	if err != nil {
-		return err
-	}
-
-	output, err := cmd.CombinedOutput()
-	if err != nil {
-		return fmt.Errorf("failed to open: %s", err)
-	}
-
-	fmt.Println(string(output))
-
-	return nil
-}
-
-func (d *Driver) getCMD(file *BlendFile, background bool, postArgs []string) (*exec.Cmd, error) {
+func (d *Driver) GetCMD(ctx context.Context, file *BlendFile, background bool, postArgs []string) (*exec.Cmd, error) {
 	preArgs := []string{}
 	if background {
 		preArgs = append(preArgs, "-b")
@@ -152,7 +121,7 @@ func (d *Driver) getCMD(file *BlendFile, background bool, postArgs []string) (*e
 
 	// Blender requires arguments to be in a specific order
 	args := append(preArgs, postArgs...)
-	cmd := exec.Command(file.Build.Path, args...)
+	cmd := exec.CommandContext(ctx, file.Build.Path, args...)
 
 	if d.debug {
 		fmt.Println(strings.ReplaceAll(cmd.String(), "\"", "\\\""))

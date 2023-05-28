@@ -3,13 +3,13 @@ module github.com/rocketblend/rocketblend
 go 1.19
 
 require (
+	github.com/fatih/color v1.15.0
 	github.com/flowshot-io/x v0.0.0-20230527165654-eb51ba61aa82
 	github.com/go-playground/validator/v10 v10.13.0
 	github.com/ivanpirog/coloredcobra v1.0.1
 	github.com/mholt/archiver/v3 v3.5.1
 	github.com/mitchellh/mapstructure v1.5.0
 	github.com/olekukonko/tablewriter v0.0.5
-	github.com/sirupsen/logrus v1.9.0
 	github.com/spf13/cobra v1.5.0
 	github.com/spf13/viper v1.14.0
 	sigs.k8s.io/yaml v1.3.0
@@ -18,7 +18,6 @@ require (
 require (
 	github.com/andybalholm/brotli v1.0.4 // indirect
 	github.com/dsnet/compress v0.0.2-0.20210315054119-f66993602bf5 // indirect
-	github.com/fatih/color v1.15.0 // indirect
 	github.com/fsnotify/fsnotify v1.6.0 // indirect
 	github.com/go-playground/locales v0.14.1 // indirect
 	github.com/go-playground/universal-translator v0.18.1 // indirect

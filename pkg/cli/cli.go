@@ -41,8 +41,8 @@ func New() (*cobra.Command, error) {
 		Commands:        cc.Bold,
 		ExecName:        cc.Bold,
 		Flags:           cc.Bold,
-		Aliases:         cc.Bold,
-		Example:         cc.Italic,
+		Aliases:         cc.Magenta,
+		Example:         cc.Green + cc.Italic,
 		NoExtraNewlines: true,
 		NoBottomNewline: true,
 	})

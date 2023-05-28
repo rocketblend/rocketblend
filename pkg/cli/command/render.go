@@ -1,12 +1,17 @@
 package command
 
 import (
+	"bufio"
 	"bytes"
+	"context"
 	"fmt"
 	"path/filepath"
 	"strings"
 	"text/template"
 
+	"github.com/fatih/color"
+	"github.com/rocketblend/rocketblend/pkg/blenderparser"
+	"github.com/rocketblend/rocketblend/pkg/rocketblend"
 	"github.com/spf13/cobra"
 )
 
@@ -65,7 +70,7 @@ func (srv *Service) newRenderCommand() *cobra.Command {
 				"-a", // Render frames from start to end
 			}
 
-			err = srv.driver.Run(blend, true, runArgs)
+			err = srv.render(cmd.Context(), blend, runArgs, true)
 			if err != nil {
 				return fmt.Errorf("failed to run driver: %w", err)
 			}
@@ -82,6 +87,65 @@ func (srv *Service) newRenderCommand() *cobra.Command {
 	c.Flags().StringVarP(&format, "format", "f", "PNG", "set the render format")
 
 	return c
+}
+
+func (srv *Service) render(ctx context.Context, file *rocketblend.BlendFile, args []string, verbose bool) error {
+	cmd, err := srv.driver.GetCMD(ctx, file, true, args)
+	if err != nil {
+		return err
+	}
+
+	if verbose {
+		// Print the command that is being executed.
+		fmt.Println("Command: ", color.HiBlueString(cmd.String()))
+
+		cmdReader, err := cmd.StdoutPipe()
+		if err != nil {
+			return fmt.Errorf("creating stdout pipe: %w", err)
+		}
+
+		// Print separator
+		fmt.Println((strings.Repeat("-", 80)))
+		fmt.Println(color.GreenString("Starting render..."))
+
+		scanner := bufio.NewScanner(cmdReader)
+
+		go func() {
+			for scanner.Scan() {
+				info, err := blenderparser.ParseRenderOutput(scanner.Text())
+				if err != nil {
+					// fmt.Println("Error parsing blender output:", err)
+					continue
+				} else {
+					output := fmt.Sprintf("Frame: %s Memory: %s Peak Memory: %-10s Time: %-10s Operation: %s\t",
+						color.New(color.FgCyan, color.Bold).Sprint(info.FrameNumber),
+						color.New(color.FgCyan).Sprint(info.Memory),
+						color.New(color.FgHiMagenta).Sprint(info.PeakMemory),
+						color.New(color.FgHiGreen).Sprint(info.Time),
+						color.New(color.FgHiBlue).Sprint(info.Operation),
+					)
+
+					fmt.Println(output)
+				}
+			}
+		}()
+	}
+
+	err = cmd.Start()
+	if err != nil {
+		return fmt.Errorf("starting command: %w", err)
+	}
+
+	err = cmd.Wait()
+	if err != nil {
+		return fmt.Errorf("waiting for command: %w", err)
+	}
+
+	if verbose {
+		fmt.Println(color.GreenString("Render complete!"))
+	}
+
+	return nil
 }
 
 func (srv *Service) parseOutputTemplate(str string, data interface{}) (string, error) {
