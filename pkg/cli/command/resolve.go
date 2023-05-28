@@ -26,7 +26,12 @@ func (srv *Service) newResolveCommand() *cobra.Command {
 				return fmt.Errorf("failed to create rocketblend: %w", err)
 			}
 
-			blendFile, err := rocketblend.Load(srv.flags.workingDirectory)
+			blendPath, err := srv.findBlendFilePath(srv.flags.workingDirectory)
+			if err != nil {
+				return fmt.Errorf("failed to find blend file: %w", err)
+			}
+
+			blendFile, err := rocketblend.Load(blendPath)
 			if err != nil {
 				return fmt.Errorf("failed to load blend file: %w", err)
 			}

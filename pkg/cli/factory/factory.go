@@ -35,16 +35,13 @@ func (f *factory) CreateRocketBlendService() (*rocketblend.Driver, error) {
 		return nil, err
 	}
 
-	// TODO: Update options to take a config struct
 	opts := []rocketblend.Option{
 		rocketblend.WithInstallationDirectory(config.InstallDir),
 		rocketblend.WithPlatform(config.Platform),
-		rocketblend.WithLogger(logger.New(logger.WithPretty())),
 	}
 
-	// TODO: Remove this and just use log level
 	if config.Debug {
-		opts = append(opts, rocketblend.WithDebug())
+		opts = append(opts, rocketblend.WithLogger(logger.New(logger.WithPretty(), logger.WithLogLevel("debug"))))
 	}
 
 	if config.Features.Addons {

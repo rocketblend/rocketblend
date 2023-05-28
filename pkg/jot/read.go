@@ -36,6 +36,6 @@ func (d *Driver) Read(reference reference.Reference, resource string) ([]byte, e
 		return nil, err
 	}
 
-	d.logger.Info("Successfully read record", map[string]interface{}{"record": record})
+	d.logger.Debug("Successfully read record", map[string]interface{}{"record": record})
 	return b, nil
 }

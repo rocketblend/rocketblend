@@ -75,6 +75,10 @@ func New(opts ...Option) (*Driver, error) {
 		Logger: logger.NoOp(),
 	}
 
+	for _, opt := range opts {
+		opt(options)
+	}
+
 	// if not installation directory is provided, use the default
 	if options.InstallationDirectory == "" {
 		configDir, err := os.UserConfigDir()
@@ -110,6 +114,12 @@ func New(opts ...Option) (*Driver, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	options.Logger.Debug("RocketBlend initialized", map[string]interface{}{
+		"platform":              options.Platform.String(),
+		"installationDirectory": options.InstallationDirectory,
+		"addonsEnabled":         options.AddonsEnabled,
+	})
 
 	// create driver
 	return &Driver{
