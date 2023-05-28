@@ -9,14 +9,20 @@ import (
 	"github.com/schollz/progressbar/v3"
 )
 
-type Downloader struct {
+type (
+	Downloader interface {
+		Download(path string, downloadUrl string) error
+	}
+
+	downloader struct {
+	}
+)
+
+func New() Downloader {
+	return &downloader{}
 }
 
-func New() *Downloader {
-	return &Downloader{}
-}
-
-func (d *Downloader) Download(path string, downloadUrl string) error {
+func (d *downloader) Download(path string, downloadUrl string) error {
 	tempPath := path + ".tmp"
 
 	req, err := http.NewRequest("GET", downloadUrl, nil)

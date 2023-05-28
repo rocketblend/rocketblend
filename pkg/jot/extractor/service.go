@@ -12,16 +12,20 @@ import (
 )
 
 type (
-	Service struct {
-		cleanup bool
+	Extractor interface {
+		Extract(path string, extractPath string) error
 	}
 
 	Options struct {
 		Cleanup bool
 	}
+
+	extractor struct {
+		cleanup bool
+	}
 )
 
-func New(options *Options) *Service {
+func New(options *Options) Extractor {
 	// create default options
 	opts := Options{
 		Cleanup: true,
@@ -32,12 +36,12 @@ func New(options *Options) *Service {
 		opts = *options
 	}
 
-	return &Service{
+	return &extractor{
 		cleanup: opts.Cleanup,
 	}
 }
 
-func (s *Service) Extract(path string, extractPath string) error {
+func (e *extractor) Extract(path string, extractPath string) error {
 	// Create a context with a cancel function
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -79,7 +83,7 @@ func (s *Service) Extract(path string, extractPath string) error {
 		return err
 	}
 
-	if s.cleanup {
+	if e.cleanup {
 		err = os.Remove(path)
 		if err != nil {
 			return err

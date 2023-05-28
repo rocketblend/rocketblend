@@ -2,6 +2,9 @@ package jot
 
 import (
 	"sync"
+
+	"github.com/rocketblend/rocketblend/pkg/jot/downloader"
+	"github.com/rocketblend/rocketblend/pkg/jot/extractor"
 )
 
 type (
@@ -17,29 +20,21 @@ type (
 		Panic(string ...interface{})
 	}
 
-	Downloader interface {
-		Download(path string, downloadUrl string) error
-	}
-
-	Extractor interface {
-		Extract(path string, extractPath string) error
-	}
-
 	// Driver is what is used to interact with the jot database. It runs
 	// transactions, and provides log output
 	Driver struct {
 		mutex      sync.Mutex
 		mutexes    map[string]*sync.Mutex
-		dir        string     // the directory where jot will create the database
-		log        Logger     // the logger jot will use for logging
-		downloader Downloader // the downloader jot will use for downloading
-		extractor  Extractor  // the extractor jot will use for extracting
+		dir        string
+		log        Logger
+		downloader downloader.Downloader
+		extractor  extractor.Extractor
 	}
 
 	// Options uses for specification of working golang-jot
 	Options struct {
-		Logger     // the logger jot will use (configurable)
-		Downloader // the downloader jot will use (configurable)
-		Extractor  // the extractor jot will use (configurable)
+		Logger
+		downloader.Downloader
+		extractor.Extractor
 	}
 )
