@@ -38,7 +38,12 @@ func (srv *Service) newUninstallCommand() *cobra.Command {
 
 // uninstallGlobalPackage uninstalls a package globally by its reference.
 func (srv *Service) uninstallGlobalPackage(ref *reference.Reference) error {
-	err := srv.driver.UninstallPackByReference(*ref)
+	rocketblend, err := srv.factory.CreateRocketBlendService()
+	if err != nil {
+		return fmt.Errorf("failed to create rocketblend: %w", err)
+	}
+
+	err = rocketblend.UninstallPackByReference(*ref)
 	if err != nil {
 		return fmt.Errorf("failed to uninstall global package: %w", err)
 	}
@@ -48,7 +53,12 @@ func (srv *Service) uninstallGlobalPackage(ref *reference.Reference) error {
 
 // uninstallProjectDependencies uninstalls dependencies of the current project by reference.
 func (srv *Service) uninstallProjectDependencies(ref *reference.Reference) error {
-	err := srv.driver.UninstallDependencies(srv.flags.workingDirectory, *ref)
+	rocketblend, err := srv.factory.CreateRocketBlendService()
+	if err != nil {
+		return fmt.Errorf("failed to create rocketblend: %w", err)
+	}
+
+	err = rocketblend.UninstallDependencies(srv.flags.workingDirectory, *ref)
 	if err != nil {
 		return fmt.Errorf("failed to uninstall project dependencies: %w", err)
 	}

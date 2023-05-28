@@ -50,7 +50,12 @@ func (srv *Service) newInstallCommand() *cobra.Command {
 // installGlobal installs a package globally by its reference.
 func (srv *Service) installGlobal(ctx context.Context, ref *reference.Reference, force bool) error {
 	if ref != nil {
-		err := srv.driver.InstallPackByReference(ctx, *ref, force)
+		rocketblend, err := srv.factory.CreateRocketBlendService()
+		if err != nil {
+			return fmt.Errorf("failed to create rocketblend: %w", err)
+		}
+
+		err = rocketblend.InstallPackByReference(ctx, *ref, force)
 		if err != nil {
 			return fmt.Errorf("failed to install package: %w", err)
 		}
@@ -61,7 +66,12 @@ func (srv *Service) installGlobal(ctx context.Context, ref *reference.Reference,
 
 // installLocal installs dependencies of the current project by reference.
 func (srv *Service) installLocal(ctx context.Context, ref *reference.Reference, force bool) error {
-	err := srv.driver.InstallDependencies(ctx, srv.flags.workingDirectory, ref, force)
+	rocketblend, err := srv.factory.CreateRocketBlendService()
+	if err != nil {
+		return fmt.Errorf("failed to create rocketblend: %w", err)
+	}
+
+	err = rocketblend.InstallDependencies(ctx, srv.flags.workingDirectory, ref, force)
 	if err != nil {
 		return fmt.Errorf("failed to install dependencies: %w", err)
 	}

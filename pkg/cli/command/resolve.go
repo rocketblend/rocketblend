@@ -21,12 +21,17 @@ func (srv *Service) newResolveCommand() *cobra.Command {
 		Long:  `Fetches and prints the resolved dependencies and paths for the project in the local machine in the specified output format (JSON or table)`,
 		Args:  cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			blend, err := srv.findBlendFile(srv.flags.workingDirectory)
+			rocketblend, err := srv.factory.CreateRocketBlendService()
 			if err != nil {
-				return fmt.Errorf("failed to find blend file: %w", err)
+				return fmt.Errorf("failed to create rocketblend: %w", err)
 			}
 
-			blendOutput, err := srv.getBlendFileOutput(blend, output)
+			blendFile, err := rocketblend.Load(srv.flags.workingDirectory)
+			if err != nil {
+				return fmt.Errorf("failed to load blend file: %w", err)
+			}
+
+			blendOutput, err := srv.getBlendFileOutput(blendFile, output)
 			if err != nil {
 				return err
 			}

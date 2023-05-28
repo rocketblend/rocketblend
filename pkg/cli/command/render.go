@@ -11,7 +11,6 @@ import (
 
 	"github.com/fatih/color"
 	"github.com/rocketblend/rocketblend/pkg/blenderparser"
-	"github.com/rocketblend/rocketblend/pkg/rocketblend"
 	"github.com/spf13/cobra"
 )
 
@@ -39,12 +38,12 @@ func (srv *Service) newRenderCommand() *cobra.Command {
 				return fmt.Errorf("invalid frame range or step")
 			}
 
-			blend, err := srv.findBlendFile(srv.flags.workingDirectory)
+			blendPath, err := srv.findBlendFilePath(srv.flags.workingDirectory)
 			if err != nil {
 				return fmt.Errorf("failed to find blend file: %w", err)
 			}
 
-			name := filepath.Base(blend.Path)
+			name := filepath.Base(blendPath)
 			data := templateData{
 				Project: strings.TrimSuffix(name, filepath.Ext(name)),
 			}
@@ -70,7 +69,7 @@ func (srv *Service) newRenderCommand() *cobra.Command {
 				"-a", // Render frames from start to end
 			}
 
-			err = srv.render(cmd.Context(), blend, runArgs, true)
+			err = srv.render(cmd.Context(), blendPath, runArgs, true)
 			if err != nil {
 				return fmt.Errorf("failed to run driver: %w", err)
 			}
@@ -89,8 +88,18 @@ func (srv *Service) newRenderCommand() *cobra.Command {
 	return c
 }
 
-func (srv *Service) render(ctx context.Context, file *rocketblend.BlendFile, args []string, verbose bool) error {
-	cmd, err := srv.driver.GetCMD(ctx, file, true, args)
+func (srv *Service) render(ctx context.Context, filePath string, args []string, verbose bool) error {
+	rocketblend, err := srv.factory.CreateRocketBlendService()
+	if err != nil {
+		return fmt.Errorf("failed to create rocketblend: %w", err)
+	}
+
+	blendFile, err := rocketblend.Load(filePath)
+	if err != nil {
+		return fmt.Errorf("failed to load blend file: %w", err)
+	}
+
+	cmd, err := rocketblend.GetCMD(ctx, blendFile, true, args)
 	if err != nil {
 		return err
 	}

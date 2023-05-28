@@ -26,7 +26,12 @@ func (srv *Service) newNewCommand() *cobra.Command {
 				return fmt.Errorf("validation failed for name '%s': %w", args[0], err)
 			}
 
-			ref, err := srv.parseReference(srv.config.GetValueByString("defaultBuild"))
+			config, err := srv.factory.CreateConfigService()
+			if err != nil {
+				return fmt.Errorf("failed to create config service: %w", err)
+			}
+
+			ref, err := srv.parseReference(config.GetValueByString("defaultBuild"))
 			if err != nil {
 				return fmt.Errorf("failed to parse default build reference: %w", err)
 			}
@@ -46,7 +51,12 @@ func (srv *Service) newNewCommand() *cobra.Command {
 
 // createProject uses the driver to create a new project.
 func (srv *Service) createProject(ctx context.Context, name string, buildRef *reference.Reference, skipInstall bool) error {
-	if err := srv.driver.Create(ctx, name, srv.flags.workingDirectory, *buildRef, skipInstall); err != nil {
+	rocketblend, err := srv.factory.CreateRocketBlendService()
+	if err != nil {
+		return fmt.Errorf("failed to create rocketblend: %w", err)
+	}
+
+	if err = rocketblend.Create(ctx, name, srv.flags.workingDirectory, *buildRef, skipInstall); err != nil {
 		return fmt.Errorf("driver failed to create project: %w", err)
 	}
 

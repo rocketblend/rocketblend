@@ -19,9 +19,14 @@ func (srv *Service) newConfigCommand() *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			key := args[0]
 
+			config, err := srv.factory.CreateConfigService()
+			if err != nil {
+				return fmt.Errorf("failed to create config service: %w", err)
+			}
+
 			// If the 'set' flag is used, update the configuration value for the key.
 			if value != "" {
-				err := srv.config.SetValueByString(key, value)
+				err := config.SetValueByString(key, value)
 				if err != nil {
 					return fmt.Errorf("failed to set value: %w", err)
 				}
@@ -30,7 +35,7 @@ func (srv *Service) newConfigCommand() *cobra.Command {
 			}
 
 			// If the 'set' flag is not used, print the current value for the key.
-			cmd.Println(srv.config.GetValueByString(key))
+			cmd.Println(config.GetValueByString(key))
 
 			return nil
 		},

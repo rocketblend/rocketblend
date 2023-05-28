@@ -65,13 +65,21 @@ func WithStorageDir(storagePath string) Option {
 
 func New(opts ...Option) (Storage, error) {
 	options := &Options{
-		Logger:     logger.NoOp(),
-		Extractor:  extractor.New(nil),
-		Downloader: downloader.New(),
+		Logger: logger.NoOp(),
 	}
 
 	for _, opt := range opts {
 		opt(options)
+	}
+
+	if options.Downloader == nil {
+		options.Downloader = downloader.New(downloader.WithLogger(options.Logger))
+	}
+
+	if options.Extractor == nil {
+		options.Extractor = extractor.New(
+			extractor.WithLogger(options.Logger),
+			extractor.WithCleanup())
 	}
 
 	// create storage dir

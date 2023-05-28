@@ -29,9 +29,9 @@ type (
 	}
 )
 
-func WithLogger(l logger.Logger) Option {
+func WithLogger(logger logger.Logger) Option {
 	return func(o *Options) {
-		o.Logger = l
+		o.Logger = logger
 	}
 }
 
