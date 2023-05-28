@@ -21,19 +21,19 @@ type (
 	}
 
 	Driver struct {
-		mutex      sync.Mutex
-		mutexes    map[string]*sync.Mutex
-		storageDir string
-		logger     logger.Logger
-		downloader downloader.Downloader
-		extractor  extractor.Extractor
+		mutex       sync.Mutex
+		mutexes     map[string]*sync.Mutex
+		storagePath string
+		logger      logger.Logger
+		downloader  downloader.Downloader
+		extractor   extractor.Extractor
 	}
 
 	Options struct {
-		StorageDir string
-		Logger     logger.Logger
-		Downloader downloader.Downloader
-		Extractor  extractor.Extractor
+		StoragePath string
+		Logger      logger.Logger
+		Downloader  downloader.Downloader
+		Extractor   extractor.Extractor
 	}
 
 	Option func(*Options)
@@ -57,9 +57,9 @@ func WithExtractor(extractor extractor.Extractor) Option {
 	}
 }
 
-func WithStorageDir(storageDir string) Option {
+func WithStorageDir(storagePath string) Option {
 	return func(o *Options) {
-		o.StorageDir = storageDir
+		o.StoragePath = storagePath
 	}
 }
 
@@ -74,17 +74,18 @@ func New(opts ...Option) (Storage, error) {
 		opt(options)
 	}
 
-	err := os.MkdirAll(options.StorageDir, 0755)
+	// create storage dir
+	err := os.MkdirAll(options.StoragePath, 0755)
 	if err != nil {
 		return nil, err
 	}
 
 	// create driver
 	return &Driver{
-		storageDir: filepath.Clean(options.StorageDir),
-		mutexes:    make(map[string]*sync.Mutex),
-		logger:     options.Logger,
-		downloader: options.Downloader,
-		extractor:  options.Extractor,
+		storagePath: filepath.Clean(options.StoragePath),
+		mutexes:     make(map[string]*sync.Mutex),
+		logger:      options.Logger,
+		downloader:  options.Downloader,
+		extractor:   options.Extractor,
 	}, nil
 }

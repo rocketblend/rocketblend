@@ -53,7 +53,7 @@ func (d *Driver) writeWithContext(ctx context.Context, reference reference.Refer
 	defer mutex.Unlock()
 
 	// create full paths to reference, final resource file, and temp file
-	dir := filepath.Join(d.storageDir, reference.String())
+	dir := filepath.Join(d.storagePath, reference.String())
 
 	// create reference directory
 	if err := os.MkdirAll(dir, 0755); err != nil {
