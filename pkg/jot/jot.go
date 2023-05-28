@@ -1,58 +1,90 @@
 package jot
 
 import (
+	"context"
 	"os"
 	"path/filepath"
 	"sync"
 
+	"github.com/flowshot-io/x/pkg/logger"
 	"github.com/rocketblend/rocketblend/pkg/jot/downloader"
 	"github.com/rocketblend/rocketblend/pkg/jot/extractor"
-	"github.com/sirupsen/logrus"
+	"github.com/rocketblend/rocketblend/pkg/jot/reference"
 )
 
-func New(dir string, options *Options) (*Driver, error) {
-	dir = filepath.Clean(dir)
-
-	// create default options
-	opts := Options{}
-
-	// if options are passed in, use those
-	if options != nil {
-		opts = *options
+type (
+	Storage interface {
+		Read(reference reference.Reference, resource string) ([]byte, error)
+		Write(reference reference.Reference, resource string, downloadUrl string) error
+		WriteWithContext(ctx context.Context, reference reference.Reference, resource string, downloadUrl string) error
+		DeleteAll(reference reference.Reference) error
 	}
 
-	// if no logger is provided, create a default
-	if opts.Logger == nil {
-		l := logrus.New()
-		l.Level = logrus.InfoLevel
-		opts.Logger = l
+	Driver struct {
+		mutex      sync.Mutex
+		mutexes    map[string]*sync.Mutex
+		storageDir string
+		logger     logger.Logger
+		downloader downloader.Downloader
+		extractor  extractor.Extractor
 	}
 
-	// if no downloader is provided, create a default
-	if opts.Downloader == nil {
-		opts.Downloader = downloader.New()
+	Options struct {
+		StorageDir string
+		Logger     logger.Logger
+		Downloader downloader.Downloader
+		Extractor  extractor.Extractor
 	}
 
-	if opts.Extractor == nil {
-		opts.Extractor = extractor.New(nil)
+	Option func(*Options)
+)
+
+func WithLogger(logger logger.Logger) Option {
+	return func(o *Options) {
+		o.Logger = logger
+	}
+}
+
+func WithDownloader(downloader downloader.Downloader) Option {
+	return func(o *Options) {
+		o.Downloader = downloader
+	}
+}
+
+func WithExtractor(extractor extractor.Extractor) Option {
+	return func(o *Options) {
+		o.Extractor = extractor
+	}
+}
+
+func WithStorageDir(storageDir string) Option {
+	return func(o *Options) {
+		o.StorageDir = storageDir
+	}
+}
+
+func New(opts ...Option) (Storage, error) {
+	options := &Options{
+		Logger:     logger.NoOp(),
+		Extractor:  extractor.New(nil),
+		Downloader: downloader.New(),
+	}
+
+	for _, opt := range opts {
+		opt(options)
+	}
+
+	err := os.MkdirAll(options.StorageDir, 0755)
+	if err != nil {
+		return nil, err
 	}
 
 	// create driver
-	driver := Driver{
-		dir:        dir,
+	return &Driver{
+		storageDir: filepath.Clean(options.StorageDir),
 		mutexes:    make(map[string]*sync.Mutex),
-		log:        opts.Logger,
-		downloader: opts.Downloader,
-		extractor:  opts.Extractor,
-	}
-
-	// if the database already exists, just use it
-	if _, err := os.Stat(dir); err == nil {
-		opts.Logger.Debug("Using '%s' (store already exists)\n", dir)
-		return &driver, nil
-	}
-
-	// if the database doesn't exist create it
-	opts.Logger.Debug("Creating jot storage at '%s'...\n", dir)
-	return &driver, os.MkdirAll(dir, 0755)
+		logger:     options.Logger,
+		downloader: options.Downloader,
+		extractor:  options.Extractor,
+	}, nil
 }

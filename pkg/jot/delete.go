@@ -13,7 +13,7 @@ func (d *Driver) DeleteAll(reference reference.Reference) error {
 	mutex.Lock()
 	defer mutex.Unlock()
 
-	path := filepath.Join(d.dir, reference.String())
+	path := filepath.Join(d.storageDir, reference.String())
 
 	err := os.RemoveAll(path)
 	if err != nil {
