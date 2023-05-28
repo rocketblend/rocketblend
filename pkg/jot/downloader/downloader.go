@@ -1,6 +1,7 @@
 package downloader
 
 import (
+	"context"
 	"io"
 	"net/http"
 	"os"
@@ -12,6 +13,7 @@ import (
 type (
 	Downloader interface {
 		Download(path string, downloadUrl string) error
+		DownloadWithContext(ctx context.Context, path string, downloadUrl string) error
 	}
 
 	Options struct {
@@ -46,12 +48,16 @@ func New(opts ...Option) Downloader {
 }
 
 func (d *downloader) Download(path string, downloadUrl string) error {
+	return d.DownloadWithContext(context.Background(), path, downloadUrl)
+}
+
+func (d *downloader) DownloadWithContext(ctx context.Context, path string, downloadUrl string) error {
 	d.logger.Debug("Starting download", map[string]interface{}{"url": downloadUrl, "path": path})
 
 	tempPath := path + ".tmp"
 	d.logger.Debug("Temporary path for download", map[string]interface{}{"tempPath": tempPath})
 
-	req, err := http.NewRequest("GET", downloadUrl, nil)
+	req, err := http.NewRequestWithContext(ctx, "GET", downloadUrl, nil)
 	if err != nil {
 		d.logger.Error("Error creating HTTP request", map[string]interface{}{"error": err.Error()})
 		return err
@@ -83,7 +89,14 @@ func (d *downloader) Download(path string, downloadUrl string) error {
 	}
 	pw.startLogging()
 
-	err = d.downloadToFile(pw, resp.Body)
+	// Wrap resp.Body in a contextReader
+	cr := &contextReader{
+		r:      resp.Body,
+		ctx:    ctx,
+		logger: d.logger,
+	}
+
+	err = d.downloadToFile(pw, cr)
 	pw.stopLogging()
 	wg.Wait() // Wait for the logging goroutine to finish
 

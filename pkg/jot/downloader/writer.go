@@ -16,13 +16,17 @@ type progressWriter struct {
 	wg      *sync.WaitGroup
 }
 
+// Write method for progressWriter with logging
 func (pw *progressWriter) Write(p []byte) (n int, err error) {
 	n, err = pw.w.Write(p)
-	pw.total += int64(n)
-	if pw.maxSize > 1<<20 { // log progress for files larger than 1 MB
-		pw.logCh <- pw.total
+	if err != nil {
+		pw.logger.Error("Error during write operation", map[string]interface{}{"error": err.Error()})
+		return n, err
 	}
-	return
+
+	pw.total += int64(n) // update the total counter
+	pw.logCh <- int64(n)
+	return n, nil
 }
 
 func (pw *progressWriter) startLogging() {
