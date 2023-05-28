@@ -1,6 +1,7 @@
 package command
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/rocketblend/rocketblend/pkg/jot/reference"
@@ -32,10 +33,10 @@ func (srv *Service) newInstallCommand() *cobra.Command {
 
 			// Depending on the 'global' flag, perform a global or local installation
 			if global {
-				return srv.installGlobal(ref, force)
+				return srv.installGlobal(cmd.Context(), ref, force)
 			}
 
-			return srv.installLocal(ref, force)
+			return srv.installLocal(cmd.Context(), ref, force)
 		},
 	}
 
@@ -47,9 +48,9 @@ func (srv *Service) newInstallCommand() *cobra.Command {
 }
 
 // installGlobal installs a package globally by its reference.
-func (srv *Service) installGlobal(ref *reference.Reference, force bool) error {
+func (srv *Service) installGlobal(ctx context.Context, ref *reference.Reference, force bool) error {
 	if ref != nil {
-		err := srv.driver.InstallPackByReference(*ref, force)
+		err := srv.driver.InstallPackByReference(ctx, *ref, force)
 		if err != nil {
 			return fmt.Errorf("failed to install package: %w", err)
 		}
@@ -59,8 +60,8 @@ func (srv *Service) installGlobal(ref *reference.Reference, force bool) error {
 }
 
 // installLocal installs dependencies of the current project by reference.
-func (srv *Service) installLocal(ref *reference.Reference, force bool) error {
-	err := srv.driver.InstallDependencies(srv.flags.workingDirectory, ref, force)
+func (srv *Service) installLocal(ctx context.Context, ref *reference.Reference, force bool) error {
+	err := srv.driver.InstallDependencies(ctx, srv.flags.workingDirectory, ref, force)
 	if err != nil {
 		return fmt.Errorf("failed to install dependencies: %w", err)
 	}

@@ -1,6 +1,7 @@
 package cli
 
 import (
+	"github.com/flowshot-io/x/pkg/logger"
 	cc "github.com/ivanpirog/coloredcobra"
 	"github.com/rocketblend/rocketblend/pkg/cli/command"
 	"github.com/rocketblend/rocketblend/pkg/cli/config"
@@ -19,14 +20,22 @@ func New() (*cobra.Command, error) {
 		return nil, err
 	}
 
-	rocketblendOptions := rocketblend.Options{
-		Debug:                 config.Debug,
-		Platform:              config.Platform,
-		InstallationDirectory: config.InstallDir,
-		AddonsEnabled:         config.Features.Addons,
+	opts := []rocketblend.Option{
+		rocketblend.WithInstallationDirectory(config.InstallDir),
+		rocketblend.WithPlatform(config.Platform),
+		rocketblend.WithLogger(logger.New(logger.WithPretty())),
 	}
 
-	driver, err := rocketblend.New(&rocketblendOptions)
+	// TODO: Remove this and just use log level
+	if config.Debug {
+		opts = append(opts, rocketblend.WithDebug())
+	}
+
+	if config.Features.Addons {
+		opts = append(opts, rocketblend.WithAddonsEnabled())
+	}
+
+	driver, err := rocketblend.New(opts...)
 	if err != nil {
 		return nil, err
 	}
