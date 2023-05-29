@@ -34,7 +34,7 @@ type (
 	}
 )
 
-func (d *Driver) Create(name string, path string, reference reference.Reference, skipDeps bool) error {
+func (d *Driver) Create(ctx context.Context, name string, path string, reference reference.Reference, skipDeps bool) error {
 	rkt := rocketfile.RocketFile{
 		Build: reference.String(),
 	}
@@ -44,7 +44,7 @@ func (d *Driver) Create(name string, path string, reference reference.Reference,
 	}
 
 	if !skipDeps {
-		err := d.InstallDependencies(path, nil, false)
+		err := d.InstallDependencies(ctx, path, nil, false)
 		if err != nil {
 			return err
 		}
@@ -147,6 +147,7 @@ func (d *Driver) getDefaultBuild() (*Build, error) {
 func (d *Driver) load(path string) (*BlendFile, error) {
 	ext := filepath.Ext(path)
 	if ext != BlenderFileExtension {
+		d.logger.Error("invalid file extension", map[string]interface{}{"path": path, "extension": ext})
 		return nil, fmt.Errorf("invalid file extension: %s", ext)
 	}
 

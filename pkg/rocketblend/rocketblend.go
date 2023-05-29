@@ -5,31 +5,82 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/flowshot-io/x/pkg/logger"
 	"github.com/rocketblend/rocketblend/pkg/jot"
 	"github.com/rocketblend/rocketblend/pkg/rocketblend/resource"
 	"github.com/rocketblend/rocketblend/pkg/rocketblend/rocketpack"
 	"github.com/rocketblend/rocketblend/pkg/rocketblend/runtime"
-	"github.com/sirupsen/logrus"
 )
 
-func New(options *Options) (*Driver, error) {
-	// create default options
-	opts := Options{}
+const (
+	Name                 = "rocketblend"
+	BlenderFileExtension = ".blend"
+)
 
-	// if options are passed in, use those
-	if options != nil {
-		opts = *options
+type (
+	Driver struct {
+		logger                logger.Logger
+		resource              resource.Service
+		pack                  rocketpack.Service
+		debug                 bool
+		platform              runtime.Platform
+		defaultBuild          string
+		InstallationDirectory string
+		addonsEnabled         bool
 	}
 
-	// if no logger is provided, create a default
-	if opts.Logger == nil {
-		l := logrus.New()
-		l.Level = logrus.InfoLevel
-		opts.Logger = l
+	Options struct {
+		Logger                logger.Logger
+		Debug                 bool
+		Platform              runtime.Platform
+		InstallationDirectory string
+		AddonsEnabled         bool
+	}
+
+	Option func(*Options)
+)
+
+func WithLogger(logger logger.Logger) Option {
+	return func(o *Options) {
+		o.Logger = logger
+	}
+}
+
+func WithPlatform(platform runtime.Platform) Option {
+	return func(o *Options) {
+		o.Platform = platform
+	}
+}
+
+func WithInstallationDirectory(dir string) Option {
+	return func(o *Options) {
+		o.InstallationDirectory = dir
+	}
+}
+
+func WithDebug() Option {
+	return func(o *Options) {
+		o.Debug = true
+	}
+}
+
+func WithAddonsEnabled() Option {
+	return func(o *Options) {
+		o.AddonsEnabled = true
+	}
+}
+
+func New(opts ...Option) (*Driver, error) {
+	options := &Options{
+		Logger: logger.NoOp(),
+	}
+
+	for _, opt := range opts {
+		opt(options)
 	}
 
 	// if not installation directory is provided, use the default
-	if opts.InstallationDirectory == "" {
+	if options.InstallationDirectory == "" {
 		configDir, err := os.UserConfigDir()
 		if err != nil {
 			return nil, fmt.Errorf("cannot find config directory: %v", err)
@@ -41,34 +92,46 @@ func New(options *Options) (*Driver, error) {
 			return nil, fmt.Errorf("failed to create main directory: %w", err)
 		}
 
-		opts.InstallationDirectory = dir
+		options.InstallationDirectory = dir
 	}
 
 	// if no platform is provided, detect it
-	if opts.Platform == runtime.Undefined {
+	if options.Platform == runtime.Undefined {
 		platform := runtime.DetectPlatform()
 		if platform == runtime.Undefined {
 			return nil, fmt.Errorf("cannot detect platform")
 		}
 
-		opts.Platform = platform
+		options.Platform = platform
 	}
 
-	jot, err := jot.New(opts.InstallationDirectory, nil)
+	jot, err := jot.New(jot.WithLogger(options.Logger), jot.WithStorageDir(options.InstallationDirectory))
 	if err != nil {
 		return nil, err
 	}
 
-	// create driver
-	driver := Driver{
-		log:                   opts.Logger,
-		pack:                  rocketpack.NewService(jot, opts.Platform),
-		resource:              resource.NewService(),
-		debug:                 opts.Debug,
-		InstallationDirectory: opts.InstallationDirectory,
-		platform:              opts.Platform,
-		addonsEnabled:         opts.AddonsEnabled,
+	pack, err := rocketpack.NewService(
+		rocketpack.WithLogger(options.Logger),
+		rocketpack.WithPlatform(options.Platform),
+		rocketpack.WithStorage(jot))
+	if err != nil {
+		return nil, err
 	}
 
-	return &driver, nil
+	options.Logger.Debug("RocketBlend initialized", map[string]interface{}{
+		"platform":              options.Platform.String(),
+		"installationDirectory": options.InstallationDirectory,
+		"addonsEnabled":         options.AddonsEnabled,
+	})
+
+	// create driver
+	return &Driver{
+		logger:                options.Logger,
+		pack:                  pack,
+		resource:              resource.NewService(),
+		debug:                 options.Debug,
+		InstallationDirectory: options.InstallationDirectory,
+		platform:              options.Platform,
+		addonsEnabled:         options.AddonsEnabled,
+	}, nil
 }

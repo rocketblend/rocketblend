@@ -12,23 +12,30 @@ var addonScript string
 //go:embed resources/createScript.gopy
 var createScript string
 
-type Service struct {
-	addonScript  string
-	createScript string
-}
+type (
+	Service interface {
+		GetAddonScript() string
+		GetCreateScript(path string) (string, error)
+	}
 
-func NewService() *Service {
-	return &Service{
+	service struct {
+		addonScript  string
+		createScript string
+	}
+)
+
+func NewService() Service {
+	return &service{
 		addonScript:  addonScript,
 		createScript: createScript,
 	}
 }
 
-func (s *Service) GetAddonScript() string {
+func (s *service) GetAddonScript() string {
 	return s.addonScript
 }
 
-func (s *Service) GetCreateScript(path string) (string, error) {
+func (s *service) GetCreateScript(path string) (string, error) {
 	vars := map[string]string{
 		"path": path,
 	}

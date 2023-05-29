@@ -1,13 +1,14 @@
 package rocketblend
 
 import (
+	"context"
 	"sort"
 
 	"github.com/rocketblend/rocketblend/pkg/jot/reference"
 	"github.com/rocketblend/rocketblend/pkg/rocketblend/rocketfile"
 )
 
-func (d *Driver) InstallDependencies(dir string, ref *reference.Reference, force bool) error {
+func (d *Driver) InstallDependencies(ctx context.Context, dir string, ref *reference.Reference, force bool) error {
 	rkt, err := rocketfile.Load(dir)
 	if err != nil {
 		return err
@@ -36,7 +37,7 @@ func (d *Driver) InstallDependencies(dir string, ref *reference.Reference, force
 			return err
 		}
 
-		err = d.InstallPackByReference(ref, force)
+		err = d.InstallPackByReference(ctx, ref, force)
 		if err != nil {
 			return err
 		}

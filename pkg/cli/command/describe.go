@@ -50,7 +50,12 @@ func (srv *Service) newDescribeCommand() *cobra.Command {
 
 // getPackageDescription returns the description of a package by reference.
 func (srv *Service) getPackageDescription(ref *reference.Reference) (*rocketpack.RocketPack, error) {
-	pack, err := srv.driver.DescribePackByReference(*ref)
+	rocketblend, err := srv.factory.CreateRocketBlendService()
+	if err != nil {
+		return nil, fmt.Errorf("failed to create rocketblend service: %w", err)
+	}
+
+	pack, err := rocketblend.DescribePackByReference(*ref)
 	if err != nil {
 		return nil, fmt.Errorf("failed to describe package: %w", err)
 	}

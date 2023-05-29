@@ -5,7 +5,7 @@ import (
 	"path/filepath"
 
 	"github.com/rocketblend/rocketblend/pkg/cli/build"
-	"github.com/rocketblend/rocketblend/pkg/cli/config"
+	"github.com/rocketblend/rocketblend/pkg/cli/factory"
 	"github.com/rocketblend/rocketblend/pkg/cli/helpers"
 	"github.com/rocketblend/rocketblend/pkg/jot/reference"
 	"github.com/rocketblend/rocketblend/pkg/rocketblend"
@@ -22,18 +22,16 @@ type (
 	// Service acts as a container for the CLI services,
 	// holding instances of config service, driver, and persistent flags.
 	Service struct {
-		config *config.Service
-		driver *rocketblend.Driver
-		flags  *persistentFlags
+		factory factory.Factory
+		flags   *persistentFlags
 	}
 )
 
 // NewService creates a new Service instance.
-func NewService(config *config.Service, driver *rocketblend.Driver) *Service {
+func NewService() *Service {
 	return &Service{
-		config: config,
-		driver: driver,
-		flags:  &persistentFlags{},
+		factory: factory.New(),
+		flags:   &persistentFlags{},
 	}
 }
 
@@ -54,26 +52,16 @@ Documentation is available at https://docs.rocketblend.io/`,
 
 	c.SetVersionTemplate("{{.Version}}\n")
 
-	configCMD := srv.newConfigCommand()
-	newCMD := srv.newNewCommand()
-	installCMD := srv.newInstallCommand()
-	uninstallCMD := srv.newUninstallCommand()
-	runCMD := srv.newRunCommand()
-	startCMD := srv.newStartCommand()
-	renderCMD := srv.newRenderCommand()
-	resolveCMD := srv.newResolveCommand()
-	describeCMD := srv.newDescribeCommand()
-
 	c.AddCommand(
-		configCMD,
-		newCMD,
-		installCMD,
-		uninstallCMD,
-		runCMD,
-		startCMD,
-		renderCMD,
-		resolveCMD,
-		describeCMD,
+		srv.newConfigCommand(),
+		srv.newNewCommand(),
+		srv.newInstallCommand(),
+		srv.newUninstallCommand(),
+		srv.newRunCommand(),
+		srv.newStartCommand(),
+		srv.newRenderCommand(),
+		srv.newResolveCommand(),
+		srv.newDescribeCommand(),
 	)
 
 	c.PersistentFlags().StringVarP(&srv.flags.workingDirectory, "directory", "d", ".", "working directory for the command")
@@ -107,24 +95,19 @@ func (srv *Service) validatePath(path string) (string, error) {
 	return absPath, nil
 }
 
-// findBlendFile searches for a blend file in the provided directory.
-func (srv *Service) findBlendFile(dir string) (*rocketblend.BlendFile, error) {
+// findBlendFile finds the first Blender file in the given directory.
+func (srv *Service) findBlendFilePath(dir string) (string, error) {
 	dir, err := srv.validatePath(dir)
 	if err != nil {
-		return nil, err
+		return "", err
 	}
 
 	path, err := helpers.FindFilePathForExt(dir, rocketblend.BlenderFileExtension)
 	if err != nil {
-		return nil, err
+		return "", err
 	}
 
-	blend, err := srv.driver.Load(path)
-	if err != nil {
-		return nil, err
-	}
-
-	return blend, nil
+	return path, nil
 }
 
 // parseReference converts a reference string into a reference struct.

@@ -1,6 +1,8 @@
 package rocketblend
 
 import (
+	"context"
+
 	"github.com/rocketblend/rocketblend/pkg/jot/reference"
 	"github.com/rocketblend/rocketblend/pkg/rocketblend/rocketpack"
 )
@@ -14,8 +16,8 @@ func (d *Driver) DescribePackByReference(ref reference.Reference) (*rocketpack.R
 	return pack, nil
 }
 
-func (d *Driver) InstallPackByReference(ref reference.Reference, force bool) error {
-	err := d.pack.InstallByReference(ref, force)
+func (d *Driver) InstallPackByReference(ctx context.Context, ref reference.Reference, force bool) error {
+	err := d.pack.InstallByReferenceWithContext(ctx, ref, force)
 	if err != nil {
 		return err
 	}

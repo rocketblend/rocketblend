@@ -5,90 +5,98 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
-	"time"
 
+	"github.com/flowshot-io/x/pkg/logger"
 	"github.com/mholt/archiver/v3"
-	"github.com/schollz/progressbar/v3"
 )
 
 type (
-	Service struct {
-		cleanup bool
+	Extractor interface {
+		Extract(path string, extractPath string) error
+		ExtractWithContext(ctx context.Context, path string, extractPath string) error
 	}
 
 	Options struct {
 		Cleanup bool
+		Logger  logger.Logger
+	}
+
+	Option func(*Options)
+
+	extractor struct {
+		cleanup bool
+		logger  logger.Logger
 	}
 )
 
-func New(options *Options) *Service {
-	// create default options
-	opts := Options{
-		Cleanup: true,
-	}
-
-	// if options are passed in, use those
-	if options != nil {
-		opts = *options
-	}
-
-	return &Service{
-		cleanup: opts.Cleanup,
+func WithLogger(logger logger.Logger) Option {
+	return func(o *Options) {
+		o.Logger = logger
 	}
 }
 
-func (s *Service) Extract(path string, extractPath string) error {
-	// Create a context with a cancel function
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+func WithCleanup() Option {
+	return func(o *Options) {
+		o.Cleanup = true
+	}
+}
 
-	// Create a channel to signal completion of the progress bar
-	done := make(chan struct{})
+func New(opts ...Option) Extractor {
+	options := &Options{
+		Cleanup: false,
+		Logger:  logger.NoOp(),
+	}
 
-	// Create a goroutine to display progress
-	go func(ctx context.Context, done chan<- struct{}) {
-		bar := progressbar.NewOptions(-1,
-			progressbar.OptionSetWriter(os.Stderr),
-			progressbar.OptionSetDescription("Extracting"),
-			progressbar.OptionSpinnerType(14),
-			progressbar.OptionClearOnFinish(),
-		)
+	for _, opt := range opts {
+		opt(options)
+	}
 
-		for {
-			select {
-			case <-time.After(100 * time.Millisecond):
-				bar.Add(1)
-			case <-ctx.Done():
-				bar.Finish()
-				done <- struct{}{}
-				return
-			}
-		}
-	}(ctx, done)
+	return &extractor{
+		cleanup: options.Cleanup,
+		logger:  options.Logger,
+	}
+}
+
+func (e *extractor) Extract(path string, extractPath string) error {
+	return e.ExtractWithContext(context.Background(), path, extractPath)
+}
+
+func (e *extractor) ExtractWithContext(ctx context.Context, path string, extractPath string) error {
+	logContext := map[string]interface{}{
+		"path":        path,
+		"extractPath": extractPath,
+	}
+
+	e.logger.Info("Starting extraction", logContext)
 
 	// mholt/archiver doesn't support .dmg files, so we need to handle them separately.
 	// This isn't a 100% golang solution, but it works for now.
 	var err error
 	switch strings.ToLower(filepath.Ext(path)) {
 	case ".dmg":
-		err = extractDMG(path, extractPath)
+		e.logger.Debug("Extracting DMG file", logContext)
+		err = e.extractDMGWithContext(ctx, path, extractPath)
 	default:
+		e.logger.Debug("Extracting archive", logContext)
 		err = archiver.Unarchive(path, extractPath)
 	}
 	if err != nil {
+		logContext["error"] = err.Error()
+		e.logger.Error("Extraction error", logContext)
 		return err
 	}
 
-	if s.cleanup {
+	if e.cleanup {
+		e.logger.Debug("Cleaning up source file", logContext)
 		err = os.Remove(path)
 		if err != nil {
+			logContext["error"] = err.Error()
+			e.logger.Error("Cleanup error", logContext)
 			return err
 		}
 	}
 
-	// If we get here, the file has been cleaned up, so we can complete the progress bar goroutine
-	cancel()
-	<-done
+	e.logger.Info("Extraction complete", logContext)
 
 	return nil
 }

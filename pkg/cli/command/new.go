@@ -1,6 +1,7 @@
 package command
 
 import (
+	"context"
 	"fmt"
 	"path/filepath"
 	"strings"
@@ -25,12 +26,17 @@ func (srv *Service) newNewCommand() *cobra.Command {
 				return fmt.Errorf("validation failed for name '%s': %w", args[0], err)
 			}
 
-			ref, err := srv.parseReference(srv.config.GetValueByString("defaultBuild"))
+			config, err := srv.factory.CreateConfigService()
+			if err != nil {
+				return fmt.Errorf("failed to create config service: %w", err)
+			}
+
+			ref, err := srv.parseReference(config.GetValueByString("defaultBuild"))
 			if err != nil {
 				return fmt.Errorf("failed to parse default build reference: %w", err)
 			}
 
-			if err := srv.createProject(args[0], ref, skipInstall); err != nil {
+			if err := srv.createProject(cmd.Context(), args[0], ref, skipInstall); err != nil {
 				return fmt.Errorf("failed to create project '%s': %w", args[0], err)
 			}
 
@@ -44,8 +50,13 @@ func (srv *Service) newNewCommand() *cobra.Command {
 }
 
 // createProject uses the driver to create a new project.
-func (srv *Service) createProject(name string, buildRef *reference.Reference, skipInstall bool) error {
-	if err := srv.driver.Create(name, srv.flags.workingDirectory, *buildRef, skipInstall); err != nil {
+func (srv *Service) createProject(ctx context.Context, name string, buildRef *reference.Reference, skipInstall bool) error {
+	rocketblend, err := srv.factory.CreateRocketBlendService()
+	if err != nil {
+		return fmt.Errorf("failed to create rocketblend: %w", err)
+	}
+
+	if err = rocketblend.Create(ctx, name, srv.flags.workingDirectory, *buildRef, skipInstall); err != nil {
 		return fmt.Errorf("driver failed to create project: %w", err)
 	}
 

@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/rocketblend/rocketblend/pkg/rocketblend"
 	"github.com/spf13/cobra"
 )
 
@@ -17,12 +16,12 @@ func (srv *Service) newStartCommand() *cobra.Command {
 		Long:  `Starts the project located in the current working directory.`,
 		Args:  cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			blend, err := srv.findBlendFile(srv.flags.workingDirectory)
+			blendPath, err := srv.findBlendFilePath(srv.flags.workingDirectory)
 			if err != nil {
 				return fmt.Errorf("unable to locate project file: %w", err)
 			}
 
-			err = srv.start(cmd.Context(), blend, []string{})
+			err = srv.start(cmd.Context(), blendPath, []string{})
 			if err != nil {
 				return fmt.Errorf("failed to start project: %w", err)
 			}
@@ -34,8 +33,18 @@ func (srv *Service) newStartCommand() *cobra.Command {
 	return c
 }
 
-func (srv *Service) start(ctx context.Context, file *rocketblend.BlendFile, args []string) error {
-	cmd, err := srv.driver.GetCMD(ctx, file, false, args)
+func (srv *Service) start(ctx context.Context, blendPath string, args []string) error {
+	rocketblend, err := srv.factory.CreateRocketBlendService()
+	if err != nil {
+		return fmt.Errorf("failed to create rocketblend: %w", err)
+	}
+
+	blendFile, err := rocketblend.Load(blendPath)
+	if err != nil {
+		return fmt.Errorf("failed to load blend file: %w", err)
+	}
+
+	cmd, err := rocketblend.GetCMD(ctx, blendFile, false, args)
 	if err != nil {
 		return err
 	}
