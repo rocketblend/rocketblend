@@ -2,6 +2,8 @@ package downloader
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"io"
 	"net/http"
 	"os"
@@ -9,7 +11,6 @@ import (
 	"time"
 
 	"github.com/flowshot-io/x/pkg/logger"
-	"github.com/google/uuid"
 )
 
 type (
@@ -31,18 +32,21 @@ type (
 	}
 )
 
+// With Logger sets the logger to use. The default is no-op.
 func WithLogger(logger logger.Logger) Option {
 	return func(o *Options) {
 		o.Logger = logger
 	}
 }
 
+// WithLogFrequency sets the frequency of log messages. The default is 1MB.
 func WithLogFrequency(logFreq int64) Option {
 	return func(o *Options) {
 		o.LogFreq = logFreq
 	}
 }
 
+// New creates a new Downloader.
 func New(opts ...Option) Downloader {
 	options := &Options{
 		Logger:  logger.NoOp(),
@@ -59,12 +63,14 @@ func New(opts ...Option) Downloader {
 	}
 }
 
+// Download downloads a file from downloadUrl to path.
 func (d *downloader) Download(path string, downloadUrl string) error {
 	return d.DownloadWithContext(context.Background(), path, downloadUrl)
 }
 
+// DownloadWithContext downloads a file from downloadUrl to path. It uses the provided context to cancel the download.
 func (d *downloader) DownloadWithContext(ctx context.Context, path string, downloadUrl string) error {
-	downloadID := uuid.New().String()
+	downloadID := hashString(downloadUrl)
 	startTime := time.Now()
 	tempPath := path + ".tmp"
 
@@ -154,9 +160,17 @@ func (d *downloader) DownloadWithContext(ctx context.Context, path string, downl
 	return nil
 }
 
+// downloadToFile downloads the contents of an io.Reader to an io.Writer
 func (d *downloader) downloadToFile(w io.Writer, r io.Reader) error {
 	bufferSize := 1 << 20 // 1MB
 	buffer := make([]byte, bufferSize)
 	_, err := io.CopyBuffer(w, r, buffer)
 	return err
+}
+
+// hashString returns the SHA256 hash of a string
+func hashString(s string) string {
+	hasher := sha256.New()
+	hasher.Write([]byte(s))
+	return hex.EncodeToString(hasher.Sum(nil))
 }
