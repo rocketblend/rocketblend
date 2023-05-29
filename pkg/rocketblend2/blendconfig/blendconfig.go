@@ -12,14 +12,16 @@ const BlenderFileExtension = ".blend"
 
 type (
 	BlendConfig struct {
-		BlendFilePath string                 `json:"blendFilepath"`
-		RocketFile    *rocketfile.RocketFile `json:"rocketFile,omitempty"`
+		ProjectPath   string                 `json:"projectPath"`
+		BlendFileName string                 `json:"blendFileName"`
+		RocketFile    *rocketfile.RocketFile `json:"rocketFile"`
 	}
 )
 
-func New(blendFilePath string, RocketFile *rocketfile.RocketFile) (*BlendConfig, error) {
+func New(ProjectPath string, blendFileName string, RocketFile *rocketfile.RocketFile) (*BlendConfig, error) {
 	blendFile := &BlendConfig{
-		BlendFilePath: blendFilePath,
+		ProjectPath:   ProjectPath,
+		BlendFileName: blendFileName,
 		RocketFile:    RocketFile,
 	}
 
