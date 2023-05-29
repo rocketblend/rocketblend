@@ -110,7 +110,10 @@ func New(opts ...Option) (*Driver, error) {
 		return nil, err
 	}
 
-	pack, err := rocketpack.NewService(rocketpack.WithLogger(options.Logger), rocketpack.WithStorage(jot))
+	pack, err := rocketpack.NewService(
+		rocketpack.WithLogger(options.Logger),
+		rocketpack.WithPlatform(options.Platform),
+		rocketpack.WithStorage(jot))
 	if err != nil {
 		return nil, err
 	}

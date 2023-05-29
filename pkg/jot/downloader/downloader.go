@@ -6,8 +6,10 @@ import (
 	"net/http"
 	"os"
 	"sync"
+	"time"
 
 	"github.com/flowshot-io/x/pkg/logger"
+	"github.com/google/uuid"
 )
 
 type (
@@ -17,13 +19,15 @@ type (
 	}
 
 	Options struct {
-		Logger logger.Logger
+		Logger  logger.Logger
+		LogFreq int64
 	}
 
 	Option func(*Options)
 
 	downloader struct {
-		logger logger.Logger
+		logger  logger.Logger
+		logFreq int64
 	}
 )
 
@@ -33,9 +37,16 @@ func WithLogger(logger logger.Logger) Option {
 	}
 }
 
+func WithLogFrequency(logFreq int64) Option {
+	return func(o *Options) {
+		o.LogFreq = logFreq
+	}
+}
+
 func New(opts ...Option) Downloader {
 	options := &Options{
-		Logger: logger.NoOp(),
+		Logger:  logger.NoOp(),
+		LogFreq: 1 << 20, // Default log frequency is 1MB
 	}
 
 	for _, opt := range opts {
@@ -43,7 +54,8 @@ func New(opts ...Option) Downloader {
 	}
 
 	return &downloader{
-		logger: options.Logger,
+		logger:  options.Logger,
+		logFreq: options.LogFreq,
 	}
 }
 
@@ -52,37 +64,53 @@ func (d *downloader) Download(path string, downloadUrl string) error {
 }
 
 func (d *downloader) DownloadWithContext(ctx context.Context, path string, downloadUrl string) error {
-	d.logger.Debug("Starting download", map[string]interface{}{"url": downloadUrl, "path": path})
-
+	downloadID := uuid.New().String()
+	startTime := time.Now()
 	tempPath := path + ".tmp"
-	d.logger.Debug("Temporary path for download", map[string]interface{}{"tempPath": tempPath})
+
+	logContext := map[string]interface{}{
+		"downloadID": downloadID,
+		"url":        downloadUrl,
+		"path":       path,
+		"tempPath":   tempPath,
+	}
+
+	d.logger.Debug("Starting download", logContext)
 
 	req, err := http.NewRequestWithContext(ctx, "GET", downloadUrl, nil)
 	if err != nil {
-		d.logger.Error("Error creating HTTP request", map[string]interface{}{"error": err.Error()})
+		logContext["error"] = err.Error()
+		d.logger.Error("Error creating HTTP request", logContext)
 		return err
 	}
 
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
-		d.logger.Error("Error making HTTP request", map[string]interface{}{"error": err.Error()})
+		logContext["error"] = err.Error()
+		d.logger.Error("Error making HTTP request", logContext)
 		return err
 	}
 	defer resp.Body.Close()
 
-	d.logger.Debug("HTTP request successful", map[string]interface{}{"status": resp.Status, "contentLength": resp.ContentLength})
+	logContext["status"] = resp.Status
+	logContext["contentLength"] = resp.ContentLength
+
+	d.logger.Debug("HTTP request successful", logContext)
 
 	f, err := os.OpenFile(tempPath, os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {
-		d.logger.Error("Error opening temporary file", map[string]interface{}{"error": err.Error()})
+		logContext["error"] = err.Error()
+		d.logger.Error("Error opening temporary file", logContext)
 		return err
 	}
 	defer f.Close()
 
 	wg := &sync.WaitGroup{}
 	pw := &progressWriter{
+		id:      downloadID,
 		w:       f,
 		maxSize: resp.ContentLength,
+		logFreq: d.logFreq,
 		logger:  d.logger,
 		logCh:   make(chan int64),
 		wg:      wg,
@@ -91,6 +119,7 @@ func (d *downloader) DownloadWithContext(ctx context.Context, path string, downl
 
 	// Wrap resp.Body in a contextReader
 	cr := &contextReader{
+		id:     downloadID,
 		r:      resp.Body,
 		ctx:    ctx,
 		logger: d.logger,
@@ -101,21 +130,26 @@ func (d *downloader) DownloadWithContext(ctx context.Context, path string, downl
 	wg.Wait() // Wait for the logging goroutine to finish
 
 	if err != nil {
-		d.logger.Error("Error downloading file", map[string]interface{}{"error": err.Error(), "url": downloadUrl, "path": path})
+		logContext["error"] = err.Error()
+		d.logger.Error("Error downloading file", logContext)
 		return err
 	}
 
-	d.logger.Debug("Download completed to temporary file", map[string]interface{}{"tempPath": tempPath})
+	d.logger.Debug("Download completed to temporary file", logContext)
 
 	// Close the file without defer so it can happen before Rename()
 	f.Close()
 
 	if err = os.Rename(tempPath, path); err != nil {
-		d.logger.Error("Error renaming temporary file", map[string]interface{}{"error": err.Error(), "from": tempPath, "to": path})
+		logContext["error"] = err.Error()
+		logContext["from"] = tempPath
+		logContext["to"] = path
+		d.logger.Error("Error renaming temporary file", logContext)
 		return err
 	}
 
-	d.logger.Info("File successfully downloaded", map[string]interface{}{"path": path})
+	logContext["elapsedTime"] = time.Since(startTime).String()
+	d.logger.Info("File successfully downloaded", logContext)
 
 	return nil
 }

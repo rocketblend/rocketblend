@@ -7,10 +7,15 @@ import (
 	"github.com/flowshot-io/x/pkg/logger"
 )
 
+const logFrequencyBytes int64 = 1 << 20 // Log every 1MB
+
 type progressWriter struct {
+	id      string // Unique ID for this writer in logging
 	w       io.Writer
-	total   int64
-	maxSize int64
+	total   int64 // Total bytes transferred
+	logged  int64 // This keeps track of the last logged amount
+	maxSize int64 // The total size of the download
+	logFreq int64 // How often to log
 	logger  logger.Logger
 	logCh   chan int64
 	wg      *sync.WaitGroup
@@ -24,21 +29,29 @@ func (pw *progressWriter) Write(p []byte) (n int, err error) {
 		return n, err
 	}
 
-	pw.total += int64(n) // update the total counter
+	pw.total += int64(n)
 	pw.logCh <- int64(n)
 	return n, nil
 }
 
 func (pw *progressWriter) startLogging() {
 	pw.logger.Info("download started", map[string]interface{}{
+		"id":       pw.id,
 		"maxBytes": pw.maxSize,
 	})
 
 	pw.wg.Add(1)
 	go func() {
 		defer pw.wg.Done()
-		for total := range pw.logCh {
-			pw.logger.Info("download progress", map[string]interface{}{"bytes": total})
+		for n := range pw.logCh {
+			pw.logged += n
+			if pw.logged >= pw.logFreq {
+				pw.logger.Info("download progress", map[string]interface{}{
+					"id":    pw.id,
+					"bytes": pw.logged,
+				})
+				pw.logged = 0
+			}
 		}
 	}()
 }
@@ -46,6 +59,7 @@ func (pw *progressWriter) startLogging() {
 func (pw *progressWriter) stopLogging() {
 	close(pw.logCh)
 	pw.logger.Info("download finished", map[string]interface{}{
+		"id":         pw.id,
 		"totalBytes": pw.total,
 	})
 }
