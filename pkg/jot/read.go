@@ -25,7 +25,7 @@ func (d *Driver) Read(reference reference.Reference, resource string) ([]byte, e
 	// create full path to record and check to see if file exists
 	record := filepath.Join(d.storagePath, reference.String(), resource)
 	if _, err := stat(record); err != nil {
-		d.logger.Error("Failed to stat record", map[string]interface{}{"error": err.Error(), "record": record})
+		d.logger.Warn("Failed to stat record", map[string]interface{}{"error": err.Error(), "record": record})
 		return nil, err
 	}
 

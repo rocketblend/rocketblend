@@ -7,8 +7,6 @@ import (
 	"github.com/flowshot-io/x/pkg/logger"
 )
 
-const logFrequencyBytes int64 = 1 << 20 // Log every 1MB
-
 type progressWriter struct {
 	id      string // Unique ID for this writer in logging
 	w       io.Writer
@@ -47,8 +45,10 @@ func (pw *progressWriter) startLogging() {
 			pw.logged += n
 			if pw.logged >= pw.logFreq {
 				pw.logger.Info("download progress", map[string]interface{}{
-					"id":    pw.id,
-					"bytes": pw.logged,
+					"id":         pw.id,
+					"bytes":      pw.logged,
+					"totalBytes": pw.total,
+					"maxBytes":   pw.maxSize,
 				})
 				pw.logged = 0
 			}
@@ -61,5 +61,6 @@ func (pw *progressWriter) stopLogging() {
 	pw.logger.Info("download finished", map[string]interface{}{
 		"id":         pw.id,
 		"totalBytes": pw.total,
+		"maxBytes":   pw.maxSize,
 	})
 }

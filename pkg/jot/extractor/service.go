@@ -62,34 +62,41 @@ func (e *extractor) Extract(path string, extractPath string) error {
 }
 
 func (e *extractor) ExtractWithContext(ctx context.Context, path string, extractPath string) error {
-	e.logger.Debug("Starting extraction", map[string]interface{}{"path": path, "extractPath": extractPath})
+	logContext := map[string]interface{}{
+		"path":        path,
+		"extractPath": extractPath,
+	}
+
+	e.logger.Debug("Starting extraction", logContext)
 
 	// mholt/archiver doesn't support .dmg files, so we need to handle them separately.
 	// This isn't a 100% golang solution, but it works for now.
 	var err error
 	switch strings.ToLower(filepath.Ext(path)) {
 	case ".dmg":
-		e.logger.Debug("Extracting DMG file", map[string]interface{}{"path": path, "extractPath": extractPath})
+		e.logger.Debug("Extracting DMG file", logContext)
 		err = e.extractDMGWithContext(ctx, path, extractPath)
 	default:
-		e.logger.Debug("Extracting archive", map[string]interface{}{"path": path, "extractPath": extractPath})
+		e.logger.Debug("Extracting archive", logContext)
 		err = archiver.Unarchive(path, extractPath)
 	}
 	if err != nil {
-		e.logger.Error("Extraction error", map[string]interface{}{"path": path, "error": err})
+		logContext["error"] = err.Error()
+		e.logger.Error("Extraction error", logContext)
 		return err
 	}
 
 	if e.cleanup {
-		e.logger.Debug("Cleaning up source file", map[string]interface{}{"path": path})
+		e.logger.Debug("Cleaning up source file", logContext)
 		err = os.Remove(path)
 		if err != nil {
-			e.logger.Error("Cleanup error", map[string]interface{}{"path": path, "error": err})
+			logContext["error"] = err.Error()
+			e.logger.Error("Cleanup error", logContext)
 			return err
 		}
 	}
 
-	e.logger.Info("Extraction complete", map[string]interface{}{"path": path, "extractPath": extractPath})
+	e.logger.Info("Extraction complete", logContext)
 
 	return nil
 }
