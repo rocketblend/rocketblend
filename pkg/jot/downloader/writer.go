@@ -33,7 +33,7 @@ func (pw *progressWriter) Write(p []byte) (n int, err error) {
 }
 
 func (pw *progressWriter) startLogging() {
-	pw.logger.Info("download started", map[string]interface{}{
+	pw.logger.Info("Download started", map[string]interface{}{
 		"id":       pw.id,
 		"maxBytes": pw.maxSize,
 	})
@@ -44,7 +44,7 @@ func (pw *progressWriter) startLogging() {
 		for n := range pw.logCh {
 			pw.logged += n
 			if pw.logged >= pw.logFreq {
-				pw.logger.Info("download progress", map[string]interface{}{
+				pw.logger.Info("Download progress", map[string]interface{}{
 					"id":         pw.id,
 					"bytes":      pw.logged,
 					"totalBytes": pw.total,
@@ -58,7 +58,7 @@ func (pw *progressWriter) startLogging() {
 
 func (pw *progressWriter) stopLogging() {
 	close(pw.logCh)
-	pw.logger.Info("download finished", map[string]interface{}{
+	pw.logger.Info("Download finished", map[string]interface{}{
 		"id":         pw.id,
 		"totalBytes": pw.total,
 		"maxBytes":   pw.maxSize,
