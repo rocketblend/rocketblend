@@ -6,6 +6,7 @@ require (
 	github.com/fatih/color v1.15.0
 	github.com/flowshot-io/x v0.0.0-20230527165654-eb51ba61aa82
 	github.com/go-playground/validator/v10 v10.13.0
+	github.com/google/uuid v1.1.2
 	github.com/ivanpirog/coloredcobra v1.0.1
 	github.com/mholt/archiver/v3 v3.5.1
 	github.com/mitchellh/mapstructure v1.5.0

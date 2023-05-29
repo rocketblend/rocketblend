@@ -35,13 +35,15 @@ func (f *factory) CreateRocketBlendService() (*rocketblend.Driver, error) {
 		return nil, err
 	}
 
+	var logLevel = "info"
+	if config.Debug {
+		logLevel = "debug"
+	}
+
 	opts := []rocketblend.Option{
 		rocketblend.WithInstallationDirectory(config.InstallDir),
 		rocketblend.WithPlatform(config.Platform),
-	}
-
-	if config.Debug {
-		opts = append(opts, rocketblend.WithLogger(logger.New(logger.WithPretty(), logger.WithLogLevel("debug"))))
+		rocketblend.WithLogger(logger.New(logger.WithPretty(), logger.WithLogLevel(logLevel))),
 	}
 
 	if config.Features.Addons {

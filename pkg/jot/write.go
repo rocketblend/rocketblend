@@ -14,7 +14,7 @@ func (d *Driver) Write(reference reference.Reference, resource string, downloadU
 }
 
 func (d *Driver) WriteWithContext(ctx context.Context, reference reference.Reference, resource string, downloadUrl string) error {
-	d.logger.Info("Starting write", map[string]interface{}{"reference": reference, "resource": resource, "downloadUrl": downloadUrl})
+	d.logger.Debug("Starting write", map[string]interface{}{"reference": reference, "resource": resource, "downloadUrl": downloadUrl})
 	path, err := d.writeWithContext(ctx, reference, resource, downloadUrl)
 	if err != nil {
 		d.logger.Error("Error writing", map[string]interface{}{"error": err.Error(), "reference": reference, "resource": resource, "downloadUrl": downloadUrl})
@@ -32,7 +32,7 @@ func (d *Driver) WriteWithContext(ctx context.Context, reference reference.Refer
 		d.logger.Debug("Finished archive extraction", map[string]interface{}{"path": path, "extractionPath": extractionPath})
 	}
 
-	d.logger.Info("Finished write", map[string]interface{}{"path": path, "reference": reference, "resource": resource, "downloadUrl": downloadUrl})
+	d.logger.Debug("Finished write", map[string]interface{}{"path": path, "reference": reference, "resource": resource, "downloadUrl": downloadUrl})
 
 	return nil
 }

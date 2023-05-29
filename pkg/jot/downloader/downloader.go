@@ -2,8 +2,6 @@ package downloader
 
 import (
 	"context"
-	"crypto/sha256"
-	"encoding/hex"
 	"io"
 	"net/http"
 	"os"
@@ -11,6 +9,7 @@ import (
 	"time"
 
 	"github.com/flowshot-io/x/pkg/logger"
+	"github.com/google/uuid"
 )
 
 type (
@@ -70,7 +69,7 @@ func (d *downloader) Download(path string, downloadUrl string) error {
 
 // DownloadWithContext downloads a file from downloadUrl to path. It uses the provided context to cancel the download.
 func (d *downloader) DownloadWithContext(ctx context.Context, path string, downloadUrl string) error {
-	downloadID := hashString(downloadUrl)
+	downloadID := uuid.New().String()
 	startTime := time.Now()
 	tempPath := path + ".tmp"
 
@@ -166,11 +165,4 @@ func (d *downloader) downloadToFile(w io.Writer, r io.Reader) error {
 	buffer := make([]byte, bufferSize)
 	_, err := io.CopyBuffer(w, r, buffer)
 	return err
-}
-
-// hashString returns the SHA256 hash of a string
-func hashString(s string) string {
-	hasher := sha256.New()
-	hasher.Write([]byte(s))
-	return hex.EncodeToString(hasher.Sum(nil))
 }

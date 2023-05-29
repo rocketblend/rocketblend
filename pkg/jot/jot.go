@@ -73,13 +73,17 @@ func New(opts ...Option) (Storage, error) {
 	}
 
 	if options.Downloader == nil {
-		options.Downloader = downloader.New(downloader.WithLogger(options.Logger))
+		options.Downloader = downloader.New(
+			downloader.WithLogger(options.Logger),
+			downloader.WithLogFrequency(10<<20), // 10MB
+		)
 	}
 
 	if options.Extractor == nil {
 		options.Extractor = extractor.New(
 			extractor.WithLogger(options.Logger),
-			extractor.WithCleanup())
+			extractor.WithCleanup(),
+		)
 	}
 
 	// create storage dir

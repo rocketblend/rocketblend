@@ -67,7 +67,7 @@ func (e *extractor) ExtractWithContext(ctx context.Context, path string, extract
 		"extractPath": extractPath,
 	}
 
-	e.logger.Debug("Starting extraction", logContext)
+	e.logger.Info("Starting extraction", logContext)
 
 	// mholt/archiver doesn't support .dmg files, so we need to handle them separately.
 	// This isn't a 100% golang solution, but it works for now.
