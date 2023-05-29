@@ -34,22 +34,17 @@ func (pw *progressWriter) startLogging() {
 		"maxBytes": pw.maxSize,
 	})
 
-	if pw.maxSize > 1<<20 { // log progress for files larger than 1 MB
-		pw.wg.Add(1)
-		go func() {
-			defer pw.wg.Done()
-			for total := range pw.logCh {
-				pw.logger.Info("download progress", map[string]interface{}{"bytes": total})
-			}
-		}()
-	}
+	pw.wg.Add(1)
+	go func() {
+		defer pw.wg.Done()
+		for total := range pw.logCh {
+			pw.logger.Info("download progress", map[string]interface{}{"bytes": total})
+		}
+	}()
 }
 
 func (pw *progressWriter) stopLogging() {
-	if pw.maxSize > 1<<20 { // log progress for files larger than 1 MB
-		close(pw.logCh)
-	}
-
+	close(pw.logCh)
 	pw.logger.Info("download finished", map[string]interface{}{
 		"totalBytes": pw.total,
 	})
