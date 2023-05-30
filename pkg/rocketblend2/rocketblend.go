@@ -3,12 +3,14 @@ package rocketblend2
 import (
 	"context"
 	"fmt"
+	"path/filepath"
 
 	"github.com/flowshot-io/x/pkg/logger"
 	"github.com/rocketblend/rocketblend/pkg/jot/reference"
 	"github.com/rocketblend/rocketblend/pkg/rocketblend2/blendconfig"
 	"github.com/rocketblend/rocketblend/pkg/rocketblend2/blendfile"
 	"github.com/rocketblend/rocketblend/pkg/rocketblend2/installation"
+	"github.com/rocketblend/rocketblend/pkg/rocketblend2/rocketfile"
 	"github.com/rocketblend/rocketblend/pkg/rocketblend2/rocketpack"
 )
 
@@ -23,11 +25,6 @@ type (
 		RemoveInstallations(ctx context.Context, rocketPacks []*rocketpack.RocketPack) error
 	}
 
-	// BlendConfigService interface {
-	// 	InstallDependencies(ctx context.Context, config *blendconfig.BlendConfig) error
-	// 	ResolveBlendFile(ctx context.Context, config *blendconfig.BlendConfig) (*blendfile.BlendFile, error)
-	// }
-
 	BlendFileService interface {
 		Render(ctx context.Context, blendFile *blendfile.BlendFile) error
 		Run(ctx context.Context, blendFile *blendfile.BlendFile) error
@@ -37,11 +34,14 @@ type (
 	Driver interface {
 		Render(ctx context.Context) error
 		Run(ctx context.Context) error
+		Create(ctx context.Context) error
 
 		InstallDependencies(ctx context.Context) error
 
 		AddDependencies(ctx context.Context, references ...reference.Reference) error
 		RemoveDependencies(ctx context.Context, references ...reference.Reference) error
+
+		ResolveBlendFile(ctx context.Context) (*blendfile.BlendFile, error)
 	}
 
 	Options struct {
@@ -99,7 +99,7 @@ func New(opts ...Option) (Driver, error) {
 }
 
 func (d *driver) Render(ctx context.Context) error {
-	blendFile, err := d.resolveBlendFile()
+	blendFile, err := d.ResolveBlendFile(ctx)
 	if err != nil {
 		return fmt.Errorf("failed to resolve blend file: %w", err)
 	}
@@ -112,13 +112,30 @@ func (d *driver) Render(ctx context.Context) error {
 }
 
 func (d *driver) Run(ctx context.Context) error {
-	blendFile, err := d.resolveBlendFile()
+	blendFile, err := d.ResolveBlendFile(ctx)
 	if err != nil {
 		return fmt.Errorf("failed to resolve blend file: %w", err)
 	}
 
 	if err := d.blendFileService.Run(ctx, blendFile); err != nil {
 		return fmt.Errorf("failed to run blend file: %w", err)
+	}
+
+	return nil
+}
+
+func (d *driver) Create(ctx context.Context) error {
+	blendFile, err := d.ResolveBlendFile(ctx)
+	if err != nil {
+		return fmt.Errorf("failed to resolve blend file: %w", err)
+	}
+
+	if err := d.blendFileService.Create(ctx, blendFile); err != nil {
+		return fmt.Errorf("failed to create blend file: %w", err)
+	}
+
+	if err := d.save(ctx); err != nil {
+		return fmt.Errorf("failed to save blend config: %w", err)
 	}
 
 	return nil
@@ -194,7 +211,7 @@ func (d *driver) InstallDependencies(ctx context.Context) error {
 	return nil
 }
 
-func (d *driver) resolveBlendFile(ctx context.Context) (*blendfile.BlendFile, error) {
+func (d *driver) ResolveBlendFile(ctx context.Context) (*blendfile.BlendFile, error) {
 	packs, err := d.getDependencies(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get rocket packs: %w", err)
@@ -249,5 +266,5 @@ func (d *driver) getDependencies(ctx context.Context) ([]*rocketpack.RocketPack,
 }
 
 func (d *driver) save(ctx context.Context) error {
-	return fmt.Errorf("not implemented")
+	return rocketfile.Save(filepath.Join(d.blendConfig.ProjectPath, rocketfile.FileName), d.blendConfig.RocketFile)
 }
