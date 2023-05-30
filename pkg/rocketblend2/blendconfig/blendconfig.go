@@ -18,6 +18,10 @@ type (
 	}
 )
 
+func (blendFile *BlendConfig) BlendFilePath() string {
+	return filepath.Join(blendFile.ProjectPath, blendFile.BlendFileName)
+}
+
 func New(ProjectPath string, blendFileName string, RocketFile *rocketfile.RocketFile) (*BlendConfig, error) {
 	blendFile := &BlendConfig{
 		ProjectPath:   ProjectPath,

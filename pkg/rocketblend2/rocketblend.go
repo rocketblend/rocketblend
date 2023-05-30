@@ -19,14 +19,14 @@ type (
 	}
 
 	InstallationService interface {
-		GetInstallations(ctx context.Context, references ...reference.Reference) ([]*installation.Installation, error)
-		RemoveInstallations(ctx context.Context, references ...reference.Reference) error
+		GetInstallations(ctx context.Context, rocketPacks []*rocketpack.RocketPack, readOnly bool) ([]*installation.Installation, error)
+		RemoveInstallations(ctx context.Context, rocketPacks []*rocketpack.RocketPack) error
 	}
 
-	BlendConfigService interface {
-		InstallDependencies(ctx context.Context, config *blendconfig.BlendConfig) error
-		ResolveBlendFile(ctx context.Context, config *blendconfig.BlendConfig) (*blendfile.BlendFile, error)
-	}
+	// BlendConfigService interface {
+	// 	InstallDependencies(ctx context.Context, config *blendconfig.BlendConfig) error
+	// 	ResolveBlendFile(ctx context.Context, config *blendconfig.BlendConfig) (*blendfile.BlendFile, error)
+	// }
 
 	BlendFileService interface {
 		Render(ctx context.Context, blendFile *blendfile.BlendFile) error
@@ -54,9 +54,9 @@ type (
 	driver struct {
 		logger logger.Logger
 
-		rocketPackService  RocketPackService
-		blendConfigService BlendConfigService
-		blendFileService   BlendFileService
+		InstallationService InstallationService
+		rocketPackService   RocketPackService
+		blendFileService    BlendFileService
 
 		blendConfig *blendconfig.BlendConfig
 	}
@@ -137,11 +137,11 @@ func (d *driver) AddDependencies(ctx context.Context, references ...reference.Re
 		}
 
 		if packType == rocketpack.TypeBuild {
-			d.blendConfig.RocketFile.Build = references[index]
+			d.blendConfig.RocketFile.SetBuild(references[index])
 		}
 
 		if packType == rocketpack.TypeAddon {
-			d.blendConfig.RocketFile.Addons = append(d.blendConfig.RocketFile.Addons, references[index])
+			d.blendConfig.RocketFile.AddAddons(references[index])
 		}
 	}
 
@@ -165,15 +165,11 @@ func (d *driver) RemoveDependencies(ctx context.Context, references ...reference
 		}
 
 		if packType == rocketpack.TypeBuild {
-			d.blendConfig.RocketFile.Build = ""
+			d.blendConfig.RocketFile.SetBuild("")
 		}
 
 		if packType == rocketpack.TypeAddon {
-			for i, addon := range d.blendConfig.RocketFile.Addons {
-				if addon == references[index] {
-					d.blendConfig.RocketFile.Addons = append(d.blendConfig.RocketFile.Addons[:i], d.blendConfig.RocketFile.Addons[i+1:]...)
-				}
-			}
+			d.blendConfig.RocketFile.RemoveAddons(references[index])
 		}
 	}
 
@@ -185,13 +181,73 @@ func (d *driver) RemoveDependencies(ctx context.Context, references ...reference
 }
 
 func (d *driver) InstallDependencies(ctx context.Context) error {
-	return d.blendConfigService.InstallDependencies(ctx, d.blendConfig)
+	packs, err := d.getDependencies(ctx)
+	if err != nil {
+		return fmt.Errorf("failed to get rocket packs: %w", err)
+	}
+
+	_, err = d.InstallationService.GetInstallations(ctx, packs, false)
+	if err != nil {
+		return fmt.Errorf("failed to get installations: %w", err)
+	}
+
+	return nil
+}
+
+func (d *driver) resolveBlendFile(ctx context.Context) (*blendfile.BlendFile, error) {
+	packs, err := d.getDependencies(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get rocket packs: %w", err)
+	}
+
+	installations, err := d.InstallationService.GetInstallations(ctx, packs, false)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get installations: %w", err)
+	}
+
+	var build *blendfile.Build
+	var addons []*blendfile.Addon
+	for _, installation := range installations {
+		packType, err := installation.RocketPack.GetType()
+		if err != nil {
+			return nil, fmt.Errorf("failed to get rocket pack type: %w", err)
+		}
+
+		if packType == rocketpack.TypeBuild {
+			build = &blendfile.Build{
+				FilePath: installation.FilePath,
+				ARGS:     installation.RocketPack.Build.Args,
+			}
+		}
+
+		if packType == rocketpack.TypeAddon {
+			addons = append(addons, &blendfile.Addon{
+				FilePath: installation.FilePath,
+				Name:     installation.RocketPack.Addon.Name,
+				Version:  installation.RocketPack.Addon.Version,
+			})
+		}
+	}
+
+	blendFile := &blendfile.BlendFile{
+		FilePath: d.blendConfig.BlendFilePath(),
+		Build:    build,
+		Addons:   addons,
+		ARGS:     d.blendConfig.RocketFile.GetArgs(),
+	}
+
+	if err := blendfile.Validate(blendFile); err != nil {
+		return nil, fmt.Errorf("invalid blend file: %w", err)
+	}
+
+	return blendFile, nil
+}
+
+func (d *driver) getDependencies(ctx context.Context) ([]*rocketpack.RocketPack, error) {
+	// TODO: make sure GetPackages returns dependencies from builds as separate packages
+	return d.rocketPackService.GetPackages(ctx, d.blendConfig.RocketFile.GetDependencies()...)
 }
 
 func (d *driver) save(ctx context.Context) error {
 	return fmt.Errorf("not implemented")
-}
-
-func (d *driver) resolveBlendFile() (*blendfile.BlendFile, error) {
-	return d.blendConfigService.ResolveBlendFile(context.Background(), d.blendConfig)
 }

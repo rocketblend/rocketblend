@@ -9,15 +9,14 @@ import (
 
 type (
 	Addon struct {
-		FilePath string         `json:"filePath"`
-		Name     string         `json:"name"`
-		Version  semver.Version `json:"version"`
+		FilePath string          `json:"filePath"`
+		Name     string          `json:"name"`
+		Version  *semver.Version `json:"version"`
 	}
 
 	Build struct {
-		FilePath string   `json:"filePath"`
-		Addons   []*Addon `json:"addons"`
-		ARGS     string   `json:"args"`
+		FilePath string `json:"filePath"`
+		ARGS     string `json:"args"`
 	}
 
 	BlendFile struct {
@@ -28,20 +27,20 @@ type (
 	}
 )
 
-func Validate(rocketfile *BlendFile) error {
-	if rocketfile == nil {
+func Validate(blendFile *BlendFile) error {
+	if blendFile == nil {
 		return fmt.Errorf("rocketfile cannot be nil")
 	}
 
-	if err := helpers.FileExists(rocketfile.FilePath); err != nil {
+	if err := helpers.FileExists(blendFile.FilePath); err != nil {
 		return fmt.Errorf("failed to find blend file: %s", err)
 	}
 
-	if err := validateBuild(rocketfile.Build); err != nil {
+	if err := validateBuild(blendFile.Build); err != nil {
 		return err
 	}
 
-	for _, addon := range rocketfile.Addons {
+	for _, addon := range blendFile.Addons {
 		if err := validateAddon(addon); err != nil {
 			return err
 		}
