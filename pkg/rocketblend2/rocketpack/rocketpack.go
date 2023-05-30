@@ -12,7 +12,15 @@ import (
 	"sigs.k8s.io/yaml"
 )
 
-const FileName = "rocketpack.yaml"
+type PackType string
+
+const (
+	TypeBuild   PackType = "Build"
+	TypeAddon   PackType = "Addon"
+	TypeUnknown PackType = "Unknown"
+
+	FileName = "rocketpack.yaml"
+)
 
 type (
 	AddonSource struct {
@@ -44,6 +52,22 @@ type (
 		Addon *Addon `json:"addon,omitempty"`
 	}
 )
+
+func (r *RocketPack) GetType() (PackType, error) {
+	if r.Build != nil && r.Addon != nil {
+		return TypeUnknown, fmt.Errorf("invalid rocket pack: both build and addon are defined")
+	}
+
+	if r.Build != nil {
+		return TypeBuild, nil
+	}
+
+	if r.Addon != nil {
+		return TypeAddon, nil
+	}
+
+	return TypeUnknown, fmt.Errorf("invalid rocket pack: neither build nor addon are defined")
+}
 
 func (i *Build) GetSourceForPlatform(platform runtime.Platform) *BuildSource {
 	if i.Sources == nil {

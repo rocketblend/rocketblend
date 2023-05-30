@@ -34,7 +34,7 @@ func New(ProjectPath string, blendFileName string, RocketFile *rocketfile.Rocket
 }
 
 func Load(blendFilePath string, rocketFilePath string) (*BlendConfig, error) {
-	err := validateBlendConfigPath(blendFilePath)
+	err := validateBlendFilePath(blendFilePath)
 	if err != nil {
 		return nil, fmt.Errorf("failed to validate blend file path: %s", err)
 	}
@@ -50,13 +50,18 @@ func Load(blendFilePath string, rocketFilePath string) (*BlendConfig, error) {
 	}
 
 	return &BlendConfig{
-		BlendFilePath: blendFilePath,
+		ProjectPath:   filepath.Dir(blendFilePath),
+		BlendFileName: filepath.Base(blendFilePath),
 		RocketFile:    rocketfile,
 	}, nil
 }
 
 func Validate(blendFile *BlendConfig) error {
-	if err := validateBlendConfigPath(blendFile.BlendFilePath); err != nil {
+	if err := validateProjectPath(blendFile.ProjectPath); err != nil {
+		return fmt.Errorf("failed to validate project path: %w", err)
+	}
+
+	if err := validateBlendFilePath(blendFile.BlendFileName); err != nil {
 		return fmt.Errorf("failed to validate blend file path: %w", err)
 	}
 
@@ -67,7 +72,15 @@ func Validate(blendFile *BlendConfig) error {
 	return nil
 }
 
-func validateBlendConfigPath(filePath string) error {
+func validateProjectPath(projectPath string) error {
+	if projectPath == "" {
+		return fmt.Errorf("project path cannot be empty")
+	}
+
+	return nil
+}
+
+func validateBlendFilePath(filePath string) error {
 	if filePath == "" {
 		return fmt.Errorf("blend file path cannot be empty")
 	}
