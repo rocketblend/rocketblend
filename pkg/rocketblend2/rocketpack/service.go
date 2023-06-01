@@ -179,7 +179,7 @@ func (s *service) RemovePackages(ctx context.Context, references ...reference.Re
 		_, err = os.Stat(localPath)
 		if os.IsNotExist(err) {
 			// The file does not exist, nothing to remove
-			s.logger.Info("File does not exist locally, nothing to remove", map[string]interface{}{"localPath": localPath, "reference": ref.String()})
+			s.logger.Debug("File does not exist locally, nothing to remove", map[string]interface{}{"localPath": localPath, "reference": ref.String()})
 			continue
 		} else if err != nil {
 			// There was an error checking the file
@@ -188,7 +188,7 @@ func (s *service) RemovePackages(ctx context.Context, references ...reference.Re
 		}
 
 		// Remove the directory
-		s.logger.Info("Removing directory", map[string]interface{}{"localPath": localPath, "reference": ref.String()})
+		s.logger.Debug("Removing directory", map[string]interface{}{"localPath": localPath, "reference": ref.String()})
 		err = os.RemoveAll(localPath)
 		if err != nil {
 			s.logger.Error("Error removing directory", map[string]interface{}{"error": err, "reference": ref.String()})

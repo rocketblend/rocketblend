@@ -31,6 +31,10 @@ type (
 	Options struct {
 		logger      logger.Logger
 		blendConfig *blendconfig.BlendConfig
+
+		installationService installation.Service
+		rocketPackService   rocketpack.Service
+		blendFileService    blendfile.Service
 	}
 
 	Option func(*Options)
@@ -58,6 +62,24 @@ func WithBlendConfig(blendConfig *blendconfig.BlendConfig) Option {
 	}
 }
 
+func WithInstallationService(installationService installation.Service) Option {
+	return func(o *Options) {
+		o.installationService = installationService
+	}
+}
+
+func WithRocketPackService(rocketPackService rocketpack.Service) Option {
+	return func(o *Options) {
+		o.rocketPackService = rocketPackService
+	}
+}
+
+func WithBlendFileService(blendFileService blendfile.Service) Option {
+	return func(o *Options) {
+		o.blendFileService = blendFileService
+	}
+}
+
 func New(opts ...Option) (Driver, error) {
 	options := &Options{
 		logger: logger.NoOp(),
@@ -65,6 +87,33 @@ func New(opts ...Option) (Driver, error) {
 
 	for _, opt := range opts {
 		opt(options)
+	}
+
+	if options.installationService == nil {
+		isrv, err := installation.NewService()
+		if err != nil {
+			return nil, fmt.Errorf("failed to create default installation service: %w", err)
+		}
+
+		options.installationService = isrv
+	}
+
+	if options.rocketPackService == nil {
+		rpsrv, err := rocketpack.NewService()
+		if err != nil {
+			return nil, fmt.Errorf("failed to create default rocket pack service: %w", err)
+		}
+
+		options.rocketPackService = rpsrv
+	}
+
+	if options.blendFileService == nil {
+		bfsrv, err := blendfile.NewService()
+		if err != nil {
+			return nil, fmt.Errorf("failed to create default blend file service: %w", err)
+		}
+
+		options.blendFileService = bfsrv
 	}
 
 	if options.blendConfig == nil {

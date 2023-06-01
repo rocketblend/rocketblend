@@ -98,7 +98,12 @@ func NewService(opts ...Option) (Service, error) {
 	}
 
 	if options.Platform == runtime.Undefined {
-		return nil, fmt.Errorf("platform is required")
+		platform := runtime.DetectPlatform()
+		if platform == runtime.Undefined {
+			return nil, fmt.Errorf("cannot detect platform")
+		}
+
+		options.Platform = platform
 	}
 
 	err := os.MkdirAll(options.StoragePath, 0755)

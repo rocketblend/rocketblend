@@ -24,7 +24,7 @@ type (
 	}
 )
 
-func NewService(opts ...Option) Service {
+func NewService(opts ...Option) (Service, error) {
 	options := &Options{
 		Logger: logger.NoOp(),
 	}
@@ -35,7 +35,7 @@ func NewService(opts ...Option) Service {
 
 	return &service{
 		logger: options.Logger,
-	}
+	}, nil
 }
 
 func (s *service) Render(ctx context.Context, blendFile *BlendFile) error {
