@@ -15,22 +15,6 @@ import (
 )
 
 type (
-	RocketPackService interface {
-		GetPackages(ctx context.Context, references ...reference.Reference) ([]*rocketpack.RocketPack, error)
-		RemovePackages(ctx context.Context, references ...reference.Reference) error
-	}
-
-	InstallationService interface {
-		GetInstallations(ctx context.Context, rocketPacks []*rocketpack.RocketPack, readOnly bool) ([]*installation.Installation, error)
-		RemoveInstallations(ctx context.Context, rocketPacks []*rocketpack.RocketPack) error
-	}
-
-	BlendFileService interface {
-		Render(ctx context.Context, blendFile *blendfile.BlendFile) error
-		Run(ctx context.Context, blendFile *blendfile.BlendFile) error
-		Create(ctx context.Context, blendFile *blendfile.BlendFile) error
-	}
-
 	Driver interface {
 		Render(ctx context.Context) error
 		Run(ctx context.Context) error
@@ -54,9 +38,9 @@ type (
 	driver struct {
 		logger logger.Logger
 
-		InstallationService InstallationService
-		rocketPackService   RocketPackService
-		blendFileService    BlendFileService
+		InstallationService installation.Service
+		rocketPackService   rocketpack.Service
+		blendFileService    blendfile.Service
 
 		blendConfig *blendconfig.BlendConfig
 	}
