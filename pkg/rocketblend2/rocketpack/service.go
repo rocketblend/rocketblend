@@ -136,6 +136,25 @@ func (s *service) GetPackages(ctx context.Context, references ...reference.Refer
 			return nil, err
 		}
 
+		deps := pack.GetDependencies()
+		if len(deps) > 0 {
+			s.logger.Info("Package has dependencies", map[string]interface{}{"reference": ref.String()})
+
+			// Get the dependencies
+			depPackages, err := s.GetPackages(ctx, deps...)
+			if err != nil {
+				s.logger.Error("Error getting dependency packages", map[string]interface{}{"error": err, "reference": ref.String()})
+				return nil, err
+			}
+
+			// Add the dependencies to the packages map
+			for _, dep := range deps {
+				packages[dep] = depPackages[dep]
+			}
+
+			s.logger.Info("Dependency packages successfully loaded", map[string]interface{}{"reference": ref.String()})
+		}
+
 		packages[ref] = pack
 	}
 

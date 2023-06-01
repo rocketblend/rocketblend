@@ -35,7 +35,6 @@ type (
 
 	service struct {
 		logger      logger.Logger
-		packagePath string
 		storagePath string
 		platform    runtime.Platform
 		downloader  downloader.Downloader
@@ -46,12 +45,6 @@ type (
 func WithStoragePath(storagePath string) Option {
 	return func(o *Options) {
 		o.StoragePath = storagePath
-	}
-}
-
-func WithPackagePath(packagePath string) Option {
-	return func(o *Options) {
-		o.PackagePath = packagePath
 	}
 }
 
@@ -116,7 +109,6 @@ func NewService(opts ...Option) (Service, error) {
 	return &service{
 		logger:      options.Logger,
 		storagePath: options.StoragePath,
-		packagePath: options.PackagePath,
 		downloader:  options.Downloader,
 		extractor:   options.Extractor,
 	}, nil
@@ -138,6 +130,13 @@ func (s *service) GetInstallations(ctx context.Context, rocketPacks map[referenc
 }
 
 func (s *service) RemoveInstallations(ctx context.Context, rocketPacks map[reference.Reference]*rocketpack.RocketPack) error {
+	for ref := range rocketPacks {
+		err := s.removeInstallation(ctx, ref)
+		if err != nil {
+			return err
+		}
+	}
+
 	return nil
 }
 
@@ -204,6 +203,17 @@ func (s *service) downloadInstallation(ctx context.Context, downloadUrl string, 
 			return err
 		}
 
+	}
+
+	return nil
+}
+
+func (s *service) removeInstallation(ctx context.Context, reference reference.Reference) error {
+	installationPath := filepath.Join(s.storagePath, reference.String())
+
+	err := os.RemoveAll(installationPath)
+	if err != nil {
+		return err
 	}
 
 	return nil

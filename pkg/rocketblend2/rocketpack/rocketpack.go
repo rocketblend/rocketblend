@@ -7,9 +7,9 @@ import (
 	"path"
 
 	"github.com/go-playground/validator/v10"
-	"github.com/rocketblend/rocketblend/pkg/jot/reference"
 	"github.com/rocketblend/rocketblend/pkg/rocketblend/runtime"
 	"github.com/rocketblend/rocketblend/pkg/rocketblend2/helpers"
+	"github.com/rocketblend/rocketblend/pkg/rocketblend2/reference"
 	"github.com/rocketblend/rocketblend/pkg/semver"
 	"sigs.k8s.io/yaml"
 )
@@ -61,6 +61,18 @@ func (r *RocketPack) IsBuild() bool {
 
 func (r *RocketPack) IsAddon() bool {
 	return r.Addon != nil
+}
+
+func (r *RocketPack) GetDependencies() []reference.Reference {
+	if r.Build != nil {
+		return r.Build.Addons
+	}
+
+	if r.Addon != nil {
+		return nil
+	}
+
+	return nil
 }
 
 func (r *RocketPack) GetDownloadUrl(platform runtime.Platform) (string, error) {
