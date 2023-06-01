@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/rocketblend/rocketblend/pkg/jot/reference"
 	"github.com/rocketblend/rocketblend/pkg/rocketblend2/helpers"
+	"github.com/rocketblend/rocketblend/pkg/rocketblend2/reference"
 	"sigs.k8s.io/yaml"
 )
 

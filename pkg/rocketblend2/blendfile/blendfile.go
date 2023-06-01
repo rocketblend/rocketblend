@@ -4,26 +4,15 @@ import (
 	"fmt"
 
 	"github.com/rocketblend/rocketblend/pkg/rocketblend2/helpers"
-	"github.com/rocketblend/rocketblend/pkg/semver"
+	"github.com/rocketblend/rocketblend/pkg/rocketblend2/installation"
 )
 
 type (
-	Addon struct {
-		FilePath string          `json:"filePath"`
-		Name     string          `json:"name"`
-		Version  *semver.Version `json:"version"`
-	}
-
-	Build struct {
-		FilePath string `json:"filePath"`
-		ARGS     string `json:"args"`
-	}
-
 	BlendFile struct {
-		FilePath string   `json:"filePath"`
-		Build    *Build   `json:"build"`
-		Addons   []*Addon `json:"addons"`
-		ARGS     string   `json:"args"`
+		FilePath string                `json:"filePath"`
+		Build    *installation.Build   `json:"build"`
+		Addons   []*installation.Addon `json:"addons"`
+		ARGS     string                `json:"args"`
 	}
 )
 
@@ -49,7 +38,7 @@ func Validate(blendFile *BlendFile) error {
 	return nil
 }
 
-func validateBuild(build *Build) error {
+func validateBuild(build *installation.Build) error {
 	if build == nil {
 		return fmt.Errorf("build cannot be nil")
 	}
@@ -65,7 +54,7 @@ func validateBuild(build *Build) error {
 	return nil
 }
 
-func validateAddon(addon *Addon) error {
+func validateAddon(addon *installation.Addon) error {
 	if addon == nil {
 		return fmt.Errorf("addon cannot be nil")
 	}

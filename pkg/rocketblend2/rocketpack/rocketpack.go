@@ -2,7 +2,9 @@ package rocketpack
 
 import (
 	"fmt"
+	"net/url"
 	"os"
+	"path"
 
 	"github.com/go-playground/validator/v10"
 	"github.com/rocketblend/rocketblend/pkg/jot/reference"
@@ -53,20 +55,36 @@ type (
 	}
 )
 
-func (r *RocketPack) GetType() (PackType, error) {
-	if r.Build != nil && r.Addon != nil {
-		return TypeUnknown, fmt.Errorf("invalid rocket pack: both build and addon are defined")
-	}
+func (r *RocketPack) IsBuild() bool {
+	return r.Build != nil
+}
 
+func (r *RocketPack) IsAddon() bool {
+	return r.Addon != nil
+}
+
+func (r *RocketPack) GetDownloadUrl(platform runtime.Platform) (string, error) {
 	if r.Build != nil {
-		return TypeBuild, nil
+		return r.Build.GetDownloadUrl(platform)
 	}
 
 	if r.Addon != nil {
-		return TypeAddon, nil
+		return r.Addon.GetDownloadUrl()
 	}
 
-	return TypeUnknown, fmt.Errorf("invalid rocket pack: neither build nor addon are defined")
+	return "", fmt.Errorf("invalid rocket pack: neither build nor addon are defined")
+}
+
+func (r *RocketPack) GetExecutableName(platform runtime.Platform) (string, error) {
+	if r.Build != nil {
+		return r.Build.GetExecutableName(platform)
+	}
+
+	if r.Addon != nil {
+		return r.Addon.GetExecutableName()
+	}
+
+	return "", fmt.Errorf("invalid rocket pack: neither build nor addon are defined")
 }
 
 func (i *Build) GetSourceForPlatform(platform runtime.Platform) *BuildSource {
@@ -81,6 +99,40 @@ func (i *Build) GetSourceForPlatform(platform runtime.Platform) *BuildSource {
 	}
 
 	return nil
+}
+
+func (i *Build) GetDownloadUrl(platform runtime.Platform) (string, error) {
+	source := i.GetSourceForPlatform(platform)
+	if source == nil {
+		return "", fmt.Errorf("failed to find source for platform: %s", platform)
+	}
+
+	return source.URL, nil
+}
+
+func (i *Build) GetExecutableName(platform runtime.Platform) (string, error) {
+	source := i.GetSourceForPlatform(platform)
+	if source == nil {
+		return "", fmt.Errorf("failed to find source for platform: %s", platform)
+	}
+
+	return source.Executable, nil
+}
+
+func (a *Addon) GetDownloadUrl() (string, error) {
+	if a.Source == nil {
+		return "", fmt.Errorf("failed to find source for addon: %s", a.Name)
+	}
+
+	return a.Source.URL, nil
+}
+
+func (a *Addon) GetExecutableName() (string, error) {
+	if a.Source == nil {
+		return "", fmt.Errorf("failed to find source for addon: %s", a.Name)
+	}
+
+	return a.Source.File, nil
 }
 
 func Load(filePath string) (*RocketPack, error) {
@@ -125,4 +177,13 @@ func Validate(rp *RocketPack) error {
 	}
 
 	return nil
+}
+
+func getFilenameFromURL(downloadURL string) string {
+	u, err := url.Parse(downloadURL)
+	if err != nil {
+		return ""
+	}
+
+	return path.Base(u.Path)
 }

@@ -6,10 +6,10 @@ import (
 	"path/filepath"
 
 	"github.com/flowshot-io/x/pkg/logger"
-	"github.com/rocketblend/rocketblend/pkg/jot/reference"
 	"github.com/rocketblend/rocketblend/pkg/rocketblend2/blendconfig"
 	"github.com/rocketblend/rocketblend/pkg/rocketblend2/blendfile"
 	"github.com/rocketblend/rocketblend/pkg/rocketblend2/installation"
+	"github.com/rocketblend/rocketblend/pkg/rocketblend2/reference"
 	"github.com/rocketblend/rocketblend/pkg/rocketblend2/rocketfile"
 	"github.com/rocketblend/rocketblend/pkg/rocketblend2/rocketpack"
 )
@@ -132,17 +132,12 @@ func (d *driver) AddDependencies(ctx context.Context, references ...reference.Re
 	}
 
 	for index, pack := range packs {
-		packType, err := pack.GetType()
-		if err != nil {
-			return fmt.Errorf("failed to get rocket pack type: %w", err)
+		if pack.IsBuild() {
+			d.blendConfig.RocketFile.SetBuild(index)
 		}
 
-		if packType == rocketpack.TypeBuild {
-			d.blendConfig.RocketFile.SetBuild(references[index])
-		}
-
-		if packType == rocketpack.TypeAddon {
-			d.blendConfig.RocketFile.AddAddons(references[index])
+		if pack.IsAddon() {
+			d.blendConfig.RocketFile.AddAddons(index)
 		}
 	}
 
@@ -160,17 +155,12 @@ func (d *driver) RemoveDependencies(ctx context.Context, references ...reference
 	}
 
 	for index, pack := range packs {
-		packType, err := pack.GetType()
-		if err != nil {
-			return fmt.Errorf("failed to get rocket pack type: %w", err)
-		}
-
-		if packType == rocketpack.TypeBuild {
+		if pack.IsBuild() {
 			d.blendConfig.RocketFile.SetBuild("")
 		}
 
-		if packType == rocketpack.TypeAddon {
-			d.blendConfig.RocketFile.RemoveAddons(references[index])
+		if pack.IsAddon() {
+			d.blendConfig.RocketFile.RemoveAddons(index)
 		}
 	}
 
@@ -206,35 +196,19 @@ func (d *driver) ResolveBlendFile(ctx context.Context) (*blendfile.BlendFile, er
 		return nil, fmt.Errorf("failed to get installations: %w", err)
 	}
 
-	var build *blendfile.Build
-	var addons []*blendfile.Addon
-	for _, installation := range installations {
-		packType, err := installation.RocketPack.GetType()
-		if err != nil {
-			return nil, fmt.Errorf("failed to get rocket pack type: %w", err)
-		}
-
-		if packType == rocketpack.TypeBuild {
-			build = &blendfile.Build{
-				FilePath: installation.FilePath,
-				ARGS:     installation.RocketPack.Build.Args,
-			}
-		}
-
-		if packType == rocketpack.TypeAddon {
-			addons = append(addons, &blendfile.Addon{
-				FilePath: installation.FilePath,
-				Name:     installation.RocketPack.Addon.Name,
-				Version:  installation.RocketPack.Addon.Version,
-			})
-		}
-	}
-
 	blendFile := &blendfile.BlendFile{
 		FilePath: d.blendConfig.BlendFilePath(),
-		Build:    build,
-		Addons:   addons,
 		ARGS:     d.blendConfig.RocketFile.GetArgs(),
+	}
+
+	for _, installation := range installations {
+		if installation.IsBuild() {
+			blendFile.Build = installation.Build
+		}
+
+		if installation.IsAddon() {
+			blendFile.Addons = append(blendFile.Addons, installation.Addon)
+		}
 	}
 
 	if err := blendfile.Validate(blendFile); err != nil {
@@ -244,7 +218,7 @@ func (d *driver) ResolveBlendFile(ctx context.Context) (*blendfile.BlendFile, er
 	return blendFile, nil
 }
 
-func (d *driver) getDependencies(ctx context.Context) ([]*rocketpack.RocketPack, error) {
+func (d *driver) getDependencies(ctx context.Context) (map[reference.Reference]*rocketpack.RocketPack, error) {
 	// TODO: make sure GetPackages returns dependencies from builds as separate packages
 	return d.rocketPackService.GetPackages(ctx, d.blendConfig.RocketFile.GetDependencies()...)
 }
