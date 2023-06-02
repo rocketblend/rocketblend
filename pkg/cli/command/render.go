@@ -6,10 +6,6 @@ import (
 	"github.com/spf13/cobra"
 )
 
-type templateData struct {
-	Project string
-}
-
 // newRenderCommand creates a new cobra command for rendering the project.
 // It sets up all necessary flags and executes the rendering through the driver.
 func (srv *Service) newRenderCommand() *cobra.Command {
