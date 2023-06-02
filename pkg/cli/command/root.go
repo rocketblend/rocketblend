@@ -1,14 +1,12 @@
 package command
 
 import (
-	"fmt"
 	"path/filepath"
 
 	"github.com/rocketblend/rocketblend/pkg/cli/build"
 	"github.com/rocketblend/rocketblend/pkg/cli/factory"
 	"github.com/rocketblend/rocketblend/pkg/cli/helpers"
-	"github.com/rocketblend/rocketblend/pkg/jot/reference"
-	"github.com/rocketblend/rocketblend/pkg/rocketblend"
+	"github.com/rocketblend/rocketblend/pkg/rocketblend/blendconfig"
 
 	"github.com/spf13/cobra"
 )
@@ -28,19 +26,24 @@ type (
 )
 
 // NewService creates a new Service instance.
-func NewService() *Service {
-	return &Service{
-		factory: factory.New(),
-		flags:   &persistentFlags{},
+func NewService() (*Service, error) {
+	factory, err := factory.New()
+	if err != nil {
+		return nil, err
 	}
+
+	return &Service{
+		factory: factory,
+		flags:   &persistentFlags{},
+	}, nil
 }
 
-// NewCommand initializes a new cobra.Command object. This is the root command.
+// NewRootCommand initializes a new cobra.Command object. This is the root command.
 // All other commands are subcommands of this root command.
-func (srv *Service) NewCommand() *cobra.Command {
+func (srv *Service) NewRootCommand() *cobra.Command {
 	c := &cobra.Command{
 		Version: build.Version,
-		Use:     rocketblend.Name,
+		Use:     build.AppName,
 		Short:   "RocketBlend is a build and addon manager for Blender projects.",
 		Long: `RocketBlend is a CLI tool that streamlines the process of managing
 builds and addons for Blender projects.
@@ -102,20 +105,10 @@ func (srv *Service) findBlendFilePath(dir string) (string, error) {
 		return "", err
 	}
 
-	path, err := helpers.FindFilePathForExt(dir, rocketblend.BlenderFileExtension)
+	path, err := helpers.FindFilePathForExt(dir, blendconfig.BlenderFileExtension)
 	if err != nil {
 		return "", err
 	}
 
 	return path, nil
-}
-
-// parseReference converts a reference string into a reference struct.
-func (srv *Service) parseReference(arg string) (*reference.Reference, error) {
-	r, err := reference.Parse(arg)
-	if err != nil {
-		return nil, fmt.Errorf("failed to parse reference: %w", err)
-	}
-
-	return &r, nil
 }

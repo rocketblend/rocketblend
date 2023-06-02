@@ -5,9 +5,9 @@ import (
 	"os"
 
 	"github.com/go-playground/validator/v10"
+	"github.com/rocketblend/rocketblend/pkg/rocketblend/helpers"
+	"github.com/rocketblend/rocketblend/pkg/rocketblend/reference"
 	"github.com/rocketblend/rocketblend/pkg/rocketblend/runtime"
-	"github.com/rocketblend/rocketblend/pkg/rocketblend2/helpers"
-	"github.com/rocketblend/rocketblend/pkg/rocketblend2/reference"
 	"sigs.k8s.io/yaml"
 )
 

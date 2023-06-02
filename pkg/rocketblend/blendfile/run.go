@@ -5,7 +5,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/rocketblend/rocketblend/pkg/rocketblend2/blendfile/runoptions"
+	"github.com/rocketblend/rocketblend/pkg/rocketblend/blendfile/runoptions"
 )
 
 func (s *service) Run(ctx context.Context, blendFile *BlendFile, opts ...runoptions.Option) error {

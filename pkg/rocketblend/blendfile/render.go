@@ -5,8 +5,8 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/rocketblend/rocketblend/pkg/blenderparser"
-	"github.com/rocketblend/rocketblend/pkg/rocketblend2/blendfile/renderoptions"
+	"github.com/rocketblend/rocketblend/pkg/rocketblend/blenderparser"
+	"github.com/rocketblend/rocketblend/pkg/rocketblend/blendfile/renderoptions"
 )
 
 type (

@@ -1,12 +1,8 @@
 package command
 
 import (
-	"context"
 	"fmt"
-	"path/filepath"
-	"strings"
 
-	"github.com/rocketblend/rocketblend/pkg/jot/reference"
 	"github.com/spf13/cobra"
 )
 
@@ -22,56 +18,11 @@ func (srv *Service) newNewCommand() *cobra.Command {
 		Long:  `Creates a new project with a specified name. Use the 'skip-install' flag to skip installing dependencies.`,
 		Args:  cobra.MinimumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			if err := srv.validateName(args[0]); err != nil {
-				return fmt.Errorf("validation failed for name '%s': %w", args[0], err)
-			}
-
-			config, err := srv.factory.CreateConfigService()
-			if err != nil {
-				return fmt.Errorf("failed to create config service: %w", err)
-			}
-
-			ref, err := srv.parseReference(config.GetValueByString("defaultBuild"))
-			if err != nil {
-				return fmt.Errorf("failed to parse default build reference: %w", err)
-			}
-
-			if err := srv.createProject(cmd.Context(), args[0], ref, skipInstall); err != nil {
-				return fmt.Errorf("failed to create project '%s': %w", args[0], err)
-			}
-
-			return nil
+			return fmt.Errorf("not implemented")
 		},
 	}
 
 	c.Flags().BoolVarP(&skipInstall, "skip-install", "s", false, "skip installing dependencies")
 
 	return c
-}
-
-// createProject uses the driver to create a new project.
-func (srv *Service) createProject(ctx context.Context, name string, buildRef *reference.Reference, skipInstall bool) error {
-	rocketblend, err := srv.factory.CreateRocketBlendService()
-	if err != nil {
-		return fmt.Errorf("failed to create rocketblend: %w", err)
-	}
-
-	if err = rocketblend.Create(ctx, name, srv.flags.workingDirectory, *buildRef, skipInstall); err != nil {
-		return fmt.Errorf("driver failed to create project: %w", err)
-	}
-
-	return nil
-}
-
-// validateName checks if the provided name is valid.
-func (srv *Service) validateName(name string) error {
-	if filepath.IsAbs(name) || strings.Contains(name, string(filepath.Separator)) {
-		return fmt.Errorf("%q is not a valid project name, it should not contain any path separators", name)
-	}
-
-	if ext := filepath.Ext(name); ext != "" {
-		return fmt.Errorf("%q is not a valid project name, it should not contain any file extension", name)
-	}
-
-	return nil
 }

@@ -7,8 +7,12 @@ import (
 )
 
 func New() (*cobra.Command, error) {
-	srv := command.NewService()
-	rootCMD := srv.NewCommand()
+	cmd, err := command.NewService()
+	if err != nil {
+		return nil, err
+	}
+
+	rootCMD := cmd.NewRootCommand()
 
 	// Configure help template colours
 	cc.Init(&cc.Config{

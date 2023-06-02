@@ -19,7 +19,7 @@ func (srv *Service) newConfigCommand() *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			key := args[0]
 
-			config, err := srv.factory.CreateConfigService()
+			config, err := srv.factory.GetConfigService()
 			if err != nil {
 				return fmt.Errorf("failed to create config service: %w", err)
 			}

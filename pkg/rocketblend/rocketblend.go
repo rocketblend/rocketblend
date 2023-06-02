@@ -1,43 +1,56 @@
 package rocketblend
 
 import (
+	"context"
 	"fmt"
-	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/flowshot-io/x/pkg/logger"
-	"github.com/rocketblend/rocketblend/pkg/jot"
-	"github.com/rocketblend/rocketblend/pkg/rocketblend/resource"
+	"github.com/rocketblend/rocketblend/pkg/rocketblend/blendconfig"
+	"github.com/rocketblend/rocketblend/pkg/rocketblend/blendfile"
+	"github.com/rocketblend/rocketblend/pkg/rocketblend/blendfile/renderoptions"
+	"github.com/rocketblend/rocketblend/pkg/rocketblend/blendfile/runoptions"
+	"github.com/rocketblend/rocketblend/pkg/rocketblend/installation"
+	"github.com/rocketblend/rocketblend/pkg/rocketblend/reference"
+	"github.com/rocketblend/rocketblend/pkg/rocketblend/rocketfile"
 	"github.com/rocketblend/rocketblend/pkg/rocketblend/rocketpack"
-	"github.com/rocketblend/rocketblend/pkg/rocketblend/runtime"
-)
-
-const (
-	Name                 = "rocketblend"
-	BlenderFileExtension = ".blend"
 )
 
 type (
-	Driver struct {
-		logger                logger.Logger
-		resource              resource.Service
-		pack                  rocketpack.Service
-		debug                 bool
-		platform              runtime.Platform
-		defaultBuild          string
-		InstallationDirectory string
-		addonsEnabled         bool
+	Driver interface {
+		Render(ctx context.Context, opts ...renderoptions.Option) error
+		Run(ctx context.Context, opts ...runoptions.Option) error
+		Create(ctx context.Context) error
+
+		InstallDependencies(ctx context.Context) error
+
+		AddDependencies(ctx context.Context, references ...reference.Reference) error
+		RemoveDependencies(ctx context.Context, references ...reference.Reference) error
+
+		ResolveBlendFile(ctx context.Context) (*blendfile.BlendFile, error)
 	}
 
 	Options struct {
-		Logger                logger.Logger
-		Debug                 bool
-		Platform              runtime.Platform
-		InstallationDirectory string
-		AddonsEnabled         bool
+		Logger      logger.Logger
+		BlendConfig *blendconfig.BlendConfig
+
+		InstallationService installation.Service
+		RocketPackService   rocketpack.Service
+		BlendFileService    blendfile.Service
 	}
 
 	Option func(*Options)
+
+	driver struct {
+		logger logger.Logger
+
+		InstallationService installation.Service
+		rocketPackService   rocketpack.Service
+		blendFileService    blendfile.Service
+
+		blendConfig *blendconfig.BlendConfig
+	}
 )
 
 func WithLogger(logger logger.Logger) Option {
@@ -46,31 +59,31 @@ func WithLogger(logger logger.Logger) Option {
 	}
 }
 
-func WithPlatform(platform runtime.Platform) Option {
+func WithBlendConfig(blendConfig *blendconfig.BlendConfig) Option {
 	return func(o *Options) {
-		o.Platform = platform
+		o.BlendConfig = blendConfig
 	}
 }
 
-func WithInstallationDirectory(dir string) Option {
+func WithInstallationService(installationService installation.Service) Option {
 	return func(o *Options) {
-		o.InstallationDirectory = dir
+		o.InstallationService = installationService
 	}
 }
 
-func WithDebug() Option {
+func WithRocketPackService(rocketPackService rocketpack.Service) Option {
 	return func(o *Options) {
-		o.Debug = true
+		o.RocketPackService = rocketPackService
 	}
 }
 
-func WithAddonsEnabled() Option {
+func WithBlendFileService(blendFileService blendfile.Service) Option {
 	return func(o *Options) {
-		o.AddonsEnabled = true
+		o.BlendFileService = blendFileService
 	}
 }
 
-func New(opts ...Option) (*Driver, error) {
+func New(opts ...Option) (Driver, error) {
 	options := &Options{
 		Logger: logger.NoOp(),
 	}
@@ -79,59 +92,198 @@ func New(opts ...Option) (*Driver, error) {
 		opt(options)
 	}
 
-	// if not installation directory is provided, use the default
-	if options.InstallationDirectory == "" {
-		configDir, err := os.UserConfigDir()
+	if options.InstallationService == nil {
+		isrv, err := installation.NewService(
+			installation.WithLogger(options.Logger),
+		)
 		if err != nil {
-			return nil, fmt.Errorf("cannot find config directory: %v", err)
+			return nil, fmt.Errorf("failed to create default installation service: %w", err)
 		}
 
-		dir := filepath.Join(configDir, Name, "packages")
+		options.InstallationService = isrv
+	}
 
-		if err := os.MkdirAll(dir, os.ModePerm); err != nil {
-			return nil, fmt.Errorf("failed to create main directory: %w", err)
+	if options.RocketPackService == nil {
+		rpsrv, err := rocketpack.NewService(
+			rocketpack.WithLogger(options.Logger),
+		)
+		if err != nil {
+			return nil, fmt.Errorf("failed to create default rocket pack service: %w", err)
 		}
 
-		options.InstallationDirectory = dir
+		options.RocketPackService = rpsrv
 	}
 
-	// if no platform is provided, detect it
-	if options.Platform == runtime.Undefined {
-		platform := runtime.DetectPlatform()
-		if platform == runtime.Undefined {
-			return nil, fmt.Errorf("cannot detect platform")
+	if options.BlendFileService == nil {
+		bfsrv, err := blendfile.NewService(
+			blendfile.WithLogger(options.Logger),
+		)
+		if err != nil {
+			return nil, fmt.Errorf("failed to create default blend file service: %w", err)
 		}
 
-		options.Platform = platform
+		options.BlendFileService = bfsrv
 	}
 
-	jot, err := jot.New(jot.WithLogger(options.Logger), jot.WithStorageDir(options.InstallationDirectory))
-	if err != nil {
-		return nil, err
+	if options.BlendConfig == nil {
+		return nil, fmt.Errorf("blend config is required")
 	}
 
-	pack, err := rocketpack.NewService(
-		rocketpack.WithLogger(options.Logger),
-		rocketpack.WithPlatform(options.Platform),
-		rocketpack.WithStorage(jot))
-	if err != nil {
-		return nil, err
+	if err := blendconfig.Validate(options.BlendConfig); err != nil {
+		return nil, fmt.Errorf("invalid blend config: %w", err)
 	}
 
-	options.Logger.Debug("RocketBlend initialized", map[string]interface{}{
-		"platform":              options.Platform.String(),
-		"installationDirectory": options.InstallationDirectory,
-		"addonsEnabled":         options.AddonsEnabled,
-	})
-
-	// create driver
-	return &Driver{
-		logger:                options.Logger,
-		pack:                  pack,
-		resource:              resource.NewService(),
-		debug:                 options.Debug,
-		InstallationDirectory: options.InstallationDirectory,
-		platform:              options.Platform,
-		addonsEnabled:         options.AddonsEnabled,
+	return &driver{
+		logger:              options.Logger,
+		InstallationService: options.InstallationService,
+		rocketPackService:   options.RocketPackService,
+		blendFileService:    options.BlendFileService,
+		blendConfig:         options.BlendConfig,
 	}, nil
+}
+
+func (d *driver) Render(ctx context.Context, opts ...renderoptions.Option) error {
+	blendFile, err := d.ResolveBlendFile(ctx)
+	if err != nil {
+		return fmt.Errorf("failed to resolve blend file: %w", err)
+	}
+
+	if err := d.blendFileService.Render(ctx, blendFile, opts...); err != nil {
+		return fmt.Errorf("failed to render blend file: %w", err)
+	}
+
+	return nil
+}
+
+func (d *driver) Run(ctx context.Context, opts ...runoptions.Option) error {
+	blendFile, err := d.ResolveBlendFile(ctx)
+	if err != nil {
+		return fmt.Errorf("failed to resolve blend file: %w", err)
+	}
+
+	if err := d.blendFileService.Run(ctx, blendFile, opts...); err != nil {
+		return fmt.Errorf("failed to run blend file: %w", err)
+	}
+
+	return nil
+}
+
+func (d *driver) Create(ctx context.Context) error {
+	blendFile, err := d.ResolveBlendFile(ctx)
+	if err != nil {
+		return fmt.Errorf("failed to resolve blend file: %w", err)
+	}
+
+	if err := d.blendFileService.Create(ctx, blendFile); err != nil {
+		return fmt.Errorf("failed to create blend file: %w", err)
+	}
+
+	if err := d.save(ctx); err != nil {
+		return fmt.Errorf("failed to save blend config: %w", err)
+	}
+
+	return nil
+}
+
+func (d *driver) AddDependencies(ctx context.Context, references ...reference.Reference) error {
+	packs, err := d.rocketPackService.GetPackages(ctx, references...)
+	if err != nil {
+		return fmt.Errorf("failed to get rocket packs: %w", err)
+	}
+
+	for index, pack := range packs {
+		if pack.IsBuild() {
+			d.blendConfig.RocketFile.SetBuild(index)
+		}
+
+		if pack.IsAddon() {
+			d.blendConfig.RocketFile.AddAddons(index)
+		}
+	}
+
+	if err = d.save(ctx); err != nil {
+		return fmt.Errorf("failed to save blend config: %w", err)
+	}
+
+	return nil
+}
+
+func (d *driver) RemoveDependencies(ctx context.Context, references ...reference.Reference) error {
+	packs, err := d.rocketPackService.GetPackages(ctx, references...)
+	if err != nil {
+		return fmt.Errorf("failed to get rocket packs: %w", err)
+	}
+
+	for index, pack := range packs {
+		if pack.IsBuild() {
+			d.blendConfig.RocketFile.SetBuild("")
+		}
+
+		if pack.IsAddon() {
+			d.blendConfig.RocketFile.RemoveAddons(index)
+		}
+	}
+
+	if err = d.save(ctx); err != nil {
+		return fmt.Errorf("failed to save blend config: %w", err)
+	}
+
+	return nil
+}
+
+func (d *driver) InstallDependencies(ctx context.Context) error {
+	packs, err := d.getDependencies(ctx)
+	if err != nil {
+		return fmt.Errorf("failed to get rocket packs: %w", err)
+	}
+
+	_, err = d.InstallationService.GetInstallations(ctx, packs, false)
+	if err != nil {
+		return fmt.Errorf("failed to get installations: %w", err)
+	}
+
+	return nil
+}
+
+func (d *driver) ResolveBlendFile(ctx context.Context) (*blendfile.BlendFile, error) {
+	packs, err := d.getDependencies(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get rocket packs: %w", err)
+	}
+
+	installations, err := d.InstallationService.GetInstallations(ctx, packs, false)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get installations: %w", err)
+	}
+
+	name := filepath.Base(d.blendConfig.BlendFilePath())
+	blendFile := &blendfile.BlendFile{
+		ProjectName: strings.TrimSuffix(name, filepath.Ext(name)),
+		FilePath:    d.blendConfig.BlendFilePath(),
+		ARGS:        d.blendConfig.RocketFile.GetArgs(),
+	}
+
+	for _, installation := range installations {
+		if installation.IsBuild() {
+			blendFile.Build = installation.Build
+		}
+
+		if installation.IsAddon() {
+			blendFile.Addons = append(blendFile.Addons, installation.Addon)
+		}
+	}
+
+	if err := blendfile.Validate(blendFile); err != nil {
+		return nil, fmt.Errorf("invalid blend file: %w", err)
+	}
+
+	return blendFile, nil
+}
+
+func (d *driver) getDependencies(ctx context.Context) (map[reference.Reference]*rocketpack.RocketPack, error) {
+	return d.rocketPackService.GetPackages(ctx, d.blendConfig.RocketFile.GetDependencies()...)
+}
+
+func (d *driver) save(ctx context.Context) error {
+	return rocketfile.Save(filepath.Join(d.blendConfig.ProjectPath, rocketfile.FileName), d.blendConfig.RocketFile)
 }

@@ -11,8 +11,8 @@ import (
 	"text/template"
 
 	"github.com/flowshot-io/x/pkg/logger"
-	"github.com/rocketblend/rocketblend/pkg/rocketblend2/blendfile/renderoptions"
-	"github.com/rocketblend/rocketblend/pkg/rocketblend2/blendfile/runoptions"
+	"github.com/rocketblend/rocketblend/pkg/rocketblend/blendfile/renderoptions"
+	"github.com/rocketblend/rocketblend/pkg/rocketblend/blendfile/runoptions"
 )
 
 //go:embed scripts/addonScript.gopy

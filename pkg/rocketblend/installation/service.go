@@ -9,11 +9,11 @@ import (
 	"path/filepath"
 
 	"github.com/flowshot-io/x/pkg/logger"
-	"github.com/rocketblend/rocketblend/pkg/jot/downloader"
-	"github.com/rocketblend/rocketblend/pkg/jot/extractor"
+	"github.com/rocketblend/rocketblend/pkg/downloader"
+	"github.com/rocketblend/rocketblend/pkg/extractor"
+	"github.com/rocketblend/rocketblend/pkg/rocketblend/reference"
+	"github.com/rocketblend/rocketblend/pkg/rocketblend/rocketpack"
 	"github.com/rocketblend/rocketblend/pkg/rocketblend/runtime"
-	"github.com/rocketblend/rocketblend/pkg/rocketblend2/reference"
-	"github.com/rocketblend/rocketblend/pkg/rocketblend2/rocketpack"
 )
 
 type (
@@ -24,7 +24,6 @@ type (
 
 	Options struct {
 		Logger      logger.Logger
-		PackagePath string
 		StoragePath string
 		Platform    runtime.Platform
 		Downloader  downloader.Downloader
@@ -81,29 +80,24 @@ func NewService(opts ...Option) (Service, error) {
 		opt(options)
 	}
 
-	if options.Downloader == nil {
-		return nil, fmt.Errorf("downloader is required")
-	}
-
-	if options.Extractor == nil {
-		return nil, fmt.Errorf("extractor is required")
-	}
-
 	if options.StoragePath == "" {
 		return nil, fmt.Errorf("storage path is required")
 	}
 
-	if options.PackagePath == "" {
-		return nil, fmt.Errorf("package path is required")
+	if options.Downloader == nil {
+		downloader := downloader.New(
+			downloader.WithLogger(options.Logger),
+		)
+
+		options.Downloader = downloader
 	}
 
-	if options.Platform == runtime.Undefined {
-		platform := runtime.DetectPlatform()
-		if platform == runtime.Undefined {
-			return nil, fmt.Errorf("cannot detect platform")
-		}
+	if options.Extractor == nil {
+		extractor := extractor.New(
+			extractor.WithLogger(options.Logger),
+		)
 
-		options.Platform = platform
+		options.Extractor = extractor
 	}
 
 	err := os.MkdirAll(options.StoragePath, 0755)

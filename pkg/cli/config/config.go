@@ -8,7 +8,7 @@ import (
 
 	"github.com/go-playground/validator/v10"
 	"github.com/mitchellh/mapstructure"
-	"github.com/rocketblend/rocketblend/pkg/rocketblend"
+	"github.com/rocketblend/rocketblend/pkg/cli/build"
 	"github.com/rocketblend/rocketblend/pkg/rocketblend/runtime"
 	"github.com/spf13/viper"
 )
@@ -112,28 +112,26 @@ func platformHookFunc() mapstructure.DecodeHookFuncType {
 func load() (*viper.Viper, error) {
 	v := viper.New()
 
-	configDir, err := os.UserConfigDir()
-	if err != nil {
-		return nil, fmt.Errorf("cannot find config directory: %v", err)
-	}
-
 	platform := runtime.DetectPlatform()
 	if platform == runtime.Undefined {
 		return nil, fmt.Errorf("cannot detect platform")
 	}
 
-	appDir := filepath.Join(configDir, rocketblend.Name)
-	installDir := filepath.Join(appDir, "packages")
-
-	if err := os.MkdirAll(installDir, os.ModePerm); err != nil {
-		return nil, fmt.Errorf("failed to create main directory: %w", err)
+	userConfigDir, err := os.UserConfigDir()
+	if err != nil {
+		return nil, fmt.Errorf("cannot find config directory: %v", err)
 	}
 
-	v.SetDefault("debug", false)
+	appDir := filepath.Join(userConfigDir, build.AppName)
+	if err := os.MkdirAll(appDir, os.ModePerm); err != nil {
+		return nil, fmt.Errorf("failed to create app directory: %w", err)
+	}
+
 	v.SetDefault("platform", platform.String())
 	v.SetDefault("defaultBuild", DefaultBuild)
-	v.SetDefault("features.addons", false)
-	v.SetDefault("installDir", installDir)
+	v.SetDefault("logLevel", "info")
+	v.SetDefault("installationsPath", filepath.Join(appDir, "installations"))
+	v.SetDefault("packagesPath", filepath.Join(appDir, "packages"))
 
 	v.SetConfigName("settings") // Set the name of the configuration file
 	v.AddConfigPath(appDir)     // Look for the configuration file at the home directory

@@ -3,8 +3,8 @@ package rocketpack
 import (
 	"fmt"
 
+	"github.com/rocketblend/rocketblend/pkg/rocketblend/reference"
 	"github.com/rocketblend/rocketblend/pkg/rocketblend/runtime"
-	"github.com/rocketblend/rocketblend/pkg/rocketblend2/reference"
 	"github.com/rocketblend/rocketblend/pkg/semver"
 )
 

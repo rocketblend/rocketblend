@@ -3,261 +3,199 @@ package rocketpack
 import (
 	"context"
 	"fmt"
-	"io"
-	"net/http"
-	"net/url"
+	"os"
+	"path/filepath"
 
 	"github.com/flowshot-io/x/pkg/logger"
-	"github.com/rocketblend/rocketblend/pkg/jot"
-	"github.com/rocketblend/rocketblend/pkg/jot/reference"
-	"github.com/rocketblend/rocketblend/pkg/rocketblend/runtime"
+	"github.com/go-git/go-git/v5"
+	"github.com/rocketblend/rocketblend/pkg/rocketblend/reference"
 )
-
-const PackgeFile = "rocketpack.yaml"
 
 type (
 	Service interface {
-		DescribeByReference(reference reference.Reference) (*RocketPack, error)
-		FindByReference(ref reference.Reference) (*RocketPack, error)
-		InstallByReference(reference reference.Reference, force bool) error
-		InstallByReferenceWithContext(ctx context.Context, reference reference.Reference, force bool) error
-		UninstallByReference(reference reference.Reference) error
+		GetPackages(ctx context.Context, references ...reference.Reference) (map[reference.Reference]*RocketPack, error)
+		RemovePackages(ctx context.Context, references ...reference.Reference) error
 	}
 
-	ServiceOptions struct {
-		Storage  jot.Storage
-		Logger   logger.Logger
-		Platform runtime.Platform
+	Options struct {
+		Logger      logger.Logger
+		StoragePath string
 	}
 
-	ServiceOption func(*ServiceOptions)
+	Option func(*Options)
 
 	service struct {
-		logger   logger.Logger
-		storage  jot.Storage
-		platform runtime.Platform
+		logger      logger.Logger
+		storagePath string
 	}
 )
 
-func WithLogger(logger logger.Logger) ServiceOption {
-	return func(o *ServiceOptions) {
+func WithStoragePath(storagePath string) Option {
+	return func(o *Options) {
+		o.StoragePath = storagePath
+	}
+}
+
+func WithLogger(logger logger.Logger) Option {
+	return func(o *Options) {
 		o.Logger = logger
 	}
 }
 
-func WithStorage(storage jot.Storage) ServiceOption {
-	return func(o *ServiceOptions) {
-		o.Storage = storage
-	}
-}
-
-func WithPlatform(platform runtime.Platform) ServiceOption {
-	return func(o *ServiceOptions) {
-		o.Platform = platform
-	}
-}
-
-func NewService(opts ...ServiceOption) (Service, error) {
-	options := &ServiceOptions{
-		Logger:   logger.NoOp(),
-		Platform: runtime.Undefined,
+func NewService(opts ...Option) (Service, error) {
+	options := &Options{
+		Logger: logger.NoOp(),
 	}
 
 	for _, opt := range opts {
 		opt(options)
 	}
 
-	if options.Storage == nil {
-		return nil, fmt.Errorf("storage is required")
+	if options.StoragePath == "" {
+		return nil, fmt.Errorf("storage path is required")
+	}
+
+	err := os.MkdirAll(options.StoragePath, 0755)
+	if err != nil {
+		return nil, err
 	}
 
 	return &service{
-		logger:   options.Logger,
-		storage:  options.Storage,
-		platform: options.Platform,
+		logger:      options.Logger,
+		storagePath: options.StoragePath,
 	}, nil
 }
 
-func (srv *service) DescribeByReference(reference reference.Reference) (*RocketPack, error) {
-	url, err := url.JoinPath(reference.Url(), PackgeFile)
-	if err != nil {
-		return nil, err
-	}
+func (s *service) GetPackages(ctx context.Context, references ...reference.Reference) (map[reference.Reference]*RocketPack, error) {
+	s.logger.Info("Getting packages")
+	packages := make(map[reference.Reference]*RocketPack)
+	for _, ref := range references {
+		s.logger.Info("Processing reference", map[string]interface{}{"reference": ref.String()})
 
-	resp, err := http.Get(url)
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
-
-	bodyBytes, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return nil, err
-	}
-
-	pack, err := load(bodyBytes)
-	if err != nil {
-		return nil, err
-	}
-
-	return pack, nil
-}
-
-func (srv *service) InstallByReference(ref reference.Reference, force bool) error {
-	return srv.InstallByReferenceWithContext(context.Background(), ref, force)
-}
-
-func (srv *service) InstallByReferenceWithContext(ctx context.Context, ref reference.Reference, force bool) error {
-	// Check if already installed.
-	pack, _ := srv.FindByReference(ref)
-
-	// Pack found but force is true, delete it.
-	if pack != nil && force {
-		err := srv.storage.DeleteAll(ref)
+		repoURL, err := ref.RepoURL()
 		if err != nil {
+			s.logger.Error("Error getting repository URL", map[string]interface{}{"error": err, "reference": ref.String()})
+			return nil, err
+		}
+
+		repoPath, err := ref.RepoPath()
+		if err != nil {
+			s.logger.Error("Error getting repository path", map[string]interface{}{"error": err, "reference": ref.String()})
+			return nil, err
+		}
+
+		localPath := filepath.Join(s.storagePath, repoPath)
+
+		// Check if the file exists in the local storage
+		_, err = os.Stat(localPath)
+		if os.IsNotExist(err) {
+			// The file does not exist, clone the repository
+			s.logger.Info("File does not exist locally, cloning repository", map[string]interface{}{"repoURL": repoURL, "reference": ref.String()})
+			_, err = git.PlainCloneContext(ctx, localPath, false, &git.CloneOptions{
+				URL:      repoURL,
+				Progress: LoggerWriter{s.logger},
+			})
+			if err != nil {
+				s.logger.Error("Error cloning repository", map[string]interface{}{"error": err, "reference": ref.String()})
+				return nil, err
+			}
+		} else if err != nil {
+			// There was an error checking the file
+			s.logger.Error("Error checking file", map[string]interface{}{"error": err, "reference": ref.String()})
+			return nil, err
+		} else {
+			// Open the existing repository
+			r, err := git.PlainOpen(localPath)
+			if err != nil {
+				s.logger.Error("Error opening repository", map[string]interface{}{"error": err, "reference": ref.String()})
+				return nil, err
+			}
+
+			// Get the working tree
+			w, err := r.Worktree()
+			if err != nil {
+				s.logger.Error("Error getting worktree", map[string]interface{}{"error": err, "reference": ref.String()})
+				return nil, err
+			}
+
+			// Pull the latest changes from the origin remote and merge into the current branch
+			s.logger.Info("Pulling latest changes", map[string]interface{}{"reference": ref.String()})
+			err = w.PullContext(ctx, &git.PullOptions{
+				Force:    true,
+				Progress: LoggerWriter{s.logger},
+			})
+			if err != nil && err != git.NoErrAlreadyUpToDate {
+				s.logger.Error("Error pulling latest changes", map[string]interface{}{"error": err, "reference": ref.String()})
+				return nil, err
+			}
+		}
+
+		pack, err := Load(localPath)
+		if err != nil {
+			s.logger.Error("Error loading package", map[string]interface{}{"error": err, "reference": ref.String()})
+			return nil, err
+		}
+
+		deps := pack.GetDependencies()
+		if len(deps) > 0 {
+			s.logger.Info("Package has dependencies", map[string]interface{}{"reference": ref.String()})
+
+			// Get the dependencies
+			depPackages, err := s.GetPackages(ctx, deps...)
+			if err != nil {
+				s.logger.Error("Error getting dependency packages", map[string]interface{}{"error": err, "reference": ref.String()})
+				return nil, err
+			}
+
+			// Add the dependencies to the packages map
+			for _, dep := range deps {
+				packages[dep] = depPackages[dep]
+			}
+
+			s.logger.Info("Dependency packages successfully loaded", map[string]interface{}{"reference": ref.String()})
+		}
+
+		packages[ref] = pack
+	}
+
+	s.logger.Info("Packages successfully loaded")
+	return packages, nil
+}
+
+func (s *service) RemovePackages(ctx context.Context, references ...reference.Reference) error {
+	s.logger.Info("Removing packages")
+	for _, ref := range references {
+		s.logger.Info("Processing reference", map[string]interface{}{"reference": ref.String()})
+
+		repoPath, err := ref.RepoPath()
+		if err != nil {
+			s.logger.Error("Error getting repository path", map[string]interface{}{"error": err, "reference": ref.String()})
 			return err
 		}
 
-		pack = nil
-	}
+		localPath := filepath.Join(s.storagePath, repoPath)
 
-	// Pack found is a build pack, also check it's addons.
-	if pack != nil && pack.Build != nil {
-		err := srv.installBuildAddons(ctx, pack.Build, force)
-		if err != nil {
+		// Check if the file exists in the local storage
+		_, err = os.Stat(localPath)
+		if os.IsNotExist(err) {
+			// The file does not exist, nothing to remove
+			s.logger.Debug("File does not exist locally, nothing to remove", map[string]interface{}{"localPath": localPath, "reference": ref.String()})
+			continue
+		} else if err != nil {
+			// There was an error checking the file
+			s.logger.Error("Error checking file", map[string]interface{}{"error": err, "reference": ref.String()})
 			return err
 		}
 
-		return nil
-	}
-
-	// Pack was not found installed, try to install it.
-	if pack == nil {
-		fmt.Println(ref.String())
-
-		err := srv.fetchByReference(ref)
+		// Remove the directory
+		s.logger.Debug("Removing directory", map[string]interface{}{"localPath": localPath, "reference": ref.String()})
+		err = os.RemoveAll(localPath)
 		if err != nil {
-			return err
-		}
-
-		err = srv.pullByReference(ctx, ref, force)
-		if err != nil {
-			return err
-		}
-	}
-
-	return nil
-}
-
-func (srv *service) UninstallByReference(ref reference.Reference) error {
-	_, err := srv.FindByReference(ref)
-	if err != nil {
-		return err
-	}
-
-	if err := srv.storage.DeleteAll(ref); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func (srv *service) FindByReference(ref reference.Reference) (*RocketPack, error) {
-	bytes, err := srv.storage.Read(ref, PackgeFile)
-	if err != nil {
-		return nil, err
-	}
-
-	pack, err := load(bytes)
-	if err != nil {
-		return nil, err
-	}
-
-	return pack, err
-}
-
-func (srv *service) fetchByReference(ref reference.Reference) error {
-	// Validates reference is a valid pack.
-	_, err := srv.DescribeByReference(ref)
-	if err != nil {
-		return err
-	}
-
-	downloadUrl, err := url.JoinPath(ref.Url(), PackgeFile)
-	if err != nil {
-		return err
-	}
-
-	err = srv.storage.Write(ref, PackgeFile, downloadUrl)
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func (srv *service) pullByReference(ctx context.Context, ref reference.Reference, force bool) error {
-	pack, err := srv.FindByReference(ref)
-	if err != nil {
-		return err
-	}
-
-	if pack.Addon != nil {
-		return srv.writeAddon(ctx, ref, pack.Addon)
-	}
-
-	if pack.Build != nil {
-		err := srv.writeBuild(ctx, ref, pack.Build)
-		if err != nil {
-			return err
-		}
-
-		err = srv.installBuildAddons(ctx, pack.Build, force)
-		if err != nil {
-			return err
-		}
-
-		return nil
-	}
-
-	return fmt.Errorf("no build or addon found in rocketpack %s", ref)
-}
-
-func (srv *service) writeAddon(ctx context.Context, ref reference.Reference, addon *Addon) error {
-	// Don't write if no source is provided. Addon might be preinstalled or local only.
-	if addon.Source == nil || addon.Source.URL == "" {
-		return nil
-	}
-
-	err := srv.storage.WriteWithContext(ctx, ref, addon.Source.File, addon.Source.URL)
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func (srv *service) writeBuild(ctx context.Context, ref reference.Reference, build *Build) error {
-	source := build.GetSourceForPlatform(srv.platform)
-	if source == nil {
-		return fmt.Errorf("no source found for platform %s", (srv.platform))
-	}
-
-	err := srv.storage.WriteWithContext(ctx, ref, jot.GetFilenameFromURL(source.URL), source.URL)
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func (srv *service) installBuildAddons(ctx context.Context, build *Build, force bool) error {
-	for _, pack := range build.Addons {
-		err := srv.InstallByReferenceWithContext(ctx, reference.Reference(pack), force)
-		if err != nil {
+			s.logger.Error("Error removing directory", map[string]interface{}{"error": err, "reference": ref.String()})
 			return err
 		}
 	}
 
+	s.logger.Info("Packages successfully removed")
 	return nil
 }

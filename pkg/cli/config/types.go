@@ -9,15 +9,11 @@ var (
 )
 
 type (
-	Features struct {
-		Addons bool `mapstructure:"addons"`
-	}
-
 	Config struct {
-		Debug        bool             `mapstructure:"debug"`
-		Platform     runtime.Platform `mapstructure:"platform"`
-		InstallDir   string           `mapstructure:"installDir"`
-		DefaultBuild string           `mapstructure:"defaultBuild"`
-		Features     *Features        `mapstructure:"features"`
+		Platform          runtime.Platform `mapstructure:"platform"`
+		DefaultBuild      string           `mapstructure:"defaultBuild"`
+		LogLevel          string           `mapstructure:"logLevel"`
+		InstallationsPath string           `mapstructure:"installationsPath"`
+		PackagesPath      string           `mapstructure:"packagesPath"`
 	}
 )
