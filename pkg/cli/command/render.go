@@ -1,8 +1,7 @@
 package command
 
 import (
-	"fmt"
-
+	"github.com/rocketblend/rocketblend/pkg/rocketblend/blendfile/renderoptions"
 	"github.com/spf13/cobra"
 )
 
@@ -22,7 +21,17 @@ func (srv *Service) newRenderCommand() *cobra.Command {
 		Long:  `Renders the project from the specified start frame to the end frame, with the given step. Outputs the render in the provided format.`,
 		Args:  cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return fmt.Errorf("not implemented")
+			rocketblend, err := srv.getDriver()
+			if err != nil {
+				return err
+			}
+
+			return rocketblend.Render(
+				cmd.Context(),
+				renderoptions.WithFrameRange(frameStart, frameEnd, frameStep),
+				renderoptions.WithOutput(output),
+				renderoptions.WithFormat(format),
+			)
 		},
 	}
 

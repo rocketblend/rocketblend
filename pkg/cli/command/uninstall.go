@@ -1,8 +1,7 @@
 package command
 
 import (
-	"fmt"
-
+	"github.com/rocketblend/rocketblend/pkg/rocketblend/reference"
 	"github.com/spf13/cobra"
 )
 
@@ -14,7 +13,17 @@ func (srv *Service) newUninstallCommand() *cobra.Command {
 		Long:  "Removes dependencies from the current project.",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return fmt.Errorf("not implemented")
+			rocketblend, err := srv.getDriver()
+			if err != nil {
+				return err
+			}
+
+			ref, err := reference.Parse(args[0])
+			if err != nil {
+				return err
+			}
+
+			return rocketblend.RemoveDependencies(cmd.Context(), ref)
 		},
 	}
 

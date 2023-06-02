@@ -1,8 +1,8 @@
 package command
 
 import (
-	"fmt"
-
+	"github.com/rocketblend/rocketblend/pkg/rocketblend/blendconfig"
+	"github.com/rocketblend/rocketblend/pkg/rocketblend/rocketfile"
 	"github.com/spf13/cobra"
 )
 
@@ -18,7 +18,22 @@ func (srv *Service) newNewCommand() *cobra.Command {
 		Long:  `Creates a new project with a specified name. Use the 'skip-install' flag to skip installing dependencies.`,
 		Args:  cobra.MinimumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return fmt.Errorf("not implemented")
+			config, err := srv.getConfig()
+			if err != nil {
+				return err
+			}
+
+			blendConfig, err := blendconfig.New(srv.flags.workingDirectory, args[0], rocketfile.New(config.DefaultBuild))
+			if err != nil {
+				return err
+			}
+
+			driver, err := srv.factory.CreateDriver(blendConfig)
+			if err != nil {
+				return err
+			}
+
+			return driver.Create(cmd.Context())
 		},
 	}
 

@@ -4,9 +4,12 @@ import (
 	"path/filepath"
 
 	"github.com/rocketblend/rocketblend/pkg/cli/build"
+	"github.com/rocketblend/rocketblend/pkg/cli/config"
 	"github.com/rocketblend/rocketblend/pkg/cli/factory"
 	"github.com/rocketblend/rocketblend/pkg/cli/helpers"
+	"github.com/rocketblend/rocketblend/pkg/rocketblend"
 	"github.com/rocketblend/rocketblend/pkg/rocketblend/blendconfig"
+	"github.com/rocketblend/rocketblend/pkg/rocketblend/rocketfile"
 
 	"github.com/spf13/cobra"
 )
@@ -98,17 +101,29 @@ func (srv *Service) validatePath(path string) (string, error) {
 	return absPath, nil
 }
 
-// findBlendFile finds the first Blender file in the given directory.
-func (srv *Service) findBlendFilePath(dir string) (string, error) {
-	dir, err := srv.validatePath(dir)
+func (srv *Service) getBlendConfig() (*blendconfig.BlendConfig, error) {
+	blendFilePath, err := helpers.FindFilePathForExt(srv.flags.workingDirectory, blendconfig.BlenderFileExtension)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
-	path, err := helpers.FindFilePathForExt(dir, blendconfig.BlenderFileExtension)
+	return blendconfig.Load(blendFilePath, filepath.Join(filepath.Dir(blendFilePath), rocketfile.FileName))
+}
+
+func (srv *Service) getDriver() (rocketblend.Driver, error) {
+	blendConfig, err := srv.getBlendConfig()
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
-	return path, nil
+	return srv.factory.CreateDriver(blendConfig)
+}
+
+func (srv *Service) getConfig() (*config.Config, error) {
+	configSrv, err := srv.factory.GetConfigService()
+	if err != nil {
+		return nil, err
+	}
+
+	return configSrv.Get()
 }

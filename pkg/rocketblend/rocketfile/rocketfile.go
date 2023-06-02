@@ -28,6 +28,13 @@ type (
 	}
 )
 
+func New(build reference.Reference, addons ...reference.Reference) *RocketFile {
+	return &RocketFile{
+		build:  build,
+		addons: addons,
+	}
+}
+
 func (r *RocketFile) GetBuild() reference.Reference {
 	return r.build
 }

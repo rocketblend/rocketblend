@@ -16,7 +16,7 @@ type (
 		GetRocketPackService() (rocketpack.Service, error)
 		GetInstallationService() (installation.Service, error)
 		GetBlendFileService() (blendfile.Service, error)
-		CreateRocketBlendService(blendConfig *blendconfig.BlendConfig) (rocketblend.Driver, error)
+		CreateDriver(blendConfig *blendconfig.BlendConfig) (rocketblend.Driver, error)
 	}
 
 	factory struct {
@@ -78,6 +78,7 @@ func New() (Factory, error) {
 }
 
 func (f *factory) GetConfigService() (*config.Service, error) {
+	// TODO: make this either return a new instance or a cached instance
 	return config.New()
 }
 
@@ -93,7 +94,7 @@ func (f *factory) GetBlendFileService() (blendfile.Service, error) {
 	return f.blendFileService, nil
 }
 
-func (f *factory) CreateRocketBlendService(blendConfig *blendconfig.BlendConfig) (rocketblend.Driver, error) {
+func (f *factory) CreateDriver(blendConfig *blendconfig.BlendConfig) (rocketblend.Driver, error) {
 	return rocketblend.New(
 		rocketblend.WithLogger(f.logger),
 		rocketblend.WithRocketPackService(f.rocketPackService),

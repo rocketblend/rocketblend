@@ -1,7 +1,7 @@
 package command
 
 import (
-	"fmt"
+	"encoding/json"
 
 	"github.com/spf13/cobra"
 )
@@ -17,7 +17,24 @@ func (srv *Service) newResolveCommand() *cobra.Command {
 		Long:  `Fetches and prints the resolved dependencies and paths for the project in the local machine in the specified output format (JSON or table)`,
 		Args:  cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return fmt.Errorf("not implemented")
+			rocketblend, err := srv.getDriver()
+			if err != nil {
+				return err
+			}
+
+			blendFile, err := rocketblend.ResolveBlendFile(cmd.Context())
+			if err != nil {
+				return err
+			}
+
+			display, err := json.Marshal(blendFile)
+			if err != nil {
+				return err
+			}
+
+			cmd.Println(display)
+
+			return nil
 		},
 	}
 

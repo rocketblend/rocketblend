@@ -1,8 +1,10 @@
 package command
 
 import (
+	"encoding/json"
 	"fmt"
 
+	"github.com/rocketblend/rocketblend/pkg/rocketblend/reference"
 	"github.com/spf13/cobra"
 )
 
@@ -17,7 +19,29 @@ func (srv *Service) newDescribeCommand() *cobra.Command {
 		Long:  `Fetches the definition of a package by its reference. The output can be formatted by specifying the 'output' flag.`,
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return fmt.Errorf("not implemented")
+			packages, err := srv.factory.GetRocketPackService()
+			if err != nil {
+				return fmt.Errorf("failed to get package service: %w", err)
+			}
+
+			ref, err := reference.Parse(args[0])
+			if err != nil {
+				return err
+			}
+
+			pkg, err := packages.GetPackages(cmd.Context(), ref)
+			if err != nil {
+				return err
+			}
+
+			display, err := json.Marshal(pkg)
+			if err != nil {
+				return err
+			}
+
+			cmd.Println(display)
+
+			return nil
 		},
 	}
 

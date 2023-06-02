@@ -34,3 +34,11 @@ func (r Reference) RepoPath() (string, error) {
 	parts := strings.SplitN(string(r), "/", 2)
 	return parts[1], nil
 }
+
+func Parse(s string) (Reference, error) {
+	r := Reference(s)
+	if err := r.Validate(); err != nil {
+		return "", err
+	}
+	return r, nil
+}
