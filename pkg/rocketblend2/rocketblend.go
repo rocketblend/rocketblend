@@ -4,10 +4,13 @@ import (
 	"context"
 	"fmt"
 	"path/filepath"
+	"strings"
 
 	"github.com/flowshot-io/x/pkg/logger"
 	"github.com/rocketblend/rocketblend/pkg/rocketblend2/blendconfig"
 	"github.com/rocketblend/rocketblend/pkg/rocketblend2/blendfile"
+	"github.com/rocketblend/rocketblend/pkg/rocketblend2/blendfile/renderoptions"
+	"github.com/rocketblend/rocketblend/pkg/rocketblend2/blendfile/runoptions"
 	"github.com/rocketblend/rocketblend/pkg/rocketblend2/installation"
 	"github.com/rocketblend/rocketblend/pkg/rocketblend2/reference"
 	"github.com/rocketblend/rocketblend/pkg/rocketblend2/rocketfile"
@@ -16,8 +19,8 @@ import (
 
 type (
 	Driver interface {
-		Render(ctx context.Context) error
-		Run(ctx context.Context) error
+		Render(ctx context.Context, opts ...renderoptions.Option) error
+		Run(ctx context.Context, opts ...runoptions.Option) error
 		Create(ctx context.Context) error
 
 		InstallDependencies(ctx context.Context) error
@@ -125,32 +128,34 @@ func New(opts ...Option) (Driver, error) {
 	}
 
 	return &driver{
-		logger: options.logger,
-
-		blendConfig: options.blendConfig,
+		logger:              options.logger,
+		InstallationService: options.installationService,
+		rocketPackService:   options.rocketPackService,
+		blendFileService:    options.blendFileService,
+		blendConfig:         options.blendConfig,
 	}, nil
 }
 
-func (d *driver) Render(ctx context.Context) error {
+func (d *driver) Render(ctx context.Context, opts ...renderoptions.Option) error {
 	blendFile, err := d.ResolveBlendFile(ctx)
 	if err != nil {
 		return fmt.Errorf("failed to resolve blend file: %w", err)
 	}
 
-	if err := d.blendFileService.Render(ctx, blendFile); err != nil {
+	if err := d.blendFileService.Render(ctx, blendFile, opts...); err != nil {
 		return fmt.Errorf("failed to render blend file: %w", err)
 	}
 
 	return nil
 }
 
-func (d *driver) Run(ctx context.Context) error {
+func (d *driver) Run(ctx context.Context, opts ...runoptions.Option) error {
 	blendFile, err := d.ResolveBlendFile(ctx)
 	if err != nil {
 		return fmt.Errorf("failed to resolve blend file: %w", err)
 	}
 
-	if err := d.blendFileService.Run(ctx, blendFile); err != nil {
+	if err := d.blendFileService.Run(ctx, blendFile, opts...); err != nil {
 		return fmt.Errorf("failed to run blend file: %w", err)
 	}
 
@@ -245,9 +250,11 @@ func (d *driver) ResolveBlendFile(ctx context.Context) (*blendfile.BlendFile, er
 		return nil, fmt.Errorf("failed to get installations: %w", err)
 	}
 
+	name := filepath.Base(d.blendConfig.BlendFilePath())
 	blendFile := &blendfile.BlendFile{
-		FilePath: d.blendConfig.BlendFilePath(),
-		ARGS:     d.blendConfig.RocketFile.GetArgs(),
+		ProjectName: strings.TrimSuffix(name, filepath.Ext(name)),
+		FilePath:    d.blendConfig.BlendFilePath(),
+		ARGS:        d.blendConfig.RocketFile.GetArgs(),
 	}
 
 	for _, installation := range installations {

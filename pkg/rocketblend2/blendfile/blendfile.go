@@ -9,16 +9,21 @@ import (
 
 type (
 	BlendFile struct {
-		FilePath string                `json:"filePath"`
-		Build    *installation.Build   `json:"build"`
-		Addons   []*installation.Addon `json:"addons"`
-		ARGS     string                `json:"args"`
+		ProjectName string                `json:"projectName"`
+		FilePath    string                `json:"filePath"`
+		Build       *installation.Build   `json:"build"`
+		Addons      []*installation.Addon `json:"addons"`
+		ARGS        string                `json:"args"`
 	}
 )
 
 func Validate(blendFile *BlendFile) error {
 	if blendFile == nil {
 		return fmt.Errorf("rocketfile cannot be nil")
+	}
+
+	if blendFile.ProjectName == "" {
+		return fmt.Errorf("project name cannot be empty")
 	}
 
 	if err := helpers.FileExists(blendFile.FilePath); err != nil {
