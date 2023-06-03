@@ -68,6 +68,29 @@ func NewService(opts ...Option) (Service, error) {
 
 func (s *service) GetPackages(ctx context.Context, references ...reference.Reference) (map[reference.Reference]*RocketPack, error) {
 	s.logger.Info("Getting packages")
+	packages, err := s.getPackages(ctx, references...)
+	if err != nil {
+		s.logger.Error("Error getting packages", map[string]interface{}{"error": err})
+		return nil, err
+	}
+
+	s.logger.Info("Packages successfully loaded")
+	return packages, nil
+}
+
+func (s *service) RemovePackages(ctx context.Context, references ...reference.Reference) error {
+	s.logger.Info("Removing packages")
+	err := s.removePackages(ctx, references...)
+	if err != nil {
+		s.logger.Error("Error removing packages", map[string]interface{}{"error": err})
+		return err
+	}
+
+	s.logger.Info("Packages successfully removed")
+	return nil
+}
+
+func (s *service) getPackages(ctx context.Context, references ...reference.Reference) (map[reference.Reference]*RocketPack, error) {
 	packages := make(map[reference.Reference]*RocketPack)
 	for _, ref := range references {
 		s.logger.Info("Processing reference", map[string]interface{}{"reference": ref.String()})
@@ -153,7 +176,7 @@ func (s *service) GetPackages(ctx context.Context, references ...reference.Refer
 			s.logger.Info("Package has dependencies", map[string]interface{}{"reference": ref.String()})
 
 			// Get the dependencies
-			depPackages, err := s.GetPackages(ctx, deps...)
+			depPackages, err := s.getPackages(ctx, deps...)
 			if err != nil {
 				s.logger.Error("Error getting dependency packages", map[string]interface{}{"error": err, "reference": ref.String()})
 				return nil, err
@@ -170,12 +193,10 @@ func (s *service) GetPackages(ctx context.Context, references ...reference.Refer
 		packages[ref] = pack
 	}
 
-	s.logger.Info("Packages successfully loaded")
 	return packages, nil
 }
 
-func (s *service) RemovePackages(ctx context.Context, references ...reference.Reference) error {
-	s.logger.Info("Removing packages")
+func (s *service) removePackages(ctx context.Context, references ...reference.Reference) error {
 	for _, ref := range references {
 		s.logger.Info("Processing reference", map[string]interface{}{"reference": ref.String()})
 
@@ -208,6 +229,5 @@ func (s *service) RemovePackages(ctx context.Context, references ...reference.Re
 		}
 	}
 
-	s.logger.Info("Packages successfully removed")
 	return nil
 }

@@ -66,8 +66,9 @@ func (s *service) Render(ctx context.Context, blendFile *BlendFile, opts ...rend
 		for scanner.Scan() {
 			info, err := blenderparser.ParseRenderOutput(scanner.Text())
 			if err != nil {
-				s.logger.Debug("Blender", map[string]interface{}{"Message": scanner.Text()})
-				continue
+				if scanner.Text() != "" {
+					s.logger.Debug("Blender", map[string]interface{}{"Message": scanner.Text()})
+				}
 			} else {
 				s.logger.Info("Rendering", map[string]interface{}{"Frame": info.FrameNumber, "Memory": info.Memory, "PeakMemory": info.PeakMemory, "Time": info.Time, "Operation": info.Operation})
 			}
