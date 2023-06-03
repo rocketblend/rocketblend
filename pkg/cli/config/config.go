@@ -2,13 +2,11 @@ package config
 
 import (
 	"fmt"
-	"os"
 	"path/filepath"
 	"reflect"
 
 	"github.com/go-playground/validator/v10"
 	"github.com/mitchellh/mapstructure"
-	"github.com/rocketblend/rocketblend/pkg/cli/build"
 	"github.com/rocketblend/rocketblend/pkg/rocketblend/runtime"
 	"github.com/spf13/viper"
 )
@@ -16,10 +14,11 @@ import (
 type Service struct {
 	viper     *viper.Viper
 	validator *validator.Validate
+	rootPath  string
 }
 
-func New() (*Service, error) {
-	v, err := load()
+func New(rootPath string) (*Service, error) {
+	v, err := load(rootPath)
 	if err != nil {
 		return nil, err
 	}
@@ -27,6 +26,7 @@ func New() (*Service, error) {
 	return &Service{
 		viper:     v,
 		validator: validator.New(),
+		rootPath:  rootPath,
 	}, nil
 }
 
@@ -109,7 +109,7 @@ func platformHookFunc() mapstructure.DecodeHookFuncType {
 	}
 }
 
-func load() (*viper.Viper, error) {
+func load(rootPath string) (*viper.Viper, error) {
 	v := viper.New()
 
 	platform := runtime.DetectPlatform()
@@ -117,29 +117,19 @@ func load() (*viper.Viper, error) {
 		return nil, fmt.Errorf("cannot detect platform")
 	}
 
-	userConfigDir, err := os.UserConfigDir()
-	if err != nil {
-		return nil, fmt.Errorf("cannot find config directory: %v", err)
-	}
-
-	appDir := filepath.Join(userConfigDir, build.AppName)
-	if err := os.MkdirAll(appDir, os.ModePerm); err != nil {
-		return nil, fmt.Errorf("failed to create app directory: %w", err)
-	}
-
 	v.SetDefault("platform", platform.String())
 	v.SetDefault("defaultBuild", DefaultBuild)
 	v.SetDefault("logLevel", "info")
-	v.SetDefault("installationsPath", filepath.Join(appDir, "installations"))
-	v.SetDefault("packagesPath", filepath.Join(appDir, "packages"))
+	v.SetDefault("installationsPath", filepath.Join(rootPath, "installations"))
+	v.SetDefault("packagesPath", filepath.Join(rootPath, "packages"))
 
 	v.SetConfigName("settings") // Set the name of the configuration file
-	v.AddConfigPath(appDir)     // Look for the configuration file at the home directory
+	v.AddConfigPath(rootPath)   // Look for the configuration file at the home directory
 	v.SetConfigType("json")     // Set the config type to JSON
 
 	v.SafeWriteConfig()
 
-	err = v.ReadInConfig()
+	err := v.ReadInConfig()
 	if err != nil {
 		return nil, err
 	}

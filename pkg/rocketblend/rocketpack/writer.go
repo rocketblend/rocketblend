@@ -7,6 +7,6 @@ type LoggerWriter struct {
 }
 
 func (lw LoggerWriter) Write(p []byte) (n int, err error) {
-	lw.Logger.Info(string(p))
+	lw.Logger.Debug("Git", map[string]interface{}{"message": string(p)})
 	return len(p), nil
 }

@@ -12,27 +12,38 @@ func (r Reference) String() string {
 }
 
 func (r Reference) Validate() error {
-	parts := strings.SplitN(string(r), "/", 2)
-	if len(parts) != 2 {
+	parts := strings.SplitN(string(r), "/", 4)
+	if len(parts) < 4 {
 		return fmt.Errorf("invalid reference: %s", r)
 	}
 	return nil
 }
 
-func (r Reference) RepoURL() (string, error) {
+func (r Reference) Repo() (string, error) {
 	if err := r.Validate(); err != nil {
 		return "", err
 	}
-	parts := strings.SplitN(string(r), "/", 2)
-	return parts[0], nil
+
+	parts := strings.SplitN(string(r), "/", 4)
+	return strings.Join(parts[:3], "/"), nil
+}
+
+func (r Reference) RepoURL() (string, error) {
+	repo, err := r.Repo()
+	if err != nil {
+		return "", err
+	}
+
+	return "https://" + repo, nil
 }
 
 func (r Reference) RepoPath() (string, error) {
 	if err := r.Validate(); err != nil {
 		return "", err
 	}
-	parts := strings.SplitN(string(r), "/", 2)
-	return parts[1], nil
+
+	parts := strings.SplitN(string(r), "/", 4)
+	return parts[3], nil
 }
 
 func Parse(s string) (Reference, error) {

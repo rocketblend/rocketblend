@@ -1,7 +1,12 @@
 package factory
 
 import (
+	"fmt"
+	"os"
+	"path/filepath"
+
 	"github.com/flowshot-io/x/pkg/logger"
+	"github.com/rocketblend/rocketblend/pkg/cli/build"
 	"github.com/rocketblend/rocketblend/pkg/cli/config"
 	"github.com/rocketblend/rocketblend/pkg/rocketblend"
 	"github.com/rocketblend/rocketblend/pkg/rocketblend/blendconfig"
@@ -30,7 +35,21 @@ type (
 )
 
 func New() (Factory, error) {
-	configService, err := config.New()
+	userConfigDir, err := os.UserConfigDir()
+	if err != nil {
+		return nil, fmt.Errorf("cannot find config directory: %v", err)
+	}
+
+	appDir := filepath.Join(userConfigDir, build.AppName)
+	if build.Version == "dev" {
+		appDir = filepath.Join(appDir, "dev")
+	}
+
+	if err := os.MkdirAll(appDir, os.ModePerm); err != nil {
+		return nil, fmt.Errorf("failed to create app directory: %w", err)
+	}
+
+	configService, err := config.New(appDir)
 	if err != nil {
 		return nil, err
 	}
@@ -79,7 +98,7 @@ func New() (Factory, error) {
 
 func (f *factory) GetConfigService() (*config.Service, error) {
 	// TODO: make this either return a new instance or a cached instance
-	return config.New()
+	return f.configService, nil
 }
 
 func (f *factory) GetRocketPackService() (rocketpack.Service, error) {

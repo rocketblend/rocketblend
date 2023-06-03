@@ -72,26 +72,27 @@ func (s *service) GetPackages(ctx context.Context, references ...reference.Refer
 	for _, ref := range references {
 		s.logger.Info("Processing reference", map[string]interface{}{"reference": ref.String()})
 
+		repo, err := ref.Repo()
+		if err != nil {
+			s.logger.Error("Error getting repository", map[string]interface{}{"error": err, "reference": ref.String()})
+			return nil, err
+		}
+
 		repoURL, err := ref.RepoURL()
 		if err != nil {
 			s.logger.Error("Error getting repository URL", map[string]interface{}{"error": err, "reference": ref.String()})
 			return nil, err
 		}
 
-		repoPath, err := ref.RepoPath()
-		if err != nil {
-			s.logger.Error("Error getting repository path", map[string]interface{}{"error": err, "reference": ref.String()})
-			return nil, err
-		}
-
-		localPath := filepath.Join(s.storagePath, repoPath)
+		repoPath := filepath.Join(s.storagePath, repo)
+		packagePath := filepath.Join(s.storagePath, ref.String(), FileName)
 
 		// Check if the file exists in the local storage
-		_, err = os.Stat(localPath)
+		_, err = os.Stat(packagePath)
 		if os.IsNotExist(err) {
 			// The file does not exist, clone the repository
-			s.logger.Info("File does not exist locally, cloning repository", map[string]interface{}{"repoURL": repoURL, "reference": ref.String()})
-			_, err = git.PlainCloneContext(ctx, localPath, false, &git.CloneOptions{
+			s.logger.Info("File does not exist locally, cloning repository", map[string]interface{}{"repoURL": repoURL, "path": repoPath, "reference": ref.String()})
+			_, err = git.PlainCloneContext(ctx, repoPath, false, &git.CloneOptions{
 				URL:      repoURL,
 				Progress: LoggerWriter{s.logger},
 			})
@@ -105,7 +106,7 @@ func (s *service) GetPackages(ctx context.Context, references ...reference.Refer
 			return nil, err
 		} else {
 			// Open the existing repository
-			r, err := git.PlainOpen(localPath)
+			r, err := git.PlainOpen(repoPath)
 			if err != nil {
 				s.logger.Error("Error opening repository", map[string]interface{}{"error": err, "reference": ref.String()})
 				return nil, err
@@ -130,9 +131,9 @@ func (s *service) GetPackages(ctx context.Context, references ...reference.Refer
 			}
 		}
 
-		pack, err := Load(localPath)
+		pack, err := Load(packagePath)
 		if err != nil {
-			s.logger.Error("Error loading package", map[string]interface{}{"error": err, "reference": ref.String()})
+			s.logger.Error("Error loading package", map[string]interface{}{"error": err, "reference": ref.String(), "path": packagePath})
 			return nil, err
 		}
 
