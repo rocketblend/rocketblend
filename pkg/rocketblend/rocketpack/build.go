@@ -23,6 +23,16 @@ type (
 	}
 )
 
+// IsLocalOnly returns true if the build is local only, meaning it is pre-installed or has no download URL.
+func (i *Build) IsLocalOnly(platform runtime.Platform) (bool, error) {
+	source := i.GetSourceForPlatform(platform)
+	if source == nil {
+		return false, fmt.Errorf("failed to find source for platform: %s", platform)
+	}
+
+	return source.URL == "", nil
+}
+
 func (i *Build) GetSourceForPlatform(platform runtime.Platform) *BuildSource {
 	if i.Sources == nil {
 		return nil

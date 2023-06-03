@@ -75,6 +75,7 @@ func New() (Factory, error) {
 	installationService, err := installation.NewService(
 		installation.WithLogger(logger),
 		installation.WithStoragePath(config.InstallationsPath),
+		installation.WithPlatform(config.Platform),
 	)
 	if err != nil {
 		return nil, err

@@ -169,11 +169,12 @@ func (d *driver) Run(ctx context.Context, opts ...runoptions.Option) error {
 }
 
 func (d *driver) Create(ctx context.Context) error {
-	if err := d.InstallDependencies(ctx); err != nil {
-		return fmt.Errorf("failed to install dependencies: %w", err)
+	installations, err := d.getInstallations(ctx, false)
+	if err != nil {
+		return fmt.Errorf("failed to get installations: %w", err)
 	}
 
-	blendFile, err := d.ResolveBlendFile(ctx)
+	blendFile, err := d.resolveBlendFile(ctx, installations)
 	if err != nil {
 		return fmt.Errorf("failed to resolve blend file: %w", err)
 	}
@@ -236,30 +237,42 @@ func (d *driver) RemoveDependencies(ctx context.Context, references ...reference
 }
 
 func (d *driver) InstallDependencies(ctx context.Context) error {
-	packs, err := d.getDependencies(ctx)
+	_, err := d.getInstallations(ctx, false)
 	if err != nil {
-		return fmt.Errorf("failed to get rocket packs: %w", err)
-	}
-
-	_, err = d.InstallationService.GetInstallations(ctx, packs, false)
-	if err != nil {
-		return fmt.Errorf("failed to get installations: %w", err)
+		return fmt.Errorf("failed to install dependencies: %w", err)
 	}
 
 	return nil
 }
 
 func (d *driver) ResolveBlendFile(ctx context.Context) (*blendfile.BlendFile, error) {
-	packs, err := d.getDependencies(ctx)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get rocket packs: %w", err)
-	}
-
-	installations, err := d.InstallationService.GetInstallations(ctx, packs, true)
+	installations, err := d.getInstallations(ctx, true)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get installations: %w", err)
 	}
 
+	blendFile, err := d.resolveBlendFile(ctx, installations)
+	if err != nil {
+		return nil, fmt.Errorf("failed to resolve blend file: %w", err)
+	}
+
+	if err := blendfile.Validate(blendFile); err != nil {
+		return nil, fmt.Errorf("invalid blend file: %w", err)
+	}
+
+	return blendFile, nil
+}
+
+func (d *driver) getInstallations(ctx context.Context, readOnly bool) (map[reference.Reference]*installation.Installation, error) {
+	packs, err := d.getDependencies(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	return d.InstallationService.GetInstallations(ctx, packs, readOnly)
+}
+
+func (d *driver) resolveBlendFile(ctx context.Context, installations map[reference.Reference]*installation.Installation) (*blendfile.BlendFile, error) {
 	name := filepath.Base(d.blendConfig.BlendFilePath())
 	blendFile := &blendfile.BlendFile{
 		ProjectName: strings.TrimSuffix(name, filepath.Ext(name)),
@@ -275,10 +288,6 @@ func (d *driver) ResolveBlendFile(ctx context.Context) (*blendfile.BlendFile, er
 		if installation.IsAddon() {
 			blendFile.Addons = append(blendFile.Addons, installation.Addon)
 		}
-	}
-
-	if err := blendfile.Validate(blendFile); err != nil {
-		return nil, fmt.Errorf("invalid blend file: %w", err)
 	}
 
 	return blendFile, nil

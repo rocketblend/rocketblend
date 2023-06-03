@@ -5,6 +5,7 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"path/filepath"
 	"sync"
 	"time"
 
@@ -101,6 +102,13 @@ func (d *downloader) DownloadWithContext(ctx context.Context, path string, downl
 	logContext["contentLength"] = resp.ContentLength
 
 	d.logger.Debug("HTTP request successful", logContext)
+
+	err = os.MkdirAll(filepath.Dir(tempPath), 0755)
+	if err != nil {
+		logContext["error"] = err.Error()
+		d.logger.Error("Error creating directory", logContext)
+		return err
+	}
 
 	f, err := os.OpenFile(tempPath, os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {

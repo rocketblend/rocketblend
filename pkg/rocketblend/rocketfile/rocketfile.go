@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"path/filepath"
 
 	"github.com/rocketblend/rocketblend/pkg/rocketblend/helpers"
 	"github.com/rocketblend/rocketblend/pkg/rocketblend/reference"
@@ -149,6 +150,11 @@ func Save(filePath string, rocketfile *RocketFile) error {
 	f, err := yaml.Marshal(rocketfile)
 	if err != nil {
 		return fmt.Errorf("failed to marshal rocketfile: %s", err)
+	}
+
+	err = os.MkdirAll(filepath.Dir(filePath), 0755)
+	if err != nil {
+		return fmt.Errorf("failed to create directory: %s", err)
 	}
 
 	if err := os.WriteFile(filePath, f, 0644); err != nil {

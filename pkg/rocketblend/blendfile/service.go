@@ -1,8 +1,11 @@
 package blendfile
 
 import (
-	"bytes"
+	"bufio"
 	_ "embed"
+	"os"
+	"path/filepath"
+	"strings"
 
 	"context"
 	"encoding/json"
@@ -61,6 +64,14 @@ func NewService(opts ...Option) (Service, error) {
 		opt(options)
 	}
 
+	if options.AddonScript == "" {
+		return nil, fmt.Errorf("addon script is required")
+	}
+
+	if options.CreateScript == "" {
+		return nil, fmt.Errorf("create script is required")
+	}
+
 	return &service{
 		logger:       options.Logger,
 		addonScript:  options.AddonScript,
@@ -69,6 +80,11 @@ func NewService(opts ...Option) (Service, error) {
 }
 
 func (s *service) Create(ctx context.Context, blendFile *BlendFile) error {
+	err := os.MkdirAll(filepath.Dir(blendFile.FilePath), 0755)
+	if err != nil {
+		return err
+	}
+
 	script, err := parseOutputTemplate(s.createScript, map[string]string{
 		"path": blendFile.FilePath,
 	})
@@ -77,8 +93,32 @@ func (s *service) Create(ctx context.Context, blendFile *BlendFile) error {
 	}
 
 	cmd := exec.CommandContext(ctx, blendFile.Build.FilePath, "-b", "--python-expr", script)
-	if err := cmd.Run(); err != nil {
-		return fmt.Errorf("failed to create: %s", err)
+
+	s.logger.Debug("running command", map[string]interface{}{"command": cmd.String()})
+
+	cmdReader, err := cmd.StdoutPipe()
+	if err != nil {
+		return fmt.Errorf("failed to get stdout pipe: %w", err)
+	}
+
+	scanner := bufio.NewScanner(cmdReader)
+	go func() {
+		for scanner.Scan() {
+			s.logger.Info("Blender", map[string]interface{}{"Message": scanner.Text()})
+		}
+	}()
+
+	if err := cmd.Start(); err != nil {
+		return fmt.Errorf("failed to start command: %w", err)
+	}
+
+	if err := cmd.Wait(); err != nil {
+		return fmt.Errorf("failed to wait for command: %w", err)
+	}
+
+	err = Validate(blendFile)
+	if err != nil {
+		return fmt.Errorf("failed to validate: %s", err)
 	}
 
 	return nil
@@ -117,6 +157,8 @@ func (s *service) getCommand(ctx context.Context, blendFile *BlendFile, backgrou
 	args := append(preArgs, postArgs...)
 	cmd := exec.CommandContext(ctx, blendFile.Build.FilePath, args...)
 
+	s.logger.Debug("running command", map[string]interface{}{"command": cmd.String()})
+
 	return cmd, nil
 }
 
@@ -128,7 +170,7 @@ func parseOutputTemplate(str string, data interface{}) (string, error) {
 	}
 
 	// Execute the template with the data object and capture the output
-	var buf bytes.Buffer
+	var buf strings.Builder
 	if err := tpl.Execute(&buf, data); err != nil {
 		return "", err
 	}

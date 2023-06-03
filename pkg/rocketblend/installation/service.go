@@ -87,6 +87,7 @@ func NewService(opts ...Option) (Service, error) {
 	if options.Downloader == nil {
 		downloader := downloader.New(
 			downloader.WithLogger(options.Logger),
+			downloader.WithLogFrequency(10<<20), // 10MB
 		)
 
 		options.Downloader = downloader
@@ -95,10 +96,16 @@ func NewService(opts ...Option) (Service, error) {
 	if options.Extractor == nil {
 		extractor := extractor.New(
 			extractor.WithLogger(options.Logger),
+			extractor.WithCleanup(),
 		)
 
 		options.Extractor = extractor
 	}
+
+	options.Logger.Debug("Initializing installation service", map[string]interface{}{
+		"storagePath": options.StoragePath,
+		"platform":    options.Platform,
+	})
 
 	err := os.MkdirAll(options.StoragePath, 0755)
 	if err != nil {
@@ -110,6 +117,7 @@ func NewService(opts ...Option) (Service, error) {
 		storagePath: options.StoragePath,
 		downloader:  options.Downloader,
 		extractor:   options.Extractor,
+		platform:    options.Platform,
 	}, nil
 }
 
@@ -140,28 +148,35 @@ func (s *service) RemoveInstallations(ctx context.Context, rocketPacks map[refer
 }
 
 func (s *service) getInstallation(ctx context.Context, reference reference.Reference, rocketPack *rocketpack.RocketPack, readOnly bool) (*Installation, error) {
-	executableName, err := rocketPack.GetExecutableName(s.platform)
-	if err != nil {
-		return nil, err
-	}
+	s.logger.Debug("Checking installation", map[string]interface{}{"preInstalled": rocketPack.IsPreInstalled(), "readOnly": readOnly, "reference": reference.String()})
 
-	installationPath := filepath.Join(s.storagePath, reference.String())
-	executablePath := filepath.Join(installationPath, executableName)
+	var executablePath string
 
-	_, err = os.Stat(executablePath)
-	if err != nil {
-		if os.IsNotExist(err) && !readOnly {
-			downloadUrl, err := rocketPack.GetDownloadUrl(s.platform)
-			if err != nil {
-				return nil, err
-			}
-
-			err = s.downloadInstallation(ctx, downloadUrl, installationPath)
-			if err != nil {
-				return nil, err
-			}
-		} else {
+	// Pre-installed rocketpacks are not downloaded as they are already available within the build.
+	if !rocketPack.IsPreInstalled() {
+		executableName, err := rocketPack.GetExecutableName(s.platform)
+		if err != nil {
 			return nil, err
+		}
+
+		installationPath := filepath.Join(s.storagePath, reference.String())
+		executablePath = filepath.Join(installationPath, executableName)
+
+		_, err = os.Stat(executablePath)
+		if err != nil {
+			if os.IsNotExist(err) && !readOnly {
+				downloadUrl, err := rocketPack.GetDownloadUrl(s.platform)
+				if err != nil {
+					return nil, err
+				}
+
+				err = s.downloadInstallation(ctx, downloadUrl, installationPath)
+				if err != nil {
+					return nil, err
+				}
+			} else {
+				return nil, err
+			}
 		}
 	}
 
@@ -186,16 +201,15 @@ func (s *service) getInstallation(ctx context.Context, reference reference.Refer
 
 func (s *service) downloadInstallation(ctx context.Context, downloadUrl string, installationPath string) error {
 	if downloadUrl == "" {
-		// Local installation
 		return nil
 	}
 
-	err := s.downloader.DownloadWithContext(ctx, installationPath, downloadUrl)
+	downloadedFilePath := filepath.Join(installationPath, getFilenameFromURL(downloadUrl))
+	err := s.downloader.DownloadWithContext(ctx, downloadedFilePath, downloadUrl)
 	if err != nil {
 		return err
 	}
 
-	downloadedFilePath := filepath.Join(installationPath, getFilenameFromURL(downloadUrl))
 	if isArchive(downloadedFilePath) {
 		err = s.extractor.ExtractWithContext(ctx, downloadedFilePath, filepath.Dir(downloadedFilePath))
 		if err != nil {

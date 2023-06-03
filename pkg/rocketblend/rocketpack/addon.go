@@ -1,8 +1,6 @@
 package rocketpack
 
 import (
-	"fmt"
-
 	"github.com/rocketblend/rocketblend/pkg/semver"
 )
 
@@ -19,17 +17,25 @@ type (
 	}
 )
 
+func (a *Addon) IsLocalOnly() bool {
+	return a.IsPreInstalled() || a.Source.URL == ""
+}
+
+func (a *Addon) IsPreInstalled() bool {
+	return a.Source == nil
+}
+
 func (a *Addon) GetDownloadUrl() (string, error) {
-	if a.Source == nil {
-		return "", fmt.Errorf("failed to find source for addon: %s", a.Name)
+	if a.IsPreInstalled() {
+		return "", nil
 	}
 
 	return a.Source.URL, nil
 }
 
 func (a *Addon) GetExecutableName() (string, error) {
-	if a.Source == nil {
-		return "", fmt.Errorf("failed to find source for addon: %s", a.Name)
+	if a.IsPreInstalled() {
+		return "", nil
 	}
 
 	return a.Source.File, nil
