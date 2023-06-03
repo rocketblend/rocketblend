@@ -19,7 +19,7 @@ func (r Reference) Validate() error {
 	return nil
 }
 
-func (r Reference) Repo() (string, error) {
+func (r Reference) GetRepo() (string, error) {
 	if err := r.Validate(); err != nil {
 		return "", err
 	}
@@ -28,8 +28,8 @@ func (r Reference) Repo() (string, error) {
 	return strings.Join(parts[:3], "/"), nil
 }
 
-func (r Reference) RepoURL() (string, error) {
-	repo, err := r.Repo()
+func (r Reference) GetRepoURL() (string, error) {
+	repo, err := r.GetRepo()
 	if err != nil {
 		return "", err
 	}
@@ -37,7 +37,7 @@ func (r Reference) RepoURL() (string, error) {
 	return "https://" + repo, nil
 }
 
-func (r Reference) RepoPath() (string, error) {
+func (r Reference) GetRepoPath() (string, error) {
 	if err := r.Validate(); err != nil {
 		return "", err
 	}
