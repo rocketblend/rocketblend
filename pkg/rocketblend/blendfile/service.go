@@ -104,7 +104,7 @@ func (s *service) Create(ctx context.Context, blendFile *BlendFile) error {
 	scanner := bufio.NewScanner(cmdReader)
 	go func() {
 		for scanner.Scan() {
-			s.logger.Info("Blender", map[string]interface{}{"Message": scanner.Text()})
+			s.logger.Debug("Blender", map[string]interface{}{"Message": scanner.Text()})
 		}
 	}()
 

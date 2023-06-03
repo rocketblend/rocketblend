@@ -1,7 +1,7 @@
 package main
 
 import (
-	"log"
+	"fmt"
 
 	"github.com/rocketblend/rocketblend/pkg/cli"
 )
@@ -9,7 +9,8 @@ import (
 func main() {
 	app, err := cli.New()
 	if err != nil {
-		log.Fatal(err)
+		fmt.Println("Error creating cli app: ", err)
+		return
 	}
 
 	if err := app.Execute(); err != nil {

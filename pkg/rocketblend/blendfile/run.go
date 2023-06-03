@@ -10,7 +10,7 @@ import (
 
 func (s *service) Run(ctx context.Context, blendFile *BlendFile, opts ...runoptions.Option) error {
 	options := &runoptions.Options{
-		Background: true,
+		Background: false,
 	}
 
 	for _, opt := range opts {
@@ -34,7 +34,7 @@ func (s *service) Run(ctx context.Context, blendFile *BlendFile, opts ...runopti
 	scanner := bufio.NewScanner(cmdReader)
 	go func() {
 		for scanner.Scan() {
-			s.logger.Info("Blender", map[string]interface{}{"Message": scanner.Text()})
+			s.logger.Debug("Blender", map[string]interface{}{"Message": scanner.Text()})
 		}
 	}()
 
