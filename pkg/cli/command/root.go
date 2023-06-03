@@ -52,8 +52,8 @@ func (srv *Service) NewRootCommand() *cobra.Command {
 builds and addons for Blender projects.
 
 Documentation is available at https://docs.rocketblend.io/`,
-		PersistentPreRun: srv.persistentPreRun,
-		SilenceUsage:     true,
+		PersistentPreRunE: srv.persistentPreRun,
+		SilenceUsage:      true,
 	}
 
 	c.SetVersionTemplate("{{.Version}}\n")
@@ -76,14 +76,15 @@ Documentation is available at https://docs.rocketblend.io/`,
 }
 
 // persistentPreRun validates the working directory before running the command.
-func (srv *Service) persistentPreRun(cmd *cobra.Command, args []string) {
+func (srv *Service) persistentPreRun(cmd *cobra.Command, args []string) error {
 	path, err := srv.validatePath(srv.flags.workingDirectory)
 	if err != nil {
-		cmd.Println(err)
-		return
+		return err
 	}
 
 	srv.flags.workingDirectory = path
+
+	return nil
 }
 
 // validatePath checks if the path is valid and returns the absolute path.

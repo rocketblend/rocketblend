@@ -169,6 +169,10 @@ func (d *driver) Run(ctx context.Context, opts ...runoptions.Option) error {
 }
 
 func (d *driver) Create(ctx context.Context) error {
+	if err := d.InstallDependencies(ctx); err != nil {
+		return fmt.Errorf("failed to install dependencies: %w", err)
+	}
+
 	blendFile, err := d.ResolveBlendFile(ctx)
 	if err != nil {
 		return fmt.Errorf("failed to resolve blend file: %w", err)
@@ -251,7 +255,7 @@ func (d *driver) ResolveBlendFile(ctx context.Context) (*blendfile.BlendFile, er
 		return nil, fmt.Errorf("failed to get rocket packs: %w", err)
 	}
 
-	installations, err := d.InstallationService.GetInstallations(ctx, packs, false)
+	installations, err := d.InstallationService.GetInstallations(ctx, packs, true)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get installations: %w", err)
 	}

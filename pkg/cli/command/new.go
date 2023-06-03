@@ -1,6 +1,10 @@
 package command
 
 import (
+	"fmt"
+	"path/filepath"
+	"strings"
+
 	"github.com/rocketblend/rocketblend/pkg/rocketblend/blendconfig"
 	"github.com/rocketblend/rocketblend/pkg/rocketblend/rocketfile"
 	"github.com/spf13/cobra"
@@ -17,13 +21,20 @@ func (srv *Service) newNewCommand() *cobra.Command {
 		Short: "Create a new project",
 		Long:  `Creates a new project with a specified name. Use the 'skip-install' flag to skip installing dependencies.`,
 		Args:  cobra.MinimumNArgs(1),
+		PreRunE: func(cmd *cobra.Command, args []string) error {
+			return srv.validateProjectName(args[0])
+		},
 		RunE: func(cmd *cobra.Command, args []string) error {
 			config, err := srv.getConfig()
 			if err != nil {
 				return err
 			}
 
-			blendConfig, err := blendconfig.New(srv.flags.workingDirectory, args[0], rocketfile.New(config.DefaultBuild))
+			blendConfig, err := blendconfig.New(
+				srv.flags.workingDirectory,
+				srv.ensureBlendExtension(args[0]),
+				rocketfile.New(config.DefaultBuild),
+			)
 			if err != nil {
 				return err
 			}
@@ -40,4 +51,26 @@ func (srv *Service) newNewCommand() *cobra.Command {
 	c.Flags().BoolVarP(&skipInstall, "skip-install", "s", false, "skip installing dependencies")
 
 	return c
+}
+
+// validateProjectName checks if the project name is valid.
+func (srv *Service) validateProjectName(projectName string) error {
+	if filepath.IsAbs(projectName) || strings.Contains(projectName, string(filepath.Separator)) {
+		return fmt.Errorf("%q is not a valid project name, it should not contain any path separators", projectName)
+	}
+
+	if ext := filepath.Ext(projectName); ext != "" {
+		return fmt.Errorf("%q is not a valid project name, it should not contain any file extension", projectName)
+	}
+
+	return nil
+}
+
+// ensureBlendExtension adds ".blend" extension to filename if it does not already have it.
+func (srv *Service) ensureBlendExtension(filename string) string {
+	if !strings.HasSuffix(filename, ".blend") {
+		filename += ".blend"
+	}
+
+	return filename
 }
