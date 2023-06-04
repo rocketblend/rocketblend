@@ -67,26 +67,22 @@ func NewService(opts ...Option) (Service, error) {
 }
 
 func (s *service) GetPackages(ctx context.Context, references ...reference.Reference) (map[reference.Reference]*RocketPack, error) {
-	s.logger.Info("Getting packages")
 	packages, err := s.getPackages(ctx, references...)
 	if err != nil {
 		s.logger.Error("Error getting packages", map[string]interface{}{"error": err})
 		return nil, err
 	}
 
-	s.logger.Info("Packages successfully loaded")
 	return packages, nil
 }
 
 func (s *service) RemovePackages(ctx context.Context, references ...reference.Reference) error {
-	s.logger.Info("Removing packages")
 	err := s.removePackages(ctx, references...)
 	if err != nil {
 		s.logger.Error("Error removing packages", map[string]interface{}{"error": err})
 		return err
 	}
 
-	s.logger.Info("Packages successfully removed")
 	return nil
 }
 
