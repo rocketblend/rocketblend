@@ -72,7 +72,7 @@ func NewService(opts ...Option) (Service, error) {
 }
 
 func (s *service) GetPackages(ctx context.Context, references ...reference.Reference) (map[reference.Reference]*RocketPack, error) {
-	packages := make(map[reference.Reference]*RocketPack)
+	rpm := NewRocketPackMap()
 	errs := make(chan error, len(references))
 	var wg sync.WaitGroup
 	wg.Add(len(references))
@@ -87,7 +87,7 @@ func (s *service) GetPackages(ctx context.Context, references ...reference.Refer
 			}
 
 			for index, pack := range packs {
-				packages[index] = pack
+				rpm.Store(index, pack)
 			}
 		}(ref)
 	}
@@ -99,7 +99,7 @@ func (s *service) GetPackages(ctx context.Context, references ...reference.Refer
 		return nil, fmt.Errorf("errors occurred: %v", <-errs) // return first error for simplicity
 	}
 
-	return packages, nil
+	return rpm.ToRegularMap(), nil
 }
 
 func (s *service) RemovePackages(ctx context.Context, references ...reference.Reference) error {

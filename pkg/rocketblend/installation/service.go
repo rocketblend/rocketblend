@@ -7,6 +7,7 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"sync"
 
 	"github.com/flowshot-io/x/pkg/logger"
 	"github.com/rocketblend/rocketblend/pkg/downloader"
@@ -128,48 +129,55 @@ func NewService(opts ...Option) (Service, error) {
 }
 
 func (s *service) GetInstallations(ctx context.Context, rocketPacks map[reference.Reference]*rocketpack.RocketPack, readOnly bool) (map[reference.Reference]*Installation, error) {
-	installations := make(map[reference.Reference]*Installation, len(rocketPacks))
+	installations := NewInstallationMap()
+	errs := make(chan error, len(rocketPacks))
+	var wg sync.WaitGroup
+	wg.Add(len(rocketPacks))
 
 	for ref, pack := range rocketPacks {
-		select {
-		case <-ctx.Done():
-			return nil, ctx.Err()
-		default:
-			// Continue with the loop
-		}
+		go func(r reference.Reference, p *rocketpack.RocketPack) {
+			defer wg.Done()
+			installation, err := s.getInstallation(ctx, r, p, readOnly)
+			if err != nil {
+				errs <- fmt.Errorf("failed to get installation for %s: %w", r.String(), err)
+				return
+			}
 
-		installation, err := s.getInstallation(ctx, ref, pack, readOnly)
-		if err != nil {
-			s.logger.Error("Failed to get installation", map[string]interface{}{
-				"error":     err,
-				"reference": ref.String(),
-			})
-			return nil, err
-		}
-
-		installations[ref] = installation
+			installations.Store(r, installation)
+		}(ref, pack)
 	}
 
-	return installations, nil
+	wg.Wait()
+	close(errs)
+
+	if len(errs) > 0 {
+		return nil, fmt.Errorf("errors occurred: %v", <-errs) // return first error for simplicity
+	}
+
+	return installations.ToRegularMap(), nil
 }
 
 func (s *service) RemoveInstallations(ctx context.Context, rocketPacks map[reference.Reference]*rocketpack.RocketPack) error {
-	for ref := range rocketPacks {
-		select {
-		case <-ctx.Done():
-			return ctx.Err()
-		default:
-			// Continue with the loop
-		}
+	errs := make(chan error, len(rocketPacks))
+	var wg sync.WaitGroup
+	wg.Add(len(rocketPacks))
 
-		err := s.removeInstallation(ctx, ref)
-		if err != nil {
-			s.logger.Error("Failed to remove installation", map[string]interface{}{
-				"error":     err,
-				"reference": ref.String(),
-			})
-			return err
-		}
+	for ref := range rocketPacks {
+		go func(r reference.Reference) {
+			defer wg.Done()
+			err := s.removeInstallation(ctx, r)
+			if err != nil {
+				errs <- fmt.Errorf("failed to remove installation for %s: %w", r.String(), err)
+				return
+			}
+		}(ref)
+	}
+
+	wg.Wait()
+	close(errs)
+
+	if len(errs) > 0 {
+		return fmt.Errorf("errors occurred: %v", <-errs) // return first error for simplicity
 	}
 
 	return nil
