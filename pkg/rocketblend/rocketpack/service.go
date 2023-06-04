@@ -25,6 +25,11 @@ type (
 
 	Option func(*Options)
 
+	getResult struct {
+		packs map[reference.Reference]*RocketPack
+		error error
+	}
+
 	service struct {
 		logger      logger.Logger
 		storagePath string
@@ -72,8 +77,8 @@ func NewService(opts ...Option) (Service, error) {
 }
 
 func (s *service) GetPackages(ctx context.Context, references ...reference.Reference) (map[reference.Reference]*RocketPack, error) {
-	rpm := NewRocketPackMap()
-	errs := make(chan error, len(references))
+	results := make(chan getResult)
+
 	var wg sync.WaitGroup
 	wg.Add(len(references))
 
@@ -82,24 +87,38 @@ func (s *service) GetPackages(ctx context.Context, references ...reference.Refer
 			defer wg.Done()
 			packs, err := s.getPackages(ctx, ref)
 			if err != nil {
-				errs <- fmt.Errorf("error getting package %s: %w", ref, err)
+				s.logger.Debug("Error getting package", map[string]interface{}{
+					"ref":   ref,
+					"error": err.Error(),
+				})
+				results <- getResult{packs: nil, error: fmt.Errorf("error getting package %s: %w", ref, err)}
 				return
 			}
 
-			for index, pack := range packs {
-				rpm.Store(index, pack)
-			}
+			results <- getResult{packs: packs, error: nil}
 		}(ref)
 	}
 
-	wg.Wait()
-	close(errs)
+	go func() {
+		wg.Wait()
+		close(results)
+	}()
 
-	if len(errs) > 0 {
-		return nil, fmt.Errorf("errors occurred: %v", <-errs) // return first error for simplicity
+	packages := make(map[reference.Reference]*RocketPack)
+
+	for res := range results {
+		if res.error != nil {
+			return nil, res.error
+		}
+
+		if res.packs != nil {
+			for ref, pack := range res.packs {
+				packages[ref] = pack
+			}
+		}
 	}
 
-	return rpm.ToRegularMap(), nil
+	return packages, nil
 }
 
 func (s *service) RemovePackages(ctx context.Context, references ...reference.Reference) error {
@@ -118,8 +137,10 @@ func (s *service) RemovePackages(ctx context.Context, references ...reference.Re
 		}(ref)
 	}
 
-	wg.Wait()
-	close(errs)
+	go func() {
+		wg.Wait()
+		close(errs)
+	}()
 
 	if len(errs) > 0 {
 		return fmt.Errorf("errors occurred: %v", <-errs) // return first error for simplicity

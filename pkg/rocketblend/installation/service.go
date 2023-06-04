@@ -36,6 +36,12 @@ type (
 
 	Option func(*Options)
 
+	getResult struct {
+		ref   reference.Reference
+		inst  *Installation
+		error error
+	}
+
 	service struct {
 		logger      logger.Logger
 		storagePath string
@@ -129,32 +135,46 @@ func NewService(opts ...Option) (Service, error) {
 }
 
 func (s *service) GetInstallations(ctx context.Context, rocketPacks map[reference.Reference]*rocketpack.RocketPack, readOnly bool) (map[reference.Reference]*Installation, error) {
-	installations := NewInstallationMap()
-	errs := make(chan error, len(rocketPacks))
+	results := make(chan getResult, len(rocketPacks))
+
 	var wg sync.WaitGroup
 	wg.Add(len(rocketPacks))
 
 	for ref, pack := range rocketPacks {
-		go func(r reference.Reference, p *rocketpack.RocketPack) {
+		go func(ref reference.Reference, pack *rocketpack.RocketPack) {
 			defer wg.Done()
-			installation, err := s.getInstallation(ctx, r, p, readOnly)
+			installation, err := s.getInstallation(ctx, ref, pack, readOnly)
 			if err != nil {
-				errs <- fmt.Errorf("failed to get installation for %s: %w", r.String(), err)
+				s.logger.Error("Failed to get installation", map[string]interface{}{
+					"error":     err,
+					"reference": ref.String(),
+				})
+				results <- getResult{ref: ref, error: err}
 				return
 			}
 
-			installations.Store(r, installation)
+			results <- getResult{ref: ref, inst: installation}
 		}(ref, pack)
 	}
 
-	wg.Wait()
-	close(errs)
+	go func() {
+		wg.Wait()
+		close(results)
+	}()
 
-	if len(errs) > 0 {
-		return nil, fmt.Errorf("errors occurred: %v", <-errs) // return first error for simplicity
+	installations := make(map[reference.Reference]*Installation, len(rocketPacks))
+
+	for res := range results {
+		if res.error != nil {
+			return nil, res.error
+		}
+
+		if res.inst != nil {
+			installations[res.ref] = res.inst
+		}
 	}
 
-	return installations.ToRegularMap(), nil
+	return installations, nil
 }
 
 func (s *service) RemoveInstallations(ctx context.Context, rocketPacks map[reference.Reference]*rocketpack.RocketPack) error {
@@ -167,14 +187,20 @@ func (s *service) RemoveInstallations(ctx context.Context, rocketPacks map[refer
 			defer wg.Done()
 			err := s.removeInstallation(ctx, r)
 			if err != nil {
+				s.logger.Error("Failed to remove installation", map[string]interface{}{
+					"error":     err,
+					"reference": r.String(),
+				})
 				errs <- fmt.Errorf("failed to remove installation for %s: %w", r.String(), err)
 				return
 			}
 		}(ref)
 	}
 
-	wg.Wait()
-	close(errs)
+	go func() {
+		wg.Wait()
+		close(errs)
+	}()
 
 	if len(errs) > 0 {
 		return fmt.Errorf("errors occurred: %v", <-errs) // return first error for simplicity
