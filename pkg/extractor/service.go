@@ -51,6 +51,8 @@ func New(opts ...Option) Extractor {
 		opt(options)
 	}
 
+	options.Logger.Debug("Initializing extractor", map[string]interface{}{"cleanup": options.Cleanup})
+
 	return &extractor{
 		cleanup: options.Cleanup,
 		logger:  options.Logger,
@@ -67,7 +69,7 @@ func (e *extractor) ExtractWithContext(ctx context.Context, path string, extract
 		"extractPath": extractPath,
 	}
 
-	e.logger.Info("Starting extraction", logContext)
+	e.logger.Info("Extracting", logContext)
 
 	// mholt/archiver doesn't support .dmg files, so we need to handle them separately.
 	// This isn't a 100% golang solution, but it works for now.
@@ -96,7 +98,7 @@ func (e *extractor) ExtractWithContext(ctx context.Context, path string, extract
 		}
 	}
 
-	e.logger.Info("Extraction complete", logContext)
+	e.logger.Debug("Extraction complete", logContext)
 
 	return nil
 }

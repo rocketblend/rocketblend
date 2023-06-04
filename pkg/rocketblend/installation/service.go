@@ -11,10 +11,13 @@ import (
 	"github.com/flowshot-io/x/pkg/logger"
 	"github.com/rocketblend/rocketblend/pkg/downloader"
 	"github.com/rocketblend/rocketblend/pkg/extractor"
+	"github.com/rocketblend/rocketblend/pkg/lockfile"
 	"github.com/rocketblend/rocketblend/pkg/rocketblend/reference"
 	"github.com/rocketblend/rocketblend/pkg/rocketblend/rocketpack"
 	"github.com/rocketblend/rocketblend/pkg/rocketblend/runtime"
 )
+
+const LockFileName = "reference.lock"
 
 type (
 	Service interface {
@@ -109,6 +112,9 @@ func NewService(opts ...Option) (Service, error) {
 
 	err := os.MkdirAll(options.StoragePath, 0755)
 	if err != nil {
+		options.Logger.Error(fmt.Sprintf("Unable to create directory %s", options.StoragePath), map[string]interface{}{
+			"error": err,
+		})
 		return nil, err
 	}
 
@@ -125,8 +131,19 @@ func (s *service) GetInstallations(ctx context.Context, rocketPacks map[referenc
 	installations := make(map[reference.Reference]*Installation, len(rocketPacks))
 
 	for ref, pack := range rocketPacks {
+		select {
+		case <-ctx.Done():
+			return nil, ctx.Err()
+		default:
+			// Continue with the loop
+		}
+
 		installation, err := s.getInstallation(ctx, ref, pack, readOnly)
 		if err != nil {
+			s.logger.Error("Failed to get installation", map[string]interface{}{
+				"error":     err,
+				"reference": ref.String(),
+			})
 			return nil, err
 		}
 
@@ -138,8 +155,19 @@ func (s *service) GetInstallations(ctx context.Context, rocketPacks map[referenc
 
 func (s *service) RemoveInstallations(ctx context.Context, rocketPacks map[reference.Reference]*rocketpack.RocketPack) error {
 	for ref := range rocketPacks {
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		default:
+			// Continue with the loop
+		}
+
 		err := s.removeInstallation(ctx, ref)
 		if err != nil {
+			s.logger.Error("Failed to remove installation", map[string]interface{}{
+				"error":     err,
+				"reference": ref.String(),
+			})
 			return err
 		}
 	}
@@ -148,7 +176,11 @@ func (s *service) RemoveInstallations(ctx context.Context, rocketPacks map[refer
 }
 
 func (s *service) getInstallation(ctx context.Context, reference reference.Reference, rocketPack *rocketpack.RocketPack, readOnly bool) (*Installation, error) {
-	s.logger.Info("Checking installation", map[string]interface{}{"preInstalled": rocketPack.IsPreInstalled(), "readOnly": readOnly, "reference": reference.String()})
+	s.logger.Info("Checking installation", map[string]interface{}{
+		"preInstalled": rocketPack.IsPreInstalled(),
+		"readOnly":     readOnly,
+		"reference":    reference.String(),
+	})
 
 	var executablePath string
 
@@ -201,15 +233,43 @@ func (s *service) getInstallation(ctx context.Context, reference reference.Refer
 
 func (s *service) downloadInstallation(ctx context.Context, downloadUrl string, installationPath string) error {
 	if downloadUrl == "" {
-		return nil
+		return nil // No download URL, nothing to do.
 	}
 
-	downloadedFilePath := filepath.Join(installationPath, getFilenameFromURL(downloadUrl))
-	err := s.downloader.DownloadWithContext(ctx, downloadedFilePath, downloadUrl)
+	fileName, err := getFilenameFromURL(downloadUrl)
 	if err != nil {
 		return err
 	}
 
+	// Create the installation path if it doesn't exist.
+	err = os.MkdirAll(installationPath, 0755)
+	if err != nil {
+		s.logger.Error("Failed to create installation path", map[string]interface{}{"error": err, "installationPath": installationPath})
+		return err
+	}
+
+	// Lock the installation path to prevent concurrent downloads.
+	locker := s.newLocker(installationPath)
+	if err := locker.Lock(ctx); err != nil {
+		s.logger.Error("Failed to acquire lock", map[string]interface{}{"error": err, "installationPath": installationPath})
+		return err
+	}
+	defer locker.Unlock()
+
+	downloadedFilePath := filepath.Join(installationPath, fileName)
+	s.logger.Info("Downloading installation", map[string]interface{}{
+		"downloadUrl":        downloadUrl,
+		"downloadedFilePath": downloadedFilePath,
+		"installationPath":   installationPath,
+	})
+
+	// Download the file.
+	err = s.downloader.DownloadWithContext(ctx, downloadedFilePath, downloadUrl)
+	if err != nil {
+		return err
+	}
+
+	// Extract the file if it's an archive.
 	if isArchive(downloadedFilePath) {
 		err = s.extractor.ExtractWithContext(ctx, downloadedFilePath, filepath.Dir(downloadedFilePath))
 		if err != nil {
@@ -224,6 +284,13 @@ func (s *service) downloadInstallation(ctx context.Context, downloadUrl string, 
 func (s *service) removeInstallation(ctx context.Context, reference reference.Reference) error {
 	installationPath := filepath.Join(s.storagePath, reference.String())
 
+	locker := s.newLocker(installationPath)
+	if err := locker.Lock(ctx); err != nil {
+		s.logger.Error("Failed to acquire lock", map[string]interface{}{"error": err, "installationPath": installationPath})
+		return err
+	}
+	defer locker.Unlock()
+
 	err := os.RemoveAll(installationPath)
 	if err != nil {
 		return err
@@ -232,11 +299,16 @@ func (s *service) removeInstallation(ctx context.Context, reference reference.Re
 	return nil
 }
 
-func getFilenameFromURL(downloadURL string) string {
+func (s *service) newLocker(dir string) *lockfile.Locker {
+	s.logger.Debug("Creating new file lock", map[string]interface{}{"path": dir, "lockFile": LockFileName})
+	return lockfile.NewLocker(filepath.Join(dir, LockFileName))
+}
+
+func getFilenameFromURL(downloadURL string) (string, error) {
 	u, err := url.Parse(downloadURL)
 	if err != nil {
-		return ""
+		return "", fmt.Errorf("failed to parse URL: %w", err)
 	}
 
-	return path.Base(u.Path)
+	return path.Base(u.Path), nil
 }

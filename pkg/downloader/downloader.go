@@ -57,6 +57,8 @@ func New(opts ...Option) Downloader {
 		opt(options)
 	}
 
+	options.Logger.Debug("Initializing downloader", map[string]interface{}{"logFreq": options.LogFreq})
+
 	return &downloader{
 		logger:  options.Logger,
 		logFreq: options.LogFreq,
@@ -81,7 +83,7 @@ func (d *downloader) DownloadWithContext(ctx context.Context, path string, downl
 		"tempPath":   tempPath,
 	}
 
-	d.logger.Debug("Starting download", logContext)
+	d.logger.Debug("Downloading", logContext)
 
 	req, err := http.NewRequestWithContext(ctx, "GET", downloadUrl, nil)
 	if err != nil {
@@ -148,8 +150,6 @@ func (d *downloader) DownloadWithContext(ctx context.Context, path string, downl
 		return err
 	}
 
-	d.logger.Debug("Download completed to temporary file", logContext)
-
 	// Close the file without defer so it can happen before Rename()
 	f.Close()
 
@@ -162,7 +162,7 @@ func (d *downloader) DownloadWithContext(ctx context.Context, path string, downl
 	}
 
 	logContext["elapsedTime"] = time.Since(startTime).String()
-	d.logger.Info("File successfully downloaded", logContext)
+	d.logger.Debug("File successfully downloaded", logContext)
 
 	return nil
 }

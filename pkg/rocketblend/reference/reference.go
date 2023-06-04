@@ -7,8 +7,8 @@ import (
 
 type Reference string
 
-func (r Reference) String() string {
-	return string(r)
+func (r *Reference) String() string {
+	return string(*r)
 }
 
 func (r Reference) Validate() error {
