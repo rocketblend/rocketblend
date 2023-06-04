@@ -39,7 +39,7 @@ func (srv *Service) newNewCommand() *cobra.Command {
 				return err
 			}
 
-			driver, err := srv.factory.CreateDriver(blendConfig)
+			driver, err := srv.createDriver(blendConfig)
 			if err != nil {
 				return err
 			}

@@ -75,6 +75,36 @@ Documentation is available at https://docs.rocketblend.io/`,
 	return c
 }
 
+func (srv *Service) createDriver(blendConfig *blendconfig.BlendConfig) (rocketblend.Driver, error) {
+	logger, err := srv.factory.GetLogger()
+	if err != nil {
+		return nil, err
+	}
+
+	rocketPackService, err := srv.factory.GetRocketPackService()
+	if err != nil {
+		return nil, err
+	}
+
+	installationService, err := srv.factory.GetInstallationService()
+	if err != nil {
+		return nil, err
+	}
+
+	blendFileService, err := srv.factory.GetBlendFileService()
+	if err != nil {
+		return nil, err
+	}
+
+	return rocketblend.New(
+		rocketblend.WithLogger(logger),
+		rocketblend.WithRocketPackService(rocketPackService),
+		rocketblend.WithInstallationService(installationService),
+		rocketblend.WithBlendFileService(blendFileService),
+		rocketblend.WithBlendConfig(blendConfig),
+	)
+}
+
 // persistentPreRun validates the working directory before running the command.
 func (srv *Service) persistentPreRun(cmd *cobra.Command, args []string) error {
 	path, err := srv.validatePath(srv.flags.workingDirectory)
@@ -117,7 +147,7 @@ func (srv *Service) getDriver() (rocketblend.Driver, error) {
 		return nil, err
 	}
 
-	return srv.factory.CreateDriver(blendConfig)
+	return srv.createDriver(blendConfig)
 }
 
 func (srv *Service) getConfig() (*config.Config, error) {

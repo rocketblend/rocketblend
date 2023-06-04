@@ -4,12 +4,11 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"sync"
 
 	"github.com/flowshot-io/x/pkg/logger"
 	"github.com/rocketblend/rocketblend/pkg/cli/build"
 	"github.com/rocketblend/rocketblend/pkg/cli/config"
-	"github.com/rocketblend/rocketblend/pkg/rocketblend"
-	"github.com/rocketblend/rocketblend/pkg/rocketblend/blendconfig"
 	"github.com/rocketblend/rocketblend/pkg/rocketblend/blendfile"
 	"github.com/rocketblend/rocketblend/pkg/rocketblend/installation"
 	"github.com/rocketblend/rocketblend/pkg/rocketblend/rocketpack"
@@ -17,20 +16,30 @@ import (
 
 type (
 	Factory interface {
+		GetLogger() (logger.Logger, error)
 		GetConfigService() (*config.Service, error)
 		GetRocketPackService() (rocketpack.Service, error)
 		GetInstallationService() (installation.Service, error)
 		GetBlendFileService() (blendfile.Service, error)
-		CreateDriver(blendConfig *blendconfig.BlendConfig) (rocketblend.Driver, error)
 	}
 
 	factory struct {
-		logger        logger.Logger
+		appDir string
+
+		loggerMutex sync.Mutex
+		logger      logger.Logger
+
+		configMutex   sync.Mutex
 		configService *config.Service
 
-		rocketPackService   rocketpack.Service
+		rocketPackMutex   sync.Mutex
+		rocketPackService rocketpack.Service
+
+		installationMutex   sync.Mutex
 		installationService installation.Service
-		blendFileService    blendfile.Service
+
+		blendFileMutex   sync.Mutex
+		blendFileService blendfile.Service
 	}
 )
 
@@ -49,77 +58,142 @@ func New() (Factory, error) {
 		return nil, fmt.Errorf("failed to create app directory: %w", err)
 	}
 
-	configService, err := config.New(appDir)
-	if err != nil {
-		return nil, err
-	}
-
-	config, err := configService.Get()
-	if err != nil {
-		return nil, err
-	}
-
-	logger := logger.New(
-		logger.WithLogLevel(config.LogLevel),
-		logger.WithPretty(),
-	)
-
-	rocketPackService, err := rocketpack.NewService(
-		rocketpack.WithLogger(logger),
-		rocketpack.WithStoragePath(config.PackagesPath),
-	)
-	if err != nil {
-		return nil, err
-	}
-
-	installationService, err := installation.NewService(
-		installation.WithLogger(logger),
-		installation.WithStoragePath(config.InstallationsPath),
-		installation.WithPlatform(config.Platform),
-	)
-	if err != nil {
-		return nil, err
-	}
-
-	blendFileService, err := blendfile.NewService(
-		blendfile.WithLogger(logger),
-	)
-	if err != nil {
-		return nil, err
-	}
-
 	return &factory{
-		logger:              logger,
-		configService:       configService,
-		rocketPackService:   rocketPackService,
-		installationService: installationService,
-		blendFileService:    blendFileService,
+		appDir: appDir,
 	}, nil
 }
 
+func (f *factory) GetLogger() (logger.Logger, error) {
+	f.loggerMutex.Lock()
+	defer f.loggerMutex.Unlock()
+	if f.logger == nil {
+		configService, err := f.GetConfigService()
+		if err != nil {
+			return nil, err
+		}
+
+		config, err := configService.Get()
+		if err != nil {
+			return nil, err
+		}
+
+		f.logger = f.getLogger(config.LogLevel)
+	}
+
+	return f.logger, nil
+}
+
 func (f *factory) GetConfigService() (*config.Service, error) {
-	// TODO: make this either return a new instance or a cached instance
+	f.configMutex.Lock()
+	defer f.configMutex.Unlock()
+
+	if f.configService == nil {
+		service, err := config.New(f.appDir)
+		if err != nil {
+			return nil, err
+		}
+
+		f.configService = service
+	}
+
 	return f.configService, nil
 }
 
 func (f *factory) GetRocketPackService() (rocketpack.Service, error) {
+	f.rocketPackMutex.Lock()
+	defer f.rocketPackMutex.Unlock()
+	if f.rocketPackService == nil {
+		logger, err := f.GetLogger()
+		if err != nil {
+			return nil, err
+		}
+
+		configService, err := f.GetConfigService()
+		if err != nil {
+			return nil, err
+		}
+
+		config, err := configService.Get()
+		if err != nil {
+			return nil, err
+		}
+
+		service, err := rocketpack.NewService(
+			rocketpack.WithLogger(logger),
+			rocketpack.WithStoragePath(config.PackagesPath),
+		)
+		if err != nil {
+			return nil, err
+		}
+
+		f.rocketPackService = service
+	}
 	return f.rocketPackService, nil
 }
 
 func (f *factory) GetInstallationService() (installation.Service, error) {
+	f.installationMutex.Lock()
+	defer f.installationMutex.Unlock()
+	if f.installationService == nil {
+		logger, err := f.GetLogger()
+		if err != nil {
+			return nil, err
+		}
+
+		configService, err := f.GetConfigService()
+		if err != nil {
+			return nil, err
+		}
+
+		config, err := configService.Get()
+		if err != nil {
+			return nil, err
+		}
+
+		service, err := installation.NewService(
+			installation.WithLogger(logger),
+			installation.WithStoragePath(config.InstallationsPath),
+			installation.WithPlatform(config.Platform),
+		)
+		if err != nil {
+			return nil, err
+		}
+
+		f.installationService = service
+	}
+
 	return f.installationService, nil
 }
 
 func (f *factory) GetBlendFileService() (blendfile.Service, error) {
+	f.blendFileMutex.Lock()
+	defer f.blendFileMutex.Unlock()
+	if f.blendFileService == nil {
+		logger, err := f.GetLogger()
+		if err != nil {
+			return nil, err
+		}
+
+		service, err := blendfile.NewService(
+			blendfile.WithLogger(logger),
+		)
+		if err != nil {
+			return nil, err
+		}
+
+		f.blendFileService = service
+	}
+
 	return f.blendFileService, nil
 }
 
-func (f *factory) CreateDriver(blendConfig *blendconfig.BlendConfig) (rocketblend.Driver, error) {
-	return rocketblend.New(
-		rocketblend.WithLogger(f.logger),
-		rocketblend.WithRocketPackService(f.rocketPackService),
-		rocketblend.WithInstallationService(f.installationService),
-		rocketblend.WithBlendFileService(f.blendFileService),
-		rocketblend.WithBlendConfig(blendConfig),
+func (f *factory) getLogger(logLevel string) logger.Logger {
+	if logLevel == "none" || logLevel == "" {
+		return logger.NoOp()
+	}
+
+	return logger.New(
+		logger.WithLogLevel(logLevel),
+		logger.WithPretty(),
 	)
 }
