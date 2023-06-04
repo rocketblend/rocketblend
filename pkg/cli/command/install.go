@@ -24,12 +24,16 @@ func (srv *Service) newInstallCommand() *cobra.Command {
 					return err
 				}
 
+				// Add and installs the dependency to the project.
 				err = rocketblend.AddDependencies(cmd.Context(), ref)
 				if err != nil {
 					return err
 				}
+
+				return nil
 			}
 
+			// Installs all dependencies in the project.
 			return rocketblend.InstallDependencies(cmd.Context())
 		},
 	}

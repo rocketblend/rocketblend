@@ -148,6 +148,8 @@ func New(opts ...Option) (Driver, error) {
 }
 
 func (d *driver) Render(ctx context.Context, opts ...renderoptions.Option) error {
+	d.logger.Debug("Rendering blend file")
+
 	blendFile, err := d.ResolveBlendFile(ctx)
 	if err != nil {
 		return fmt.Errorf("failed to resolve blend file: %w", err)
@@ -161,6 +163,8 @@ func (d *driver) Render(ctx context.Context, opts ...renderoptions.Option) error
 }
 
 func (d *driver) Run(ctx context.Context, opts ...runoptions.Option) error {
+	d.logger.Debug("Running blend file")
+
 	blendFile, err := d.ResolveBlendFile(ctx)
 	if err != nil {
 		return fmt.Errorf("failed to resolve blend file: %w", err)
@@ -174,6 +178,8 @@ func (d *driver) Run(ctx context.Context, opts ...runoptions.Option) error {
 }
 
 func (d *driver) Create(ctx context.Context) error {
+	d.logger.Debug("Creating blend file")
+
 	installations, err := d.getInstallations(ctx, false)
 	if err != nil {
 		return fmt.Errorf("failed to get installations: %w", err)
@@ -196,21 +202,33 @@ func (d *driver) Create(ctx context.Context) error {
 }
 
 func (d *driver) AddDependencies(ctx context.Context, references ...reference.Reference) error {
+	d.logger.Debug("Adding dependencies", map[string]interface{}{"References": references})
+
+	// This will also include the dependencies of the dependencies
 	packs, err := d.rocketPackService.GetPackages(ctx, references...)
 	if err != nil {
 		return fmt.Errorf("failed to get rocket packs: %w", err)
 	}
 
-	for index, pack := range packs {
+	// Add dependencies to blend config using passed in references
+	for _, ref := range references {
+		pack := packs[ref]
 		if pack.IsBuild() {
-			d.blendConfig.RocketFile.SetBuild(index)
+			d.blendConfig.RocketFile.SetBuild(ref)
 		}
 
 		if pack.IsAddon() {
-			d.blendConfig.RocketFile.AddAddons(index)
+			d.blendConfig.RocketFile.AddAddons(ref)
 		}
 	}
 
+	// Install new dependencies
+	_, err = d.InstallationService.GetInstallations(ctx, packs, false)
+	if err != nil {
+		return fmt.Errorf("failed to get installations: %w", err)
+	}
+
+	// Save blend config
 	if err = d.save(ctx); err != nil {
 		return fmt.Errorf("failed to save blend config: %w", err)
 	}
@@ -219,6 +237,8 @@ func (d *driver) AddDependencies(ctx context.Context, references ...reference.Re
 }
 
 func (d *driver) RemoveDependencies(ctx context.Context, references ...reference.Reference) error {
+	d.logger.Debug("Removing dependencies", map[string]interface{}{"References": references})
+
 	packs, err := d.rocketPackService.GetPackages(ctx, references...)
 	if err != nil {
 		return fmt.Errorf("failed to get rocket packs: %w", err)
@@ -242,6 +262,8 @@ func (d *driver) RemoveDependencies(ctx context.Context, references ...reference
 }
 
 func (d *driver) InstallDependencies(ctx context.Context) error {
+	d.logger.Debug("Installing dependencies")
+
 	_, err := d.getInstallations(ctx, false)
 	if err != nil {
 		return fmt.Errorf("failed to install dependencies: %w", err)
@@ -251,6 +273,8 @@ func (d *driver) InstallDependencies(ctx context.Context) error {
 }
 
 func (d *driver) ResolveBlendFile(ctx context.Context) (*blendfile.BlendFile, error) {
+	d.logger.Debug("Resolving blend file")
+
 	installations, err := d.getInstallations(ctx, true)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get installations: %w", err)
