@@ -39,7 +39,7 @@ func (srv *Service) newDescribeCommand() *cobra.Command {
 				return err
 			}
 
-			cmd.Println(display)
+			cmd.Println(string(display))
 
 			return nil
 		},

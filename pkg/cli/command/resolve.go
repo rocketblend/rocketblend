@@ -32,7 +32,7 @@ func (srv *Service) newResolveCommand() *cobra.Command {
 				return err
 			}
 
-			cmd.Println(display)
+			cmd.Println(string(display))
 
 			return nil
 		},
