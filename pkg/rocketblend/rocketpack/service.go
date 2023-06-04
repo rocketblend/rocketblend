@@ -103,10 +103,26 @@ func (s *service) GetPackages(ctx context.Context, references ...reference.Refer
 }
 
 func (s *service) RemovePackages(ctx context.Context, references ...reference.Reference) error {
-	err := s.removePackages(ctx, references...)
-	if err != nil {
-		s.logger.Error("Error removing packages", map[string]interface{}{"error": err})
-		return err
+	errs := make(chan error, len(references))
+	var wg sync.WaitGroup
+	wg.Add(len(references))
+
+	for _, ref := range references {
+		go func(ref reference.Reference) {
+			defer wg.Done()
+			err := s.removePackage(ctx, ref)
+			if err != nil {
+				errs <- fmt.Errorf("error removing package %s: %w", ref, err)
+				return
+			}
+		}(ref)
+	}
+
+	wg.Wait()
+	close(errs)
+
+	if len(errs) > 0 {
+		return fmt.Errorf("errors occurred: %v", <-errs) // return first error for simplicity
 	}
 
 	return nil
@@ -179,44 +195,34 @@ func (s *service) getPackages(ctx context.Context, ref reference.Reference) (map
 	return packages, nil
 }
 
-func (s *service) removePackages(ctx context.Context, references ...reference.Reference) error {
-	for _, ref := range references {
-		select {
-		case <-ctx.Done():
-			return ctx.Err()
-		default:
-			// Continue with the loop
-		}
+func (s *service) removePackage(ctx context.Context, reference reference.Reference) error {
+	s.logger.Info("Processing reference", map[string]interface{}{"reference": reference.String()})
 
-		s.logger.Info("Processing reference", map[string]interface{}{"reference": ref.String()})
+	repo, err := reference.GetRepo()
+	if err != nil {
+		s.logger.Error("Error getting repository path", map[string]interface{}{"error": err, "reference": reference.String()})
+		return err
+	}
 
-		repo, err := ref.GetRepo()
-		if err != nil {
-			s.logger.Error("Error getting repository path", map[string]interface{}{"error": err, "reference": ref.String()})
-			return err
-		}
+	repoPath := filepath.Join(s.storagePath, repo)
 
-		repoPath := filepath.Join(s.storagePath, repo)
+	// Check if the file exists in the local storage
+	_, err = os.Stat(repoPath)
+	if os.IsNotExist(err) {
+		// The file does not exist, nothing to remove
+		s.logger.Debug("File does not exist locally, nothing to remove", map[string]interface{}{"localPath": repoPath, "reference": reference.String()})
+	} else if err != nil {
+		// There was an error checking the file
+		s.logger.Error("Error checking file", map[string]interface{}{"error": err, "reference": reference.String()})
+		return err
+	}
 
-		// Check if the file exists in the local storage
-		_, err = os.Stat(repoPath)
-		if os.IsNotExist(err) {
-			// The file does not exist, nothing to remove
-			s.logger.Debug("File does not exist locally, nothing to remove", map[string]interface{}{"localPath": repoPath, "reference": ref.String()})
-			continue
-		} else if err != nil {
-			// There was an error checking the file
-			s.logger.Error("Error checking file", map[string]interface{}{"error": err, "reference": ref.String()})
-			return err
-		}
-
-		// Remove the directory
-		s.logger.Debug("Removing directory", map[string]interface{}{"localPath": repoPath, "reference": ref.String()})
-		err = os.RemoveAll(repoPath)
-		if err != nil {
-			s.logger.Error("Error removing directory", map[string]interface{}{"error": err, "reference": ref.String()})
-			return err
-		}
+	// Remove the directory
+	s.logger.Debug("Removing directory", map[string]interface{}{"localPath": repoPath, "reference": reference.String()})
+	err = os.RemoveAll(repoPath)
+	if err != nil {
+		s.logger.Error("Error removing directory", map[string]interface{}{"error": err, "reference": reference.String()})
+		return err
 	}
 
 	return nil
@@ -247,5 +253,6 @@ func (s *service) pullChanges(ctx context.Context, repoPath string) error {
 	if err != nil && err != git.NoErrAlreadyUpToDate {
 		return err
 	}
+
 	return nil
 }
