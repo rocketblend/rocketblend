@@ -148,7 +148,7 @@ func (s *service) RemoveInstallations(ctx context.Context, rocketPacks map[refer
 }
 
 func (s *service) getInstallation(ctx context.Context, reference reference.Reference, rocketPack *rocketpack.RocketPack, readOnly bool) (*Installation, error) {
-	s.logger.Debug("Checking installation", map[string]interface{}{"preInstalled": rocketPack.IsPreInstalled(), "readOnly": readOnly, "reference": reference.String()})
+	s.logger.Info("Checking installation", map[string]interface{}{"preInstalled": rocketPack.IsPreInstalled(), "readOnly": readOnly, "reference": reference.String()})
 
 	var executablePath string
 

@@ -60,6 +60,10 @@ func NewService(opts ...Option) (Service, error) {
 		return nil, err
 	}
 
+	options.Logger.Debug("Initializing rocketpack service", map[string]interface{}{
+		"storagePath": options.StoragePath,
+	})
+
 	return &service{
 		logger:      options.Logger,
 		storagePath: options.StoragePath,
@@ -169,7 +173,7 @@ func (s *service) getPackages(ctx context.Context, references ...reference.Refer
 
 		deps := pack.GetDependencies()
 		if len(deps) > 0 {
-			s.logger.Info("Package has dependencies", map[string]interface{}{"reference": ref.String()})
+			s.logger.Debug("Package has dependencies", map[string]interface{}{"reference": ref.String()})
 
 			// Get the dependencies
 			depPackages, err := s.getPackages(ctx, deps...)
@@ -183,7 +187,7 @@ func (s *service) getPackages(ctx context.Context, references ...reference.Refer
 				packages[dep] = depPackages[dep]
 			}
 
-			s.logger.Info("Dependency packages successfully loaded", map[string]interface{}{"reference": ref.String()})
+			s.logger.Debug("Dependency packages successfully loaded", map[string]interface{}{"reference": ref.String()})
 		}
 
 		packages[ref] = pack

@@ -133,6 +133,11 @@ func New(opts ...Option) (Driver, error) {
 		return nil, fmt.Errorf("invalid blend config: %w", err)
 	}
 
+	options.Logger.Debug("Initializing rocketblend driver", map[string]interface{}{
+		"ProjectPath":   options.BlendConfig.ProjectPath,
+		"BlendFileName": options.BlendConfig.BlendFileName,
+	})
+
 	return &driver{
 		logger:              options.Logger,
 		InstallationService: options.InstallationService,
