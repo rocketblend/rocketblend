@@ -1,7 +1,10 @@
 package main
 
 import (
+	"context"
 	"fmt"
+	"os"
+	"os/signal"
 
 	cli "github.com/rocketblend/rocketblend/pkg/rocketblend"
 )
@@ -13,7 +16,24 @@ func main() {
 		return
 	}
 
-	if err := app.Execute(); err != nil {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	// Set up signal catching
+	sigs := make(chan os.Signal, 1)
+
+	// Catch all signals since we can't block SIGKILL
+	signal.Notify(sigs)
+
+	go func() {
+		// Wait for a signal
+		<-sigs
+
+		// Cancel the context on receipt of a signal
+		cancel()
+	}()
+
+	if err := app.ExecuteContext(ctx); err != nil {
 		return
 	}
 }

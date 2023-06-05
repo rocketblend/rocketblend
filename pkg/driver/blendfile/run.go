@@ -27,19 +27,19 @@ func (s *service) Run(ctx context.Context, blendFile *BlendFile, opts ...runopti
 		return s.logAndReturnError("failed to get command", err)
 	}
 
-	if err := s.runCommand(cmd); err != nil {
+	if err := s.runCommand(ctx, cmd); err != nil {
 		return s.logAndReturnError("error running command", err)
 	}
 
 	return nil
 }
 
-// runCommand starts the given command and waits for it to complete, logging any output received during its execution.
-func (s *service) runCommand(cmd *exec.Cmd) error {
+func (s *service) runCommand(ctx context.Context, cmd *exec.Cmd) error {
 	cmdReader, err := cmd.StdoutPipe()
 	if err != nil {
 		return s.logAndReturnError("failed to get stdout pipe", err)
 	}
+	defer cmdReader.Close()
 
 	scanner := bufio.NewScanner(cmdReader)
 	go func() {
@@ -60,6 +60,11 @@ func (s *service) runCommand(cmd *exec.Cmd) error {
 	}
 
 	if err := cmd.Wait(); err != nil {
+		if ctx.Err() == context.Canceled {
+			s.logger.Debug("Context cancelled - command exited")
+			return nil
+		}
+
 		return s.logAndReturnError("failed to wait for command", err)
 	}
 

@@ -48,7 +48,7 @@ func (s *service) Render(ctx context.Context, blendFile *BlendFile, opts ...rend
 		return s.logAndReturnError("error getting command", err)
 	}
 
-	if err := s.runCommand(cmd); err != nil {
+	if err := s.runCommand(ctx, cmd); err != nil {
 		return s.logAndReturnError("error running command", err)
 	}
 

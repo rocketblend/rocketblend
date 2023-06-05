@@ -24,17 +24,14 @@ type (
 	}
 )
 
-// IsBuild returns true if the rocket pack is a build.
 func (r *RocketPack) IsBuild() bool {
 	return r.Build != nil
 }
 
-// IsAddon returns true if the rocket pack is an addon.
 func (r *RocketPack) IsAddon() bool {
 	return r.Addon != nil
 }
 
-// IsLocalOnly returns true if the build is local only, meaning it is pre-installed or has no download URL.
 func (r *RocketPack) IsLocalOnly(platform runtime.Platform) (bool, error) {
 	if r.IsBuild() {
 		return r.Build.IsLocalOnly(platform)
@@ -47,12 +44,10 @@ func (r *RocketPack) IsLocalOnly(platform runtime.Platform) (bool, error) {
 	return false, fmt.Errorf("invalid rocket pack: neither build nor addon are defined")
 }
 
-// IsPreInstalled returns true if the package is pre-installed.
 func (r *RocketPack) IsPreInstalled() bool {
 	return r.IsAddon() && r.Addon.IsPreInstalled()
 }
 
-// GetDependencies returns the dependencies for the rocket pack.
 func (r *RocketPack) GetDependencies() []reference.Reference {
 	if r.IsBuild() {
 		return r.Build.Addons
@@ -65,7 +60,6 @@ func (r *RocketPack) GetDependencies() []reference.Reference {
 	return nil
 }
 
-// GetDownloadUrl returns the download URL for the rocket pack.
 func (r *RocketPack) GetDownloadUrl(platform runtime.Platform) (string, error) {
 	if r.IsBuild() {
 		return r.Build.GetDownloadUrl(platform)
@@ -78,7 +72,6 @@ func (r *RocketPack) GetDownloadUrl(platform runtime.Platform) (string, error) {
 	return "", fmt.Errorf("invalid rocket pack: neither build nor addon are defined")
 }
 
-// GetExecutableName returns the executable name for the rocket pack.
 func (r *RocketPack) GetExecutableName(platform runtime.Platform) (string, error) {
 	if r.IsBuild() {
 		return r.Build.GetExecutableName(platform)

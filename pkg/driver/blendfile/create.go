@@ -21,7 +21,7 @@ func (s *service) Create(ctx context.Context, blendFile *BlendFile) error {
 
 	cmd := exec.CommandContext(ctx, blendFile.Build.FilePath, "-b", "--python-expr", script)
 
-	if err := s.runCommand(cmd); err != nil {
+	if err := s.runCommand(ctx, cmd); err != nil {
 		return s.logAndReturnError("error running command", err)
 	}
 
