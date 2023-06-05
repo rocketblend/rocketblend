@@ -2,31 +2,32 @@ package helpers
 
 import (
 	"fmt"
-	"os"
 	"path/filepath"
+	"sort"
 )
 
-func ValidateFilePath(filePath string, requiredFileName string) error {
-	if filePath == "" {
-		return fmt.Errorf("file path cannot be empty")
+func RemoveDuplicateStr(strs []string) []string {
+	sort.Strings(strs)
+	for i := len(strs) - 1; i > 0; i-- {
+		if strs[i] == strs[i-1] {
+			strs = append(strs[:i], strs[i+1:]...)
+		}
 	}
 
-	if filepath.Base(filePath) != requiredFileName && requiredFileName != "" {
-		return fmt.Errorf("invalid file name (must be '%s'): %s", requiredFileName, filepath.Base(filePath))
-	}
-
-	return nil
+	return strs
 }
 
-func FileExists(filePath string) error {
-	info, err := os.Stat(filePath)
-	if os.IsNotExist(err) {
-		return fmt.Errorf("file does not exist")
+func FindFilePathForExt(dir string, ext string) (string, error) {
+	// Get a list of all files in the current directory.
+
+	files, err := filepath.Glob(filepath.Join(dir, "*"+ext))
+	if err != nil {
+		return "", fmt.Errorf("failed to list files in current directory: %w", err)
 	}
 
-	if info.IsDir() {
-		return fmt.Errorf("file is a directory")
+	if len(files) == 0 {
+		return "", fmt.Errorf("no files found in directory")
 	}
 
-	return nil
+	return files[0], nil
 }

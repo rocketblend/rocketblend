@@ -3,7 +3,7 @@ package main
 import (
 	"fmt"
 
-	"github.com/rocketblend/rocketblend/pkg/cli"
+	cli "github.com/rocketblend/rocketblend/pkg/rocketblend"
 )
 
 func main() {
