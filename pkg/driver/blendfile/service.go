@@ -1,10 +1,7 @@
 package blendfile
 
 import (
-	"bufio"
 	_ "embed"
-	"os"
-	"path/filepath"
 	"strings"
 
 	"context"
@@ -16,6 +13,7 @@ import (
 	"github.com/flowshot-io/x/pkg/logger"
 	"github.com/rocketblend/rocketblend/pkg/driver/blendfile/renderoptions"
 	"github.com/rocketblend/rocketblend/pkg/driver/blendfile/runoptions"
+	"github.com/rocketblend/rocketblend/pkg/driver/helpers"
 )
 
 //go:embed scripts/addonScript.gopy
@@ -81,51 +79,6 @@ func NewService(opts ...Option) (Service, error) {
 	}, nil
 }
 
-func (s *service) Create(ctx context.Context, blendFile *BlendFile) error {
-	err := os.MkdirAll(filepath.Dir(blendFile.FilePath), 0755)
-	if err != nil {
-		return err
-	}
-
-	script, err := parseOutputTemplate(s.createScript, map[string]string{
-		"path": blendFile.FilePath,
-	})
-	if err != nil {
-		return err
-	}
-
-	cmd := exec.CommandContext(ctx, blendFile.Build.FilePath, "-b", "--python-expr", script)
-
-	s.logger.Debug("running command", map[string]interface{}{"command": cmd.String()})
-
-	cmdReader, err := cmd.StdoutPipe()
-	if err != nil {
-		return fmt.Errorf("failed to get stdout pipe: %w", err)
-	}
-
-	scanner := bufio.NewScanner(cmdReader)
-	go func() {
-		for scanner.Scan() {
-			s.logger.Debug("Blender", map[string]interface{}{"Message": scanner.Text()})
-		}
-	}()
-
-	if err := cmd.Start(); err != nil {
-		return fmt.Errorf("failed to start command: %w", err)
-	}
-
-	if err := cmd.Wait(); err != nil {
-		return fmt.Errorf("failed to wait for command: %w", err)
-	}
-
-	err = Validate(blendFile)
-	if err != nil {
-		return fmt.Errorf("failed to validate: %s", err)
-	}
-
-	return nil
-}
-
 func (s *service) getCommand(ctx context.Context, blendFile *BlendFile, background bool, postArgs ...string) (*exec.Cmd, error) {
 	// TODO: Only the rocketblend addon should be loaded. The addon will then load the other addons when blender starts. And will act as a toggle for addon support.
 	preArgs := []string{}
@@ -159,9 +112,13 @@ func (s *service) getCommand(ctx context.Context, blendFile *BlendFile, backgrou
 	args := append(preArgs, postArgs...)
 	cmd := exec.CommandContext(ctx, blendFile.Build.FilePath, args...)
 
-	s.logger.Debug("running command", map[string]interface{}{"command": cmd.String()})
+	s.logger.Debug("Running command", map[string]interface{}{"command": cmd.String()})
 
 	return cmd, nil
+}
+
+func (s *service) logAndReturnError(msg string, err error, fields ...map[string]interface{}) error {
+	return helpers.LogAndReturnError(s.logger, msg, err, fields...)
 }
 
 func parseOutputTemplate(str string, data interface{}) (string, error) {
