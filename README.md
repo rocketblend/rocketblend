@@ -69,6 +69,7 @@ This command will download the latest version of the `rocketblend` source code a
 - GUI launcher project.
 - Searchable build and addon website similar to [hub.docker.com](https://hub.docker.com/) or [pkg.go.dev](pkg.go.dev).
 
-## Acknowledgments
+## Inspired By
 
-- Inspired by [Blender Launcher](https://github.com/DotBow/Blender-Launcher)
+- [Blender Launcher](https://github.com/DotBow/Blender-Launcher)
+- [Scoop](https://scoop.sh/)
