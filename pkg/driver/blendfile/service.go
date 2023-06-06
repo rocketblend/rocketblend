@@ -5,9 +5,7 @@ import (
 	"strings"
 
 	"context"
-	"encoding/json"
 	"fmt"
-	"os/exec"
 	"text/template"
 
 	"github.com/flowshot-io/x/pkg/logger"
@@ -77,44 +75,6 @@ func NewService(opts ...Option) (Service, error) {
 		addonScript:  options.AddonScript,
 		createScript: options.CreateScript,
 	}, nil
-}
-
-func (s *service) getCommand(ctx context.Context, blendFile *BlendFile, background bool, postArgs ...string) (*exec.Cmd, error) {
-	// TODO: Only the rocketblend addon should be loaded. The addon will then load the other addons when blender starts. And will act as a toggle for addon support.
-	preArgs := []string{}
-	if background {
-		preArgs = append(preArgs, "-b")
-	}
-
-	if blendFile.FilePath != "" {
-		preArgs = append(preArgs, []string{blendFile.FilePath}...)
-	}
-
-	if s.addonsEnabled {
-		json, err := json.Marshal(blendFile.Addons)
-		if err != nil {
-			return nil, fmt.Errorf("failed to marshal addons: %s", err)
-		}
-
-		postArgs = append([]string{
-			"--python-expr",
-			s.addonScript,
-		}, postArgs...)
-
-		postArgs = append(postArgs, []string{
-			"--",
-			"-a",
-			string(json),
-		}...)
-	}
-
-	// Blender requires arguments to be in a specific order
-	args := append(preArgs, postArgs...)
-	cmd := exec.CommandContext(ctx, blendFile.Build.FilePath, args...)
-
-	s.logger.Debug("Running command", map[string]interface{}{"command": cmd.String()})
-
-	return cmd, nil
 }
 
 func (s *service) logAndReturnError(msg string, err error, fields ...map[string]interface{}) error {

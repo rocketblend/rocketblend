@@ -33,7 +33,7 @@ func (s *service) Render(ctx context.Context, blendFile *BlendFile, opts ...rend
 		return s.logAndReturnError("failed to parse output template", err)
 	}
 
-	args := []string{
+	args, err := s.getRuntimeArguments(blendFile, options.Background, []string{
 		"--frame-start", fmt.Sprint(options.FrameStart),
 		"--frame-end", fmt.Sprint(options.FrameEnd),
 		"--frame-jump", fmt.Sprint(options.FrameStep),
@@ -41,14 +41,13 @@ func (s *service) Render(ctx context.Context, blendFile *BlendFile, opts ...rend
 		"--render-format", options.Format,
 		"-x", "1",
 		"-a",
-	}
+	}...)
 
-	cmd, err := s.getCommand(ctx, blendFile, options.Background, args...)
 	if err != nil {
-		return s.logAndReturnError("error getting command", err)
+		return s.logAndReturnError("failed to get runtime arguments", err)
 	}
 
-	if err := s.runCommand(ctx, cmd); err != nil {
+	if err := s.runCommand(ctx, blendFile.Build.FilePath, args...); err != nil {
 		return s.logAndReturnError("error running command", err)
 	}
 

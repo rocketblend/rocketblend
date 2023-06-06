@@ -3,7 +3,6 @@ package blendfile
 import (
 	"context"
 	"os"
-	"os/exec"
 	"path/filepath"
 
 	"github.com/pkg/errors"
@@ -19,9 +18,13 @@ func (s *service) Create(ctx context.Context, blendFile *BlendFile) error {
 		return s.logAndReturnError("failed to parse output template", err)
 	}
 
-	cmd := exec.CommandContext(ctx, blendFile.Build.FilePath, "-b", "--python-expr", script)
+	args := []string{
+		"-b",
+		"--python-expr",
+		script,
+	}
 
-	if err := s.runCommand(ctx, cmd); err != nil {
+	if err := s.runCommand(ctx, blendFile.Build.FilePath, args...); err != nil {
 		return s.logAndReturnError("error running command", err)
 	}
 
