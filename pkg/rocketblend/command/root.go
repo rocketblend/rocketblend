@@ -54,6 +54,7 @@ builds and addons for Blender projects.
 Documentation is available at https://docs.rocketblend.io/`,
 		PersistentPreRunE: srv.persistentPreRun,
 		SilenceUsage:      true,
+		SilenceErrors:     true,
 	}
 
 	c.SetVersionTemplate("{{.Version}}\n")
@@ -64,7 +65,6 @@ Documentation is available at https://docs.rocketblend.io/`,
 		srv.newInstallCommand(),
 		srv.newUninstallCommand(),
 		srv.newRunCommand(),
-		srv.newStartCommand(),
 		srv.newRenderCommand(),
 		srv.newResolveCommand(),
 		srv.newDescribeCommand(),

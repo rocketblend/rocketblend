@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"os/exec"
+	"strings"
 
 	"github.com/rocketblend/rocketblend/pkg/driver/blenderparser"
 	"github.com/rocketblend/rocketblend/pkg/driver/blendfile/runoptions"
@@ -82,7 +83,7 @@ func (s *service) runCommand(ctx context.Context, name string, args ...string) e
 			info, err := blenderparser.ParseRenderOutput(scanner.Text())
 			if err != nil {
 				if scanner.Text() != "" {
-					s.logger.Debug("Blender", map[string]interface{}{"Message": scanner.Text()})
+					s.logger.Debug("Blender", map[string]interface{}{"Message": strings.TrimSpace(scanner.Text())})
 				}
 			} else {
 				s.logger.Info("Rendering", map[string]interface{}{"Frame": info.FrameNumber, "Memory": info.Memory, "PeakMemory": info.PeakMemory, "Time": info.Time, "Operation": info.Operation})
@@ -97,7 +98,9 @@ func (s *service) runCommand(ctx context.Context, name string, args ...string) e
 	}
 
 	if err := cmd.Wait(); err != nil {
-		return s.logAndReturnError("failed to wait for command", err)
+		return s.logAndReturnError("failed to wait for command", err, map[string]interface{}{
+			"canceled": ctx.Err() != nil,
+		})
 	}
 
 	return nil

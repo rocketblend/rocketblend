@@ -27,13 +27,18 @@ func main() {
 
 	go func() {
 		// Wait for a signal
-		<-sigs
+		s := <-sigs
+		fmt.Println("Cancellation received: ", s)
 
 		// Cancel the context on receipt of a signal
 		cancel()
 	}()
 
 	if err := app.ExecuteContext(ctx); err != nil {
-		return
+		if ctx.Err() == context.Canceled {
+			return
+		}
+
+		fmt.Println("Error executing: ", err)
 	}
 }

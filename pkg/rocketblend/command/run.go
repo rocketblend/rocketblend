@@ -17,7 +17,11 @@ func (srv *Service) newRunCommand() *cobra.Command {
 				return err
 			}
 
-			return rocketblend.Run(cmd.Context())
+			if err := rocketblend.Run(cmd.Context()); err != nil {
+				return err
+			}
+
+			return nil
 		},
 	}
 
