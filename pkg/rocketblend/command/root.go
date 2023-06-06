@@ -3,6 +3,7 @@ package command
 import (
 	"path/filepath"
 
+	"github.com/flowshot-io/x/pkg/logger"
 	"github.com/rocketblend/rocketblend/pkg/driver"
 	"github.com/rocketblend/rocketblend/pkg/driver/blendconfig"
 	"github.com/rocketblend/rocketblend/pkg/driver/rocketfile"
@@ -18,6 +19,7 @@ type (
 	// persistentFlags holds the flags that are available across all the subcommands
 	persistentFlags struct {
 		workingDirectory string
+		verbose          bool
 	}
 
 	// Service acts as a container for the CLI services,
@@ -71,6 +73,7 @@ Documentation is available at https://docs.rocketblend.io/`,
 	)
 
 	c.PersistentFlags().StringVarP(&srv.flags.workingDirectory, "directory", "d", ".", "working directory for the command")
+	c.PersistentFlags().BoolVarP(&srv.flags.verbose, "verbose", "v", false, "enable verbose logging")
 
 	return c
 }
@@ -107,6 +110,17 @@ func (srv *Service) createDriver(blendConfig *blendconfig.BlendConfig) (driver.D
 
 // persistentPreRun validates the working directory before running the command.
 func (srv *Service) persistentPreRun(cmd *cobra.Command, args []string) error {
+	var log logger.Logger
+	if !srv.flags.verbose {
+		log = logger.NoOp()
+	}
+
+	// Set logger per verbose flag
+	err := srv.factory.SetLogger(log)
+	if err != nil {
+		return err
+	}
+
 	path, err := srv.validatePath(srv.flags.workingDirectory)
 	if err != nil {
 		return err

@@ -17,6 +17,7 @@ import (
 type (
 	Factory interface {
 		GetLogger() (logger.Logger, error)
+		SetLogger(logger.Logger) error
 		GetConfigService() (*config.Service, error)
 		GetRocketPackService() (rocketpack.Service, error)
 		GetInstallationService() (installation.Service, error)
@@ -63,6 +64,22 @@ func New() (Factory, error) {
 	}, nil
 }
 
+func (f *factory) GetConfigService() (*config.Service, error) {
+	f.configMutex.Lock()
+	defer f.configMutex.Unlock()
+
+	if f.configService == nil {
+		service, err := config.New(f.appDir)
+		if err != nil {
+			return nil, err
+		}
+
+		f.configService = service
+	}
+
+	return f.configService, nil
+}
+
 func (f *factory) GetLogger() (logger.Logger, error) {
 	f.loggerMutex.Lock()
 	defer f.loggerMutex.Unlock()
@@ -83,20 +100,12 @@ func (f *factory) GetLogger() (logger.Logger, error) {
 	return f.logger, nil
 }
 
-func (f *factory) GetConfigService() (*config.Service, error) {
-	f.configMutex.Lock()
-	defer f.configMutex.Unlock()
+func (f *factory) SetLogger(logger logger.Logger) error {
+	f.loggerMutex.Lock()
+	defer f.loggerMutex.Unlock()
 
-	if f.configService == nil {
-		service, err := config.New(f.appDir)
-		if err != nil {
-			return nil, err
-		}
-
-		f.configService = service
-	}
-
-	return f.configService, nil
+	f.logger = logger
+	return nil
 }
 
 func (f *factory) GetRocketPackService() (rocketpack.Service, error) {
@@ -188,10 +197,6 @@ func (f *factory) GetBlendFileService() (blendfile.Service, error) {
 }
 
 func (f *factory) getLogger(logLevel string) logger.Logger {
-	if logLevel == "none" || logLevel == "" {
-		return logger.NoOp()
-	}
-
 	return logger.New(
 		logger.WithLogLevel(logLevel),
 		logger.WithPretty(),
