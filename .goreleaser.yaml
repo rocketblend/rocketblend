@@ -12,7 +12,7 @@ builds:
       - windows
       - darwin
     ldflags:
-      - -X github.com/rocketblend/rocketblend/pkg/cli/build.Version={{.Version}}
+      - -X github.com/rocketblend/rocketblend/pkg/rocketblend/build.Version={{.Version}}
 
 scoop:
   bucket:
