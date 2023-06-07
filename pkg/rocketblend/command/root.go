@@ -1,6 +1,7 @@
 package command
 
 import (
+	"context"
 	"path/filepath"
 
 	"github.com/flowshot-io/x/pkg/logger"
@@ -171,4 +172,16 @@ func (srv *Service) getConfig() (*config.Config, error) {
 	}
 
 	return configSrv.Get()
+}
+
+func (srv *Service) runWithSpinner(ctx context.Context, f func(context.Context) error, options *helpers.SpinnerOptions) error {
+	if options == nil {
+		options = &helpers.SpinnerOptions{}
+	}
+
+	if srv.flags.verbose {
+		return f(ctx)
+	}
+
+	return helpers.RunWithSpinner(ctx, f, options)
 }

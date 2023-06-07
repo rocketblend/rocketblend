@@ -1,7 +1,10 @@
 package command
 
 import (
+	"context"
+
 	"github.com/rocketblend/rocketblend/pkg/driver/reference"
+	"github.com/rocketblend/rocketblend/pkg/rocketblend/helpers"
 	"github.com/spf13/cobra"
 )
 
@@ -25,16 +28,15 @@ func (srv *Service) newInstallCommand() *cobra.Command {
 				}
 
 				// Add and installs the dependency to the project.
-				err = rocketblend.AddDependencies(cmd.Context(), ref)
-				if err != nil {
-					return err
-				}
-
-				return nil
+				return srv.runWithSpinner(cmd.Context(), func(ctx context.Context) error {
+					return rocketblend.AddDependencies(ctx, ref)
+				}, &helpers.SpinnerOptions{Suffix: "Installing package..."})
 			}
 
 			// Installs all dependencies in the project.
-			return rocketblend.InstallDependencies(cmd.Context())
+			return srv.runWithSpinner(cmd.Context(), func(ctx context.Context) error {
+				return rocketblend.InstallDependencies(ctx)
+			}, &helpers.SpinnerOptions{Suffix: "Installing dependencies..."})
 		},
 	}
 

@@ -1,12 +1,14 @@
 package command
 
 import (
+	"context"
 	"fmt"
 	"path/filepath"
 	"strings"
 
 	"github.com/rocketblend/rocketblend/pkg/driver/blendconfig"
 	"github.com/rocketblend/rocketblend/pkg/driver/rocketfile"
+	"github.com/rocketblend/rocketblend/pkg/rocketblend/helpers"
 	"github.com/spf13/cobra"
 )
 
@@ -44,7 +46,9 @@ func (srv *Service) newNewCommand() *cobra.Command {
 				return err
 			}
 
-			return driver.Create(cmd.Context())
+			return srv.runWithSpinner(cmd.Context(), func(ctx context.Context) error {
+				return driver.Create(ctx)
+			}, &helpers.SpinnerOptions{Suffix: "Creating project..."})
 		},
 	}
 

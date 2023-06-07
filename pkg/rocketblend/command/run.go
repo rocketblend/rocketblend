@@ -1,6 +1,9 @@
 package command
 
 import (
+	"context"
+
+	"github.com/rocketblend/rocketblend/pkg/rocketblend/helpers"
 	"github.com/spf13/cobra"
 )
 
@@ -17,11 +20,9 @@ func (srv *Service) newRunCommand() *cobra.Command {
 				return err
 			}
 
-			if err := rocketblend.Run(cmd.Context()); err != nil {
-				return err
-			}
-
-			return nil
+			return srv.runWithSpinner(cmd.Context(), func(ctx context.Context) error {
+				return rocketblend.Run(ctx)
+			}, &helpers.SpinnerOptions{Suffix: "Running project..."})
 		},
 	}
 
