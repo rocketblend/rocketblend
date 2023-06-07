@@ -1,7 +1,10 @@
 package command
 
 import (
+	"context"
+
 	"github.com/rocketblend/rocketblend/pkg/driver/reference"
+	"github.com/rocketblend/rocketblend/pkg/rocketblend/helpers"
 	"github.com/spf13/cobra"
 )
 
@@ -23,7 +26,9 @@ func (srv *Service) newUninstallCommand() *cobra.Command {
 				return err
 			}
 
-			return rocketblend.RemoveDependencies(cmd.Context(), ref)
+			return srv.runWithSpinner(cmd.Context(), func(ctx context.Context) error {
+				return rocketblend.RemoveDependencies(ctx, ref)
+			}, &helpers.SpinnerOptions{Suffix: "Removing package..."})
 		},
 	}
 

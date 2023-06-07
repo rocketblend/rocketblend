@@ -27,8 +27,8 @@ func main() {
 
 	go func() {
 		// Wait for a signal
-		s := <-sigs
-		fmt.Println("Cancellation received: ", s)
+		<-sigs
+		// fmt.Println("Cancellation received: ", s)
 
 		// Cancel the context on receipt of a signal
 		cancel()

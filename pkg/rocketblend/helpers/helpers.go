@@ -1,10 +1,21 @@
 package helpers
 
 import (
+	"context"
 	"fmt"
 	"path/filepath"
 	"sort"
+	"time"
+
+	"github.com/briandowns/spinner"
 )
+
+type SpinnerOptions struct {
+	Spinner          []string
+	Suffix           string
+	CompletedMessage string
+	CanceledMessage  string
+}
 
 func RemoveDuplicateStr(strs []string) []string {
 	sort.Strings(strs)
@@ -30,4 +41,59 @@ func FindFilePathForExt(dir string, ext string) (string, error) {
 	}
 
 	return files[0], nil
+}
+
+func RunWithSpinner(ctx context.Context, f func(context.Context) error, options *SpinnerOptions) error {
+	if options == nil {
+		options = &SpinnerOptions{}
+	}
+
+	if options.Spinner == nil {
+		options.Spinner = spinner.CharSets[11]
+	}
+
+	if options.Suffix == "" {
+		options.Suffix = "Loading..."
+	}
+
+	if options.CompletedMessage == "" {
+		options.CompletedMessage = "Complete!"
+	}
+
+	if options.CanceledMessage == "" {
+		options.CanceledMessage = "Canceled!"
+	}
+
+	// create a new spinner with the given set of spinner characters
+	s := spinner.New(options.Spinner, 100*time.Millisecond,
+		spinner.WithHiddenCursor(true),
+		spinner.WithSuffix(" "+options.Suffix),
+	)
+
+	// Start the spinner
+	s.Start()
+
+	errChan := make(chan error, 1)
+
+	go func() {
+		defer close(errChan)
+		err := f(ctx)
+		if err != nil {
+			errChan <- err
+		}
+	}()
+
+	select {
+	case <-ctx.Done():
+		s.Stop()
+		fmt.Println(options.CanceledMessage)
+		return ctx.Err()
+	case err := <-errChan:
+		s.Stop()
+		if err != nil {
+			return err
+		}
+		fmt.Println(options.CompletedMessage)
+		return nil
+	}
 }

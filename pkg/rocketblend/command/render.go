@@ -1,7 +1,10 @@
 package command
 
 import (
+	"context"
+
 	"github.com/rocketblend/rocketblend/pkg/driver/blendfile/renderoptions"
+	"github.com/rocketblend/rocketblend/pkg/rocketblend/helpers"
 	"github.com/spf13/cobra"
 )
 
@@ -26,12 +29,14 @@ func (srv *Service) newRenderCommand() *cobra.Command {
 				return err
 			}
 
-			return rocketblend.Render(
-				cmd.Context(),
-				renderoptions.WithFrameRange(frameStart, frameEnd, frameStep),
-				renderoptions.WithOutput(output),
-				renderoptions.WithFormat(format),
-			)
+			return srv.runWithSpinner(cmd.Context(), func(ctx context.Context) error {
+				return rocketblend.Render(
+					ctx,
+					renderoptions.WithFrameRange(frameStart, frameEnd, frameStep),
+					renderoptions.WithOutput(output),
+					renderoptions.WithFormat(format),
+				)
+			}, &helpers.SpinnerOptions{Suffix: "Rendering project..."})
 		},
 	}
 
