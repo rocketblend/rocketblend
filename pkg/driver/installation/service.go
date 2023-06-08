@@ -24,6 +24,7 @@ type (
 	Service interface {
 		GetInstallations(ctx context.Context, rocketPacks map[reference.Reference]*rocketpack.RocketPack, readOnly bool) (map[reference.Reference]*Installation, error)
 		RemoveInstallations(ctx context.Context, rocketPacks map[reference.Reference]*rocketpack.RocketPack) error
+		InsertInstallations(ctx context.Context, rocketPacks map[reference.Reference]*rocketpack.RocketPack, sourcePath string) error
 	}
 
 	Options struct {
@@ -209,6 +210,84 @@ func (s *service) RemoveInstallations(ctx context.Context, rocketPacks map[refer
 	return nil
 }
 
+// InsertInstallations inserts the given rocketpacks into the service's storage. This is used for local packages.
+func (s *service) InsertInstallations(ctx context.Context, rocketPacks map[reference.Reference]*rocketpack.RocketPack, sourcePath string) error {
+	_, err := os.Stat(sourcePath)
+	if err != nil {
+		return err
+	}
+
+	errs := make(chan error, len(rocketPacks))
+	var wg sync.WaitGroup
+	wg.Add(len(rocketPacks))
+
+	for ref, pack := range rocketPacks {
+		go func(r reference.Reference, p *rocketpack.RocketPack, sp string) {
+			defer wg.Done()
+			err := s.insertInstallation(ctx, r, p, sp)
+			if err != nil {
+				s.logger.Error("Failed to insert installation", map[string]interface{}{
+					"error":     err,
+					"reference": r.String(),
+				})
+				errs <- fmt.Errorf("failed to insert installation for %s: %w", r.String(), err)
+				return
+			}
+		}(ref, pack, sourcePath)
+	}
+
+	go func() {
+		wg.Wait()
+		close(errs)
+	}()
+
+	if len(errs) > 0 {
+		return fmt.Errorf("errors occurred: %v", <-errs) // return first error for simplicity
+	}
+
+	return nil
+}
+
+func (s *service) insertInstallation(ctx context.Context, reference reference.Reference, rocketPack *rocketpack.RocketPack, sourcePath string) error {
+	s.logger.Info("Inserting installation", map[string]interface{}{
+		"reference":  reference.String(),
+		"sourcePath": sourcePath,
+	})
+
+	installationPath := filepath.Join(s.storagePath, reference.String())
+
+	// Lock the installation path to prevent concurrent downloads.
+	locker := s.newLocker(installationPath)
+	if err := locker.Lock(ctx); err != nil {
+		s.logger.Error("Failed to acquire lock", map[string]interface{}{"error": err, "installationPath": installationPath})
+		return err
+	}
+	defer locker.Unlock()
+
+	// Create the installation directory if it doesn't exist.
+	err := os.MkdirAll(installationPath, 0755)
+	if err != nil {
+		return err
+	}
+
+	// Get the executable name for the platform.
+	executableName, err := rocketPack.GetExecutableName(s.platform)
+	if err != nil {
+		return err
+	}
+
+	// Get the path to the executable in the source directory.
+	sourceFilePath := filepath.Join(sourcePath, executableName)
+
+	// Move the file into the installation directory.
+	err = s.moveFile(sourceFilePath, filepath.Join(installationPath, executableName))
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func (s *service) getInstallation(ctx context.Context, reference reference.Reference, rocketPack *rocketpack.RocketPack, readOnly bool) (*Installation, error) {
 	s.logger.Info("Checking installation", map[string]interface{}{
 		"preInstalled": rocketPack.IsPreInstalled(),
@@ -336,6 +415,43 @@ func (s *service) removeInstallation(ctx context.Context, reference reference.Re
 func (s *service) newLocker(dir string) *lockfile.Locker {
 	s.logger.Debug("Creating new file lock", map[string]interface{}{"path": dir, "lockFile": LockFileName})
 	return lockfile.NewLocker(filepath.Join(dir, LockFileName))
+}
+
+func (s *service) moveFile(src, dst string) error {
+	// Check if source file exists
+	srcStat, err := os.Stat(src)
+	if err != nil {
+		return err
+	}
+
+	// Check if destination file exists
+	_, err = os.Stat(dst)
+	if err == nil {
+		// Destination file exists, check if it's the same as the source file
+		dstStat, err := os.Stat(dst)
+		if err != nil {
+			return err
+		}
+
+		// Check if source and destination files are the same
+		if os.SameFile(srcStat, dstStat) {
+			// Source and destination files are the same, delete source file
+			err = os.Remove(src)
+			if err != nil {
+				return err
+			}
+
+			return nil
+		}
+	}
+
+	// Use os.Rename to move the file
+	err = os.Rename(src, dst)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func getFilenameFromURL(downloadURL string) (string, error) {

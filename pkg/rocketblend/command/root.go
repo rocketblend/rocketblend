@@ -71,6 +71,7 @@ Documentation is available at https://docs.rocketblend.io/`,
 		srv.newRenderCommand(),
 		srv.newResolveCommand(),
 		srv.newDescribeCommand(),
+		srv.newInsertCommand(),
 	)
 
 	c.PersistentFlags().StringVarP(&srv.flags.workingDirectory, "directory", "d", ".", "working directory for the command")

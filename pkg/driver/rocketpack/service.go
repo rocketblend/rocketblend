@@ -16,6 +16,7 @@ type (
 	Service interface {
 		GetPackages(ctx context.Context, references ...reference.Reference) (map[reference.Reference]*RocketPack, error)
 		RemovePackages(ctx context.Context, references ...reference.Reference) error
+		InsertPackages(ctx context.Context, packs map[reference.Reference]*RocketPack) error
 	}
 
 	Options struct {
@@ -147,6 +148,10 @@ func (s *service) RemovePackages(ctx context.Context, references ...reference.Re
 	}
 
 	return nil
+}
+
+func (s *service) InsertPackages(ctx context.Context, packs map[reference.Reference]*RocketPack) error {
+	return fmt.Errorf("not implemented")
 }
 
 func (s *service) getPackages(ctx context.Context, ref reference.Reference) (map[reference.Reference]*RocketPack, error) {
