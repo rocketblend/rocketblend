@@ -58,7 +58,12 @@ func (pw *progressWriter) startLogging() {
 
 func (pw *progressWriter) stopLogging() {
 	close(pw.logCh)
-	pw.logger.Info("Download finished", map[string]interface{}{
+	msg := "Download finished"
+	if pw.total != pw.maxSize {
+		msg = "Download cancelled"
+	}
+
+	pw.logger.Info(msg, map[string]interface{}{
 		"id":         pw.id,
 		"totalBytes": pw.total,
 		"maxBytes":   pw.maxSize,

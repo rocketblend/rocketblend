@@ -2,6 +2,7 @@ package downloader
 
 import (
 	"context"
+	"fmt"
 	"io"
 	"net/http"
 	"os"
@@ -11,6 +12,7 @@ import (
 
 	"github.com/flowshot-io/x/pkg/logger"
 	"github.com/google/uuid"
+	"github.com/rocketblend/rocketblend/pkg/driver/helpers"
 )
 
 type (
@@ -85,38 +87,46 @@ func (d *downloader) DownloadWithContext(ctx context.Context, path string, downl
 
 	d.logger.Debug("Downloading", logContext)
 
+	err := os.MkdirAll(filepath.Dir(tempPath), 0755)
+	if err != nil {
+		return d.logAndReturnError("Error creating directory", err, logContext)
+	}
+
+	var fileSize int64 = 0
+	if fi, err := os.Stat(tempPath); err == nil {
+		fileSize = fi.Size()
+	}
+
 	req, err := http.NewRequestWithContext(ctx, "GET", downloadUrl, nil)
 	if err != nil {
-		logContext["error"] = err.Error()
-		d.logger.Error("Error creating HTTP request", logContext)
-		return err
+		return d.logAndReturnError("Error creating HTTP request", err, logContext)
 	}
+	req.Header.Set("Range", fmt.Sprintf("bytes=%d-", fileSize))
 
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
-		logContext["error"] = err.Error()
-		d.logger.Error("Error making HTTP request", logContext)
-		return err
+		return d.logAndReturnError("Error making HTTP request", err, logContext)
 	}
 	defer resp.Body.Close()
+
+	if resp.StatusCode != 200 && resp.StatusCode != 206 {
+		logContext["error"] = fmt.Errorf("received non 200/206 status code: %s", resp.Status)
+		d.logger.Error("Received non 200/206 status code", logContext)
+		return err
+	}
 
 	logContext["status"] = resp.Status
 	logContext["contentLength"] = resp.ContentLength
 
-	d.logger.Debug("HTTP request successful", logContext)
-
-	err = os.MkdirAll(filepath.Dir(tempPath), 0755)
-	if err != nil {
-		logContext["error"] = err.Error()
-		d.logger.Error("Error creating directory", logContext)
-		return err
+	if resp.StatusCode == 206 && fileSize > 0 {
+		logContext["resumed"] = true
 	}
 
-	f, err := os.OpenFile(tempPath, os.O_CREATE|os.O_WRONLY, 0644)
+	d.logger.Debug("HTTP request successful", logContext)
+
+	f, err := os.OpenFile(tempPath, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0644)
 	if err != nil {
-		logContext["error"] = err.Error()
-		d.logger.Error("Error opening temporary file", logContext)
-		return err
+		return d.logAndReturnError("Error opening temporary file", err, logContext)
 	}
 	defer f.Close()
 
@@ -145,20 +155,16 @@ func (d *downloader) DownloadWithContext(ctx context.Context, path string, downl
 	wg.Wait() // Wait for the logging goroutine to finish
 
 	if err != nil {
-		logContext["error"] = err.Error()
-		d.logger.Error("Error downloading file", logContext)
-		return err
+		return d.logAndReturnError("Error downloading file", err, logContext)
 	}
 
 	// Close the file without defer so it can happen before Rename()
 	f.Close()
 
 	if err = os.Rename(tempPath, path); err != nil {
-		logContext["error"] = err.Error()
 		logContext["from"] = tempPath
 		logContext["to"] = path
-		d.logger.Error("Error renaming temporary file", logContext)
-		return err
+		return d.logAndReturnError("Error renaming temporary file", err, logContext)
 	}
 
 	logContext["elapsedTime"] = time.Since(startTime).String()
@@ -173,4 +179,9 @@ func (d *downloader) downloadToFile(w io.Writer, r io.Reader) error {
 	buffer := make([]byte, bufferSize)
 	_, err := io.CopyBuffer(w, r, buffer)
 	return err
+}
+
+// logAndReturnError logs an error and returns it
+func (d *downloader) logAndReturnError(msg string, err error, fields ...map[string]interface{}) error {
+	return helpers.LogAndReturnError(d.logger, msg, err, fields...)
 }
