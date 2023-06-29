@@ -151,7 +151,48 @@ func (s *service) RemovePackages(ctx context.Context, references ...reference.Re
 }
 
 func (s *service) InsertPackages(ctx context.Context, packs map[reference.Reference]*RocketPack) error {
-	return fmt.Errorf("not implemented")
+	errs := make(chan error, len(packs))
+	var wg sync.WaitGroup
+	wg.Add(len(packs))
+
+	for ref, pack := range packs {
+		go func(ref reference.Reference, pack *RocketPack) {
+			defer wg.Done()
+			err := s.insertPackage(ctx, ref, pack)
+			if err != nil {
+				errs <- fmt.Errorf("error inserting package %s: %w", ref, err)
+				return
+			}
+		}(ref, pack)
+	}
+
+	go func() {
+		wg.Wait()
+		close(errs)
+	}()
+
+	if len(errs) > 0 {
+		return fmt.Errorf("errors occurred: %v", <-errs) // return first error for simplicity
+	}
+
+	return nil
+}
+
+func (s *service) insertPackage(ctx context.Context, ref reference.Reference, pack *RocketPack) error {
+	packagePath := filepath.Join(s.storagePath, ref.String(), FileName)
+
+	err := os.MkdirAll(packagePath, 0755)
+	if err != nil {
+		s.logger.Error("Error creating directory", map[string]interface{}{"error": err, "reference": ref.String(), "path": filepath.Dir(packagePath)})
+		return err
+	}
+
+	if err := Save(packagePath, pack); err != nil {
+		s.logger.Error("Error saving package", map[string]interface{}{"error": err, "reference": ref.String()})
+		return err
+	}
+
+	return nil
 }
 
 func (s *service) getPackages(ctx context.Context, ref reference.Reference) (map[reference.Reference]*RocketPack, error) {
@@ -165,17 +206,17 @@ func (s *service) getPackages(ctx context.Context, ref reference.Reference) (map
 		return nil, err
 	}
 
-	repoURL, err := ref.GetRepoURL()
-	if err != nil {
-		s.logger.Error("Error getting repository URL", map[string]interface{}{"error": err, "reference": ref.String()})
-		return nil, err
-	}
-
 	repoPath := filepath.Join(s.storagePath, repo)
 	packagePath := filepath.Join(s.storagePath, ref.String(), FileName)
 
 	// The repository does not exist locally, clone it
-	if _, err := os.Stat(repoPath); os.IsNotExist(err) {
+	if _, err := os.Stat(repoPath); os.IsNotExist(err) && !ref.IsLocalOnly() {
+		repoURL, err := ref.GetRepoURL()
+		if err != nil {
+			s.logger.Error("Error getting repository URL", map[string]interface{}{"error": err, "reference": ref.String()})
+			return nil, err
+		}
+
 		s.logger.Info("Repository does not exist locally, cloning repository", map[string]interface{}{"repoURL": repoURL, "path": repoPath, "reference": ref.String()})
 		if err := s.cloneRepo(ctx, repoPath, repoURL); err != nil {
 			return nil, fmt.Errorf("error cloning repository: %w", err)
@@ -183,7 +224,7 @@ func (s *service) getPackages(ctx context.Context, ref reference.Reference) (map
 	}
 
 	// Check if the file exists in the repository
-	if _, err := os.Stat(packagePath); os.IsNotExist(err) {
+	if _, err := os.Stat(packagePath); os.IsNotExist(err) && !ref.IsLocalOnly() {
 		// The file does not exist, pull the latest changes
 		s.logger.Info("File does not exist locally, pulling latest changes", map[string]interface{}{"path": packagePath, "reference": ref.String()})
 		if err := s.pullChanges(ctx, repoPath); err != nil {

@@ -256,7 +256,7 @@ func (s *service) insertInstallation(ctx context.Context, reference reference.Re
 
 	installationPath := filepath.Join(s.storagePath, reference.String())
 
-	// Lock the installation path to prevent concurrent downloads.
+	// Lock the installation path to prevent concurrent usage.
 	locker := s.newLocker(installationPath)
 	if err := locker.Lock(ctx); err != nil {
 		s.logger.Error("Failed to acquire lock", map[string]interface{}{"error": err, "installationPath": installationPath})

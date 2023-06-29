@@ -110,6 +110,23 @@ func Load(filePath string) (*RocketPack, error) {
 	return &rocketPack, nil
 }
 
+func Save(filePath string, rocketPack *RocketPack) error {
+	if err := Validate(rocketPack); err != nil {
+		return fmt.Errorf("failed to validate rocketfile: %w", err)
+	}
+
+	f, err := yaml.Marshal(rocketPack)
+	if err != nil {
+		return fmt.Errorf("failed to marshal rocketfile: %s", err)
+	}
+
+	if err := os.WriteFile(filePath, f, 0644); err != nil {
+		return fmt.Errorf("failed to write rocketfile: %s", err)
+	}
+
+	return nil
+}
+
 func Validate(rp *RocketPack) error {
 	if rp.Build != nil && rp.Addon != nil {
 		return fmt.Errorf("packs cannot contain both a build and an addon")
