@@ -14,6 +14,7 @@ import (
 	"github.com/rocketblend/rocketblend/pkg/driver/reference"
 	"github.com/rocketblend/rocketblend/pkg/driver/rocketpack"
 	"github.com/rocketblend/rocketblend/pkg/driver/runtime"
+	"github.com/rocketblend/rocketblend/pkg/driver/source"
 	"github.com/rocketblend/rocketblend/pkg/extractor"
 	"github.com/rocketblend/rocketblend/pkg/lockfile"
 )
@@ -24,7 +25,9 @@ type (
 	Service interface {
 		GetInstallations(ctx context.Context, rocketPacks map[reference.Reference]*rocketpack.RocketPack, readOnly bool) (map[reference.Reference]*Installation, error)
 		RemoveInstallations(ctx context.Context, rocketPacks map[reference.Reference]*rocketpack.RocketPack) error
-		InsertInstallations(ctx context.Context, rocketPacks map[reference.Reference]*rocketpack.RocketPack, sourcePath string) error
+
+		// TODO: Should update GetInstallations to work with sources instead of rocketpacks.
+		InsertInstallations(ctx context.Context, sources map[reference.Reference]*source.Source) error
 	}
 
 	Options struct {
@@ -211,20 +214,15 @@ func (s *service) RemoveInstallations(ctx context.Context, rocketPacks map[refer
 }
 
 // InsertInstallations inserts the given rocketpacks into the service's storage. This is used for local packages.
-func (s *service) InsertInstallations(ctx context.Context, rocketPacks map[reference.Reference]*rocketpack.RocketPack, sourcePath string) error {
-	_, err := os.Stat(sourcePath)
-	if err != nil {
-		return err
-	}
-
-	errs := make(chan error, len(rocketPacks))
+func (s *service) InsertInstallations(ctx context.Context, sources map[reference.Reference]*source.Source) error {
+	errs := make(chan error, len(sources))
 	var wg sync.WaitGroup
-	wg.Add(len(rocketPacks))
+	wg.Add(len(sources))
 
-	for ref, pack := range rocketPacks {
-		go func(r reference.Reference, p *rocketpack.RocketPack, sp string) {
+	for ref, src := range sources {
+		go func(r reference.Reference, src *source.Source) {
 			defer wg.Done()
-			err := s.insertInstallation(ctx, r, p, sp)
+			err := s.insertInstallation(ctx, r, src)
 			if err != nil {
 				s.logger.Error("Failed to insert installation", map[string]interface{}{
 					"error":     err,
@@ -233,7 +231,7 @@ func (s *service) InsertInstallations(ctx context.Context, rocketPacks map[refer
 				errs <- fmt.Errorf("failed to insert installation for %s: %w", r.String(), err)
 				return
 			}
-		}(ref, pack, sourcePath)
+		}(ref, src)
 	}
 
 	go func() {
@@ -248,11 +246,22 @@ func (s *service) InsertInstallations(ctx context.Context, rocketPacks map[refer
 	return nil
 }
 
-func (s *service) insertInstallation(ctx context.Context, reference reference.Reference, rocketPack *rocketpack.RocketPack, sourcePath string) error {
+func (s *service) insertInstallation(ctx context.Context, reference reference.Reference, source *source.Source) error {
 	s.logger.Info("Inserting installation", map[string]interface{}{
-		"reference":  reference.String(),
-		"sourcePath": sourcePath,
+		"reference": reference.String(),
+		"source":    source.String(),
 	})
+
+	// TODO: Implement remote source insertion. Move download logic here.
+	if !source.IsLocal() {
+		return fmt.Errorf("remote sources are not supported")
+	}
+
+	// Check if the source file exists.
+	_, err := os.Stat(source.URI.Path)
+	if err != nil {
+		return err
+	}
 
 	installationPath := filepath.Join(s.storagePath, reference.String())
 
@@ -265,22 +274,13 @@ func (s *service) insertInstallation(ctx context.Context, reference reference.Re
 	defer locker.Unlock()
 
 	// Create the installation directory if it doesn't exist.
-	err := os.MkdirAll(installationPath, 0755)
+	err = os.MkdirAll(installationPath, 0755)
 	if err != nil {
 		return err
 	}
-
-	// Get the executable name for the platform.
-	executableName, err := rocketPack.GetExecutableName(s.platform)
-	if err != nil {
-		return err
-	}
-
-	// Get the path to the executable in the source directory.
-	sourceFilePath := filepath.Join(sourcePath, executableName)
 
 	// Move the file into the installation directory.
-	err = s.moveFile(sourceFilePath, filepath.Join(installationPath, executableName))
+	err = s.moveFile(source.URI.Path, filepath.Join(installationPath, source.FileName))
 	if err != nil {
 		return err
 	}
@@ -435,12 +435,7 @@ func (s *service) moveFile(src, dst string) error {
 
 		// Check if source and destination files are the same
 		if os.SameFile(srcStat, dstStat) {
-			// Source and destination files are the same, delete source file
-			err = os.Remove(src)
-			if err != nil {
-				return err
-			}
-
+			// Source and destination files are the same, nothing to do
 			return nil
 		}
 	}

@@ -1,6 +1,9 @@
 package rocketpack
 
 import (
+	"net/url"
+
+	"github.com/rocketblend/rocketblend/pkg/driver/source"
 	"github.com/rocketblend/rocketblend/pkg/semver"
 )
 
@@ -23,6 +26,22 @@ func (a *Addon) IsLocalOnly() bool {
 
 func (a *Addon) IsPreInstalled() bool {
 	return a.Source == nil
+}
+
+func (a *Addon) GetSource() (*source.Source, error) {
+	var url *url.URL
+	if !a.IsPreInstalled() {
+		var err error
+		url, err = url.Parse(a.Source.URL)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return &source.Source{
+		FileName: a.Source.File,
+		URI:      url,
+	}, nil
 }
 
 func (a *Addon) GetDownloadUrl() (string, error) {

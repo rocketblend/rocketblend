@@ -8,6 +8,7 @@ import (
 	"github.com/rocketblend/rocketblend/pkg/driver/helpers"
 	"github.com/rocketblend/rocketblend/pkg/driver/reference"
 	"github.com/rocketblend/rocketblend/pkg/driver/runtime"
+	"github.com/rocketblend/rocketblend/pkg/driver/source"
 	"sigs.k8s.io/yaml"
 )
 
@@ -58,6 +59,20 @@ func (r *RocketPack) GetDependencies() []reference.Reference {
 	}
 
 	return nil
+}
+
+// TODO: we should be using this not GetDownloadUrl, etc. Sources should be a map with the key being the platform and the value being the source.
+func (r *RocketPack) GetSource(platform runtime.Platform) (*source.Source, error) {
+	if r.IsBuild() {
+		return r.Build.GetSource(platform)
+	}
+
+	if r.IsAddon() {
+		return r.Addon.GetSource()
+	}
+
+	return nil, fmt.Errorf("invalid rocket pack: neither build nor addon are defined")
+
 }
 
 func (r *RocketPack) GetDownloadUrl(platform runtime.Platform) (string, error) {

@@ -2,9 +2,11 @@ package rocketpack
 
 import (
 	"fmt"
+	"net/url"
 
 	"github.com/rocketblend/rocketblend/pkg/driver/reference"
 	"github.com/rocketblend/rocketblend/pkg/driver/runtime"
+	"github.com/rocketblend/rocketblend/pkg/driver/source"
 	"github.com/rocketblend/rocketblend/pkg/semver"
 )
 
@@ -44,6 +46,23 @@ func (i *Build) GetSourceForPlatform(platform runtime.Platform) *BuildSource {
 	}
 
 	return nil
+}
+
+func (i *Build) GetSource(platform runtime.Platform) (*source.Source, error) {
+	buildSource := i.GetSourceForPlatform(platform)
+	if buildSource == nil {
+		return nil, fmt.Errorf("failed to find source for platform: %s", platform)
+	}
+
+	url, err := url.Parse(buildSource.URL)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse url: %s", err)
+	}
+
+	return &source.Source{
+		FileName: buildSource.Executable,
+		URI:      url,
+	}, nil
 }
 
 func (i *Build) GetDownloadUrl(platform runtime.Platform) (string, error) {
