@@ -2,18 +2,13 @@ package command
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/rocketblend/rocketblend/pkg/driver/reference"
 	"github.com/rocketblend/rocketblend/pkg/driver/rocketpack"
-	"github.com/rocketblend/rocketblend/pkg/driver/runtime"
-	"github.com/rocketblend/rocketblend/pkg/driver/source"
 	"github.com/spf13/cobra"
 )
 
 func (srv *Service) newInsertCommand() *cobra.Command {
-	var cleanup bool
-
 	c := &cobra.Command{
 		Use:   "insert",
 		Short: "Inserts a package into your local library",
@@ -30,20 +25,18 @@ func (srv *Service) newInsertCommand() *cobra.Command {
 				return err
 			}
 
-			// Try this first, because it's the most likely to fail.
-			if err := srv.insertInstallations(cmd.Context(), map[reference.Reference]*rocketpack.RocketPack{ref: pack}); err != nil {
+			if err := srv.insertPackages(cmd.Context(), map[reference.Reference]*rocketpack.RocketPack{ref: pack}); err != nil {
 				return err
 			}
 
-			if err := srv.insertPackages(cmd.Context(), map[reference.Reference]*rocketpack.RocketPack{ref: pack}); err != nil {
+			// Get Installations to trigger the installation process from the file system
+			if err := srv.getInstallations(cmd.Context(), map[reference.Reference]*rocketpack.RocketPack{ref: pack}); err != nil {
 				return err
 			}
 
 			return nil
 		},
 	}
-
-	c.Flags().BoolVar(&cleanup, "cleanup", true, "Cleans up the package after inserting it")
 
 	return c
 }
@@ -57,37 +50,14 @@ func (srv *Service) insertPackages(ctx context.Context, packs map[reference.Refe
 	return packageService.InsertPackages(ctx, packs)
 }
 
-func (srv *Service) insertInstallations(ctx context.Context, packs map[reference.Reference]*rocketpack.RocketPack) error {
+func (srv *Service) getInstallations(ctx context.Context, packs map[reference.Reference]*rocketpack.RocketPack) error {
 	installationService, err := srv.factory.GetInstallationService()
 	if err != nil {
 		return err
 	}
 
-	sources := make(map[reference.Reference]*source.Source, len(packs))
-	for ref, pack := range packs {
-		if !pack.IsAddon() {
-			return fmt.Errorf("inserting builds is not supported yet")
-		}
-
-		isLocalOnly, err := pack.IsLocalOnly(runtime.Undefined)
-		if err != nil {
-			return err
-		}
-
-		if !isLocalOnly {
-			return fmt.Errorf("inserting remote addons is not supported yet")
-		}
-
-		// Addons don't have a source, so we can just use the undefined runtime.
-		s, err := pack.GetSource(runtime.Undefined)
-		if err != nil {
-			return err
-		}
-
-		sources[ref] = s
-	}
-
-	return installationService.InsertInstallations(ctx, sources)
+	_, err = installationService.GetInstallations(ctx, packs, false)
+	return err
 }
 
 func (srv *Service) findPackage() (*rocketpack.RocketPack, error) {

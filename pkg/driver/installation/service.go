@@ -3,7 +3,6 @@ package installation
 import (
 	"context"
 	"fmt"
-	"net/url"
 	"os"
 	"path"
 	"path/filepath"
@@ -14,7 +13,6 @@ import (
 	"github.com/rocketblend/rocketblend/pkg/driver/reference"
 	"github.com/rocketblend/rocketblend/pkg/driver/rocketpack"
 	"github.com/rocketblend/rocketblend/pkg/driver/runtime"
-	"github.com/rocketblend/rocketblend/pkg/driver/source"
 	"github.com/rocketblend/rocketblend/pkg/extractor"
 	"github.com/rocketblend/rocketblend/pkg/lockfile"
 )
@@ -25,9 +23,6 @@ type (
 	Service interface {
 		GetInstallations(ctx context.Context, rocketPacks map[reference.Reference]*rocketpack.RocketPack, readOnly bool) (map[reference.Reference]*Installation, error)
 		RemoveInstallations(ctx context.Context, rocketPacks map[reference.Reference]*rocketpack.RocketPack) error
-
-		// TODO: Should update GetInstallations to work with sources instead of rocketpacks.
-		InsertInstallations(ctx context.Context, sources map[reference.Reference]*source.Source) error
 	}
 
 	Options struct {
@@ -213,81 +208,6 @@ func (s *service) RemoveInstallations(ctx context.Context, rocketPacks map[refer
 	return nil
 }
 
-// InsertInstallations inserts the given rocketpacks into the service's storage. This is used for local packages.
-func (s *service) InsertInstallations(ctx context.Context, sources map[reference.Reference]*source.Source) error {
-	errs := make(chan error, len(sources))
-	var wg sync.WaitGroup
-	wg.Add(len(sources))
-
-	for ref, src := range sources {
-		go func(r reference.Reference, src *source.Source) {
-			defer wg.Done()
-			err := s.insertInstallation(ctx, r, src)
-			if err != nil {
-				s.logger.Error("Failed to insert installation", map[string]interface{}{
-					"error":     err,
-					"reference": r.String(),
-				})
-				errs <- fmt.Errorf("failed to insert installation for %s: %w", r.String(), err)
-				return
-			}
-		}(ref, src)
-	}
-
-	go func() {
-		wg.Wait()
-		close(errs)
-	}()
-
-	if len(errs) > 0 {
-		return fmt.Errorf("errors occurred: %v", <-errs) // return first error for simplicity
-	}
-
-	return nil
-}
-
-func (s *service) insertInstallation(ctx context.Context, reference reference.Reference, source *source.Source) error {
-	s.logger.Info("Inserting installation", map[string]interface{}{
-		"reference": reference.String(),
-		"source":    source.String(),
-	})
-
-	// TODO: Implement remote source insertion. Move download logic here.
-	if !source.IsLocal() {
-		return fmt.Errorf("remote sources are not supported")
-	}
-
-	// Check if the source file exists.
-	_, err := os.Stat(source.URI.Path)
-	if err != nil {
-		return err
-	}
-
-	installationPath := filepath.Join(s.storagePath, reference.String())
-
-	// Lock the installation path to prevent concurrent usage.
-	locker := s.newLocker(installationPath)
-	if err := locker.Lock(ctx); err != nil {
-		s.logger.Error("Failed to acquire lock", map[string]interface{}{"error": err, "installationPath": installationPath})
-		return err
-	}
-	defer locker.Unlock()
-
-	// Create the installation directory if it doesn't exist.
-	err = os.MkdirAll(installationPath, 0755)
-	if err != nil {
-		return err
-	}
-
-	// Move the file into the installation directory.
-	err = s.moveFile(source.URI.Path, filepath.Join(installationPath, source.FileName))
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
 func (s *service) getInstallation(ctx context.Context, reference reference.Reference, rocketPack *rocketpack.RocketPack, readOnly bool) (*Installation, error) {
 	s.logger.Info("Checking installation", map[string]interface{}{
 		"preInstalled": rocketPack.IsPreInstalled(),
@@ -299,23 +219,27 @@ func (s *service) getInstallation(ctx context.Context, reference reference.Refer
 
 	// Pre-installed rocketpacks are not downloaded as they are already available within the build.
 	if !rocketPack.IsPreInstalled() {
-		executableName, err := rocketPack.GetExecutableName(s.platform)
-		if err != nil {
-			return nil, err
+		var source *rocketpack.Source
+
+		if rocketPack.IsBuild() {
+			source = rocketPack.Build.Sources[s.platform]
+		}
+
+		if rocketPack.IsAddon() {
+			source = rocketPack.Addon.Source
+		}
+
+		if source == nil {
+			return nil, fmt.Errorf("no source found for %s", reference.String())
 		}
 
 		installationPath := filepath.Join(s.storagePath, reference.String())
-		executablePath = filepath.Join(installationPath, executableName)
+		executablePath = filepath.Join(installationPath, source.FileName)
 
-		_, err = os.Stat(executablePath)
+		_, err := os.Stat(executablePath)
 		if err != nil {
 			if os.IsNotExist(err) && !readOnly {
-				downloadUrl, err := rocketPack.GetDownloadUrl(s.platform)
-				if err != nil {
-					return nil, err
-				}
-
-				err = s.downloadInstallation(ctx, downloadUrl, installationPath)
+				err := s.downloadInstallation(ctx, source.URI, installationPath)
 				if err != nil {
 					return nil, err
 				}
@@ -344,21 +268,9 @@ func (s *service) getInstallation(ctx context.Context, reference reference.Refer
 	return installation, nil
 }
 
-func (s *service) downloadInstallation(ctx context.Context, downloadUrl string, installationPath string) error {
-	if downloadUrl == "" {
-		return nil // No download URL, nothing to do.
-	}
-
-	fileName, err := getFilenameFromURL(downloadUrl)
-	if err != nil {
-		return err
-	}
-
-	// Create the installation path if it doesn't exist.
-	err = os.MkdirAll(installationPath, 0755)
-	if err != nil {
-		s.logger.Error("Failed to create installation path", map[string]interface{}{"error": err, "installationPath": installationPath})
-		return err
+func (s *service) downloadInstallation(ctx context.Context, downloadURI *downloader.URI, installationPath string) error {
+	if downloadURI == nil {
+		return fmt.Errorf("no download URI provided")
 	}
 
 	// Lock the installation path to prevent concurrent downloads.
@@ -369,23 +281,26 @@ func (s *service) downloadInstallation(ctx context.Context, downloadUrl string, 
 	}
 	defer locker.Unlock()
 
-	downloadedFilePath := filepath.Join(installationPath, fileName)
+	// Create the installation path if it doesn't exist.
+	if err := os.MkdirAll(installationPath, 0755); err != nil {
+		s.logger.Error("Failed to create installation path", map[string]interface{}{"error": err, "installationPath": installationPath})
+		return err
+	}
+
+	downloadedFilePath := filepath.Join(installationPath, path.Base(downloadURI.Path))
 	s.logger.Info("Downloading installation", map[string]interface{}{
-		"downloadUrl":        downloadUrl,
+		"downloadURI":        downloadURI.String(),
 		"downloadedFilePath": downloadedFilePath,
-		"installationPath":   installationPath,
 	})
 
 	// Download the file.
-	err = s.downloader.DownloadWithContext(ctx, downloadedFilePath, downloadUrl)
-	if err != nil {
+	if err := s.downloader.DownloadWithContext(ctx, downloadedFilePath, downloadURI); err != nil {
 		return err
 	}
 
 	// Extract the file if it's an archive.
 	if isArchive(downloadedFilePath) {
-		err = s.extractor.ExtractWithContext(ctx, downloadedFilePath, filepath.Dir(downloadedFilePath))
-		if err != nil {
+		if err := s.extractor.ExtractWithContext(ctx, downloadedFilePath, filepath.Dir(downloadedFilePath)); err != nil {
 			return err
 		}
 
@@ -415,45 +330,4 @@ func (s *service) removeInstallation(ctx context.Context, reference reference.Re
 func (s *service) newLocker(dir string) *lockfile.Locker {
 	s.logger.Debug("Creating new file lock", map[string]interface{}{"path": dir, "lockFile": LockFileName})
 	return lockfile.NewLocker(filepath.Join(dir, LockFileName))
-}
-
-func (s *service) moveFile(src, dst string) error {
-	// Check if source file exists
-	srcStat, err := os.Stat(src)
-	if err != nil {
-		return err
-	}
-
-	// Check if destination file exists
-	_, err = os.Stat(dst)
-	if err == nil {
-		// Destination file exists, check if it's the same as the source file
-		dstStat, err := os.Stat(dst)
-		if err != nil {
-			return err
-		}
-
-		// Check if source and destination files are the same
-		if os.SameFile(srcStat, dstStat) {
-			// Source and destination files are the same, nothing to do
-			return nil
-		}
-	}
-
-	// Use os.Rename to move the file
-	err = os.Rename(src, dst)
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func getFilenameFromURL(downloadURL string) (string, error) {
-	u, err := url.Parse(downloadURL)
-	if err != nil {
-		return "", fmt.Errorf("failed to parse URL: %w", err)
-	}
-
-	return path.Base(u.Path), nil
 }

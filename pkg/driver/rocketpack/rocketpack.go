@@ -7,8 +7,6 @@ import (
 	"github.com/go-playground/validator/v10"
 	"github.com/rocketblend/rocketblend/pkg/driver/helpers"
 	"github.com/rocketblend/rocketblend/pkg/driver/reference"
-	"github.com/rocketblend/rocketblend/pkg/driver/runtime"
-	"github.com/rocketblend/rocketblend/pkg/driver/source"
 	"sigs.k8s.io/yaml"
 )
 
@@ -33,18 +31,6 @@ func (r *RocketPack) IsAddon() bool {
 	return r.Addon != nil
 }
 
-func (r *RocketPack) IsLocalOnly(platform runtime.Platform) (bool, error) {
-	if r.IsBuild() {
-		return r.Build.IsLocalOnly(platform)
-	}
-
-	if r.IsAddon() {
-		return r.Addon.IsLocalOnly(), nil
-	}
-
-	return false, fmt.Errorf("invalid rocket pack: neither build nor addon are defined")
-}
-
 func (r *RocketPack) IsPreInstalled() bool {
 	return r.IsAddon() && r.Addon.IsPreInstalled()
 }
@@ -59,44 +45,6 @@ func (r *RocketPack) GetDependencies() []reference.Reference {
 	}
 
 	return nil
-}
-
-// TODO: we should be using this not GetDownloadUrl, etc. Sources should be a map with the key being the platform and the value being the source.
-func (r *RocketPack) GetSource(platform runtime.Platform) (*source.Source, error) {
-	if r.IsBuild() {
-		return r.Build.GetSource(platform)
-	}
-
-	if r.IsAddon() {
-		return r.Addon.GetSource()
-	}
-
-	return nil, fmt.Errorf("invalid rocket pack: neither build nor addon are defined")
-
-}
-
-func (r *RocketPack) GetDownloadUrl(platform runtime.Platform) (string, error) {
-	if r.IsBuild() {
-		return r.Build.GetDownloadUrl(platform)
-	}
-
-	if r.IsAddon() {
-		return r.Addon.GetDownloadUrl()
-	}
-
-	return "", fmt.Errorf("invalid rocket pack: neither build nor addon are defined")
-}
-
-func (r *RocketPack) GetExecutableName(platform runtime.Platform) (string, error) {
-	if r.IsBuild() {
-		return r.Build.GetExecutableName(platform)
-	}
-
-	if r.IsAddon() {
-		return r.Addon.GetExecutableName()
-	}
-
-	return "", fmt.Errorf("invalid rocket pack: neither build nor addon are defined")
 }
 
 func Load(filePath string) (*RocketPack, error) {
