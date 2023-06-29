@@ -2,6 +2,8 @@ package command
 
 import (
 	"context"
+	"fmt"
+	"strings"
 
 	"github.com/rocketblend/rocketblend/pkg/driver/reference"
 	"github.com/rocketblend/rocketblend/pkg/driver/rocketpack"
@@ -14,6 +16,13 @@ func (srv *Service) newInsertCommand() *cobra.Command {
 		Short: "Inserts a package into your local library",
 		Long:  `Inserts a package into your local library.`,
 		Args:  cobra.ExactArgs(1),
+		PreRunE: func(cmd *cobra.Command, args []string) error {
+			if !strings.HasPrefix(args[0], "local/") {
+				return fmt.Errorf("local package reference must start with local/")
+			}
+
+			return nil
+		},
 		RunE: func(cmd *cobra.Command, args []string) error {
 			ref, err := reference.Parse(args[0])
 			if err != nil {
@@ -25,6 +34,7 @@ func (srv *Service) newInsertCommand() *cobra.Command {
 				return err
 			}
 
+			// Insert the package into the library
 			if err := srv.insertPackages(cmd.Context(), map[reference.Reference]*rocketpack.RocketPack{ref: pack}); err != nil {
 				return err
 			}

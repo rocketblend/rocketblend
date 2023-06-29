@@ -215,7 +215,7 @@ func (s *service) getInstallation(ctx context.Context, reference reference.Refer
 		"reference":    reference.String(),
 	})
 
-	var executablePath string
+	var resourcePath string
 
 	// Pre-installed rocketpacks are not downloaded as they are already available within the build.
 	if !rocketPack.IsPreInstalled() {
@@ -234,9 +234,9 @@ func (s *service) getInstallation(ctx context.Context, reference reference.Refer
 		}
 
 		installationPath := filepath.Join(s.storagePath, reference.String())
-		executablePath = filepath.Join(installationPath, source.FileName)
+		resourcePath = filepath.Join(installationPath, source.Resource)
 
-		_, err := os.Stat(executablePath)
+		_, err := os.Stat(resourcePath)
 		if err != nil {
 			if os.IsNotExist(err) && !readOnly {
 				err := s.downloadInstallation(ctx, source.URI, installationPath)
@@ -252,14 +252,14 @@ func (s *service) getInstallation(ctx context.Context, reference reference.Refer
 	installation := &Installation{}
 	if rocketPack.IsBuild() {
 		installation.Build = &Build{
-			FilePath: executablePath,
+			FilePath: resourcePath,
 			ARGS:     rocketPack.Build.Args,
 		}
 	}
 
 	if rocketPack.IsAddon() {
 		installation.Addon = &Addon{
-			FilePath: executablePath,
+			FilePath: resourcePath,
 			Name:     rocketPack.Addon.Name,
 			Version:  rocketPack.Addon.Version,
 		}
