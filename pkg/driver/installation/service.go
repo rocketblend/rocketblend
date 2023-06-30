@@ -273,6 +273,12 @@ func (s *service) downloadInstallation(ctx context.Context, downloadURI *downloa
 		return fmt.Errorf("no download URI provided")
 	}
 
+	// Create the installation path if it doesn't exist.
+	if err := os.MkdirAll(installationPath, 0755); err != nil {
+		s.logger.Error("Failed to create installation path", map[string]interface{}{"error": err, "installationPath": installationPath})
+		return err
+	}
+
 	// Lock the installation path to prevent concurrent downloads.
 	locker := s.newLocker(installationPath)
 	if err := locker.Lock(ctx); err != nil {
@@ -280,12 +286,6 @@ func (s *service) downloadInstallation(ctx context.Context, downloadURI *downloa
 		return err
 	}
 	defer locker.Unlock()
-
-	// Create the installation path if it doesn't exist.
-	if err := os.MkdirAll(installationPath, 0755); err != nil {
-		s.logger.Error("Failed to create installation path", map[string]interface{}{"error": err, "installationPath": installationPath})
-		return err
-	}
 
 	downloadedFilePath := filepath.Join(installationPath, path.Base(downloadURI.Path))
 	s.logger.Info("Downloading installation", map[string]interface{}{

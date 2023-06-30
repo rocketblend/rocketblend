@@ -3,10 +3,12 @@ package command
 import (
 	"context"
 	"fmt"
+	"path/filepath"
 	"strings"
 
 	"github.com/rocketblend/rocketblend/pkg/driver/reference"
 	"github.com/rocketblend/rocketblend/pkg/driver/rocketpack"
+	"github.com/rocketblend/rocketblend/pkg/rocketblend/helpers"
 	"github.com/spf13/cobra"
 )
 
@@ -24,23 +26,29 @@ func (srv *Service) newInsertCommand() *cobra.Command {
 			return nil
 		},
 		RunE: func(cmd *cobra.Command, args []string) error {
+			// Parse the reference
 			ref, err := reference.Parse(args[0])
 			if err != nil {
 				return err
 			}
 
+			// Find the package
 			pack, err := srv.findPackage()
 			if err != nil {
 				return err
 			}
 
 			// Insert the package into the library
-			if err := srv.insertPackages(cmd.Context(), map[reference.Reference]*rocketpack.RocketPack{ref: pack}); err != nil {
+			if err := srv.runWithSpinner(cmd.Context(), func(ctx context.Context) error {
+				return srv.insertPackages(cmd.Context(), map[reference.Reference]*rocketpack.RocketPack{ref: pack})
+			}, &helpers.SpinnerOptions{Suffix: "Inserting package..."}); err != nil {
 				return err
 			}
 
-			// Get Installations to trigger the installation process from the file system
-			if err := srv.getInstallations(cmd.Context(), map[reference.Reference]*rocketpack.RocketPack{ref: pack}); err != nil {
+			// Get Installations to trigger the installation process
+			if err := srv.runWithSpinner(cmd.Context(), func(ctx context.Context) error {
+				return srv.getInstallations(cmd.Context(), map[reference.Reference]*rocketpack.RocketPack{ref: pack})
+			}, &helpers.SpinnerOptions{Suffix: "Installing package..."}); err != nil {
 				return err
 			}
 
@@ -71,7 +79,7 @@ func (srv *Service) getInstallations(ctx context.Context, packs map[reference.Re
 }
 
 func (srv *Service) findPackage() (*rocketpack.RocketPack, error) {
-	pack, err := rocketpack.Load(srv.flags.workingDirectory)
+	pack, err := rocketpack.Load(filepath.Join(srv.flags.workingDirectory, rocketpack.FileName))
 	if err != nil {
 		return nil, err
 	}

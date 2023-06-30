@@ -222,7 +222,7 @@ func (d *downloader) renameFile(tempPath string, path string) error {
 
 // downloadToFile downloads the contents of an io.Reader to an io.Writer
 func (d *downloader) downloadToFile(w io.Writer, r io.Reader) error {
-	bufferSize := 10 << 20 // 10MB
+	bufferSize := 2 << 20 // 2MB
 	buffer := make([]byte, bufferSize)
 	_, err := io.CopyBuffer(w, r, buffer)
 	return err
