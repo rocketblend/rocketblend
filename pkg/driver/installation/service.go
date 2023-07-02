@@ -3,7 +3,6 @@ package installation
 import (
 	"context"
 	"fmt"
-	"net/url"
 	"os"
 	"path"
 	"path/filepath"
@@ -216,27 +215,31 @@ func (s *service) getInstallation(ctx context.Context, reference reference.Refer
 		"reference":    reference.String(),
 	})
 
-	var executablePath string
+	var resourcePath string
 
 	// Pre-installed rocketpacks are not downloaded as they are already available within the build.
 	if !rocketPack.IsPreInstalled() {
-		executableName, err := rocketPack.GetExecutableName(s.platform)
-		if err != nil {
-			return nil, err
+		var source *rocketpack.Source
+
+		if rocketPack.IsBuild() {
+			source = rocketPack.Build.Sources[s.platform]
+		}
+
+		if rocketPack.IsAddon() {
+			source = rocketPack.Addon.Source
+		}
+
+		if source == nil {
+			return nil, fmt.Errorf("no source found for %s", reference.String())
 		}
 
 		installationPath := filepath.Join(s.storagePath, reference.String())
-		executablePath = filepath.Join(installationPath, executableName)
+		resourcePath = filepath.Join(installationPath, source.Resource)
 
-		_, err = os.Stat(executablePath)
+		_, err := os.Stat(resourcePath)
 		if err != nil {
 			if os.IsNotExist(err) && !readOnly {
-				downloadUrl, err := rocketPack.GetDownloadUrl(s.platform)
-				if err != nil {
-					return nil, err
-				}
-
-				err = s.downloadInstallation(ctx, downloadUrl, installationPath)
+				err := s.downloadInstallation(ctx, source.URI, installationPath)
 				if err != nil {
 					return nil, err
 				}
@@ -249,14 +252,14 @@ func (s *service) getInstallation(ctx context.Context, reference reference.Refer
 	installation := &Installation{}
 	if rocketPack.IsBuild() {
 		installation.Build = &Build{
-			FilePath: executablePath,
+			FilePath: resourcePath,
 			ARGS:     rocketPack.Build.Args,
 		}
 	}
 
 	if rocketPack.IsAddon() {
 		installation.Addon = &Addon{
-			FilePath: executablePath,
+			FilePath: resourcePath,
 			Name:     rocketPack.Addon.Name,
 			Version:  rocketPack.Addon.Version,
 		}
@@ -265,19 +268,13 @@ func (s *service) getInstallation(ctx context.Context, reference reference.Refer
 	return installation, nil
 }
 
-func (s *service) downloadInstallation(ctx context.Context, downloadUrl string, installationPath string) error {
-	if downloadUrl == "" {
-		return nil // No download URL, nothing to do.
-	}
-
-	fileName, err := getFilenameFromURL(downloadUrl)
-	if err != nil {
-		return err
+func (s *service) downloadInstallation(ctx context.Context, downloadURI *downloader.URI, installationPath string) error {
+	if downloadURI == nil {
+		return fmt.Errorf("no download URI provided")
 	}
 
 	// Create the installation path if it doesn't exist.
-	err = os.MkdirAll(installationPath, 0755)
-	if err != nil {
+	if err := os.MkdirAll(installationPath, 0755); err != nil {
 		s.logger.Error("Failed to create installation path", map[string]interface{}{"error": err, "installationPath": installationPath})
 		return err
 	}
@@ -290,23 +287,20 @@ func (s *service) downloadInstallation(ctx context.Context, downloadUrl string, 
 	}
 	defer locker.Unlock()
 
-	downloadedFilePath := filepath.Join(installationPath, fileName)
+	downloadedFilePath := filepath.Join(installationPath, path.Base(downloadURI.Path))
 	s.logger.Info("Downloading installation", map[string]interface{}{
-		"downloadUrl":        downloadUrl,
+		"downloadURI":        downloadURI.String(),
 		"downloadedFilePath": downloadedFilePath,
-		"installationPath":   installationPath,
 	})
 
 	// Download the file.
-	err = s.downloader.DownloadWithContext(ctx, downloadedFilePath, downloadUrl)
-	if err != nil {
+	if err := s.downloader.DownloadWithContext(ctx, downloadedFilePath, downloadURI); err != nil {
 		return err
 	}
 
 	// Extract the file if it's an archive.
 	if isArchive(downloadedFilePath) {
-		err = s.extractor.ExtractWithContext(ctx, downloadedFilePath, filepath.Dir(downloadedFilePath))
-		if err != nil {
+		if err := s.extractor.ExtractWithContext(ctx, downloadedFilePath, filepath.Dir(downloadedFilePath)); err != nil {
 			return err
 		}
 
@@ -336,13 +330,4 @@ func (s *service) removeInstallation(ctx context.Context, reference reference.Re
 func (s *service) newLocker(dir string) *lockfile.Locker {
 	s.logger.Debug("Creating new file lock", map[string]interface{}{"path": dir, "lockFile": LockFileName})
 	return lockfile.NewLocker(filepath.Join(dir, LockFileName))
-}
-
-func getFilenameFromURL(downloadURL string) (string, error) {
-	u, err := url.Parse(downloadURL)
-	if err != nil {
-		return "", fmt.Errorf("failed to parse URL: %w", err)
-	}
-
-	return path.Base(u.Path), nil
 }

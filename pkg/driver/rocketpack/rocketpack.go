@@ -7,7 +7,6 @@ import (
 	"github.com/go-playground/validator/v10"
 	"github.com/rocketblend/rocketblend/pkg/driver/helpers"
 	"github.com/rocketblend/rocketblend/pkg/driver/reference"
-	"github.com/rocketblend/rocketblend/pkg/driver/runtime"
 	"sigs.k8s.io/yaml"
 )
 
@@ -32,18 +31,6 @@ func (r *RocketPack) IsAddon() bool {
 	return r.Addon != nil
 }
 
-func (r *RocketPack) IsLocalOnly(platform runtime.Platform) (bool, error) {
-	if r.IsBuild() {
-		return r.Build.IsLocalOnly(platform)
-	}
-
-	if r.IsAddon() {
-		return r.Addon.IsLocalOnly(), nil
-	}
-
-	return false, fmt.Errorf("invalid rocket pack: neither build nor addon are defined")
-}
-
 func (r *RocketPack) IsPreInstalled() bool {
 	return r.IsAddon() && r.Addon.IsPreInstalled()
 }
@@ -58,30 +45,6 @@ func (r *RocketPack) GetDependencies() []reference.Reference {
 	}
 
 	return nil
-}
-
-func (r *RocketPack) GetDownloadUrl(platform runtime.Platform) (string, error) {
-	if r.IsBuild() {
-		return r.Build.GetDownloadUrl(platform)
-	}
-
-	if r.IsAddon() {
-		return r.Addon.GetDownloadUrl()
-	}
-
-	return "", fmt.Errorf("invalid rocket pack: neither build nor addon are defined")
-}
-
-func (r *RocketPack) GetExecutableName(platform runtime.Platform) (string, error) {
-	if r.IsBuild() {
-		return r.Build.GetExecutableName(platform)
-	}
-
-	if r.IsAddon() {
-		return r.Addon.GetExecutableName()
-	}
-
-	return "", fmt.Errorf("invalid rocket pack: neither build nor addon are defined")
 }
 
 func Load(filePath string) (*RocketPack, error) {
@@ -108,6 +71,23 @@ func Load(filePath string) (*RocketPack, error) {
 	}
 
 	return &rocketPack, nil
+}
+
+func Save(filePath string, rocketPack *RocketPack) error {
+	if err := Validate(rocketPack); err != nil {
+		return fmt.Errorf("failed to validate rocketfile: %w", err)
+	}
+
+	f, err := yaml.Marshal(rocketPack)
+	if err != nil {
+		return fmt.Errorf("failed to marshal rocketfile: %s", err)
+	}
+
+	if err := os.WriteFile(filePath, f, 0644); err != nil {
+		return fmt.Errorf("failed to write rocketfile: %s", err)
+	}
+
+	return nil
 }
 
 func Validate(rp *RocketPack) error {

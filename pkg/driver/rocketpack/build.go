@@ -1,7 +1,7 @@
 package rocketpack
 
 import (
-	"fmt"
+	"encoding/json"
 
 	"github.com/rocketblend/rocketblend/pkg/driver/reference"
 	"github.com/rocketblend/rocketblend/pkg/driver/runtime"
@@ -9,57 +9,35 @@ import (
 )
 
 type (
-	BuildSource struct {
-		Platform   runtime.Platform `json:"platform" validate:"required"`
-		Executable string           `json:"executable" validate:"required"`
-		URL        string           `json:"url" validate:"required,url"`
-	}
-
 	Build struct {
 		Args    string                `json:"args,omitempty"`
 		Version *semver.Version       `json:"version,omitempty"`
-		Sources []*BuildSource        `json:"sources" validate:"required"`
+		Sources Sources               `json:"sources,omitempty"`
 		Addons  []reference.Reference `json:"addons,omitempty"`
 	}
+
+	Sources map[runtime.Platform]*Source
 )
 
-func (i *Build) IsLocalOnly(platform runtime.Platform) (bool, error) {
-	source := i.GetSourceForPlatform(platform)
-	if source == nil {
-		return false, fmt.Errorf("failed to find source for platform: %s", platform)
+func (s *Sources) MarshalJSON() ([]byte, error) {
+	result := make(map[string]*Source)
+	for k, v := range *s {
+		result[k.String()] = v
 	}
 
-	return source.URL == "", nil
+	return json.Marshal(result)
 }
 
-func (i *Build) GetSourceForPlatform(platform runtime.Platform) *BuildSource {
-	if i.Sources == nil {
-		return nil
+func (s *Sources) UnmarshalJSON(b []byte) error {
+	var raw map[string]*Source
+	if err := json.Unmarshal(b, &raw); err != nil {
+		return err
 	}
 
-	for _, s := range i.Sources {
-		if s.Platform == platform {
-			return s
-		}
+	*s = make(Sources)
+	for k, v := range raw {
+		(*s)[runtime.PlatformFromString(k)] = v
 	}
 
 	return nil
-}
-
-func (i *Build) GetDownloadUrl(platform runtime.Platform) (string, error) {
-	source := i.GetSourceForPlatform(platform)
-	if source == nil {
-		return "", fmt.Errorf("failed to find source for platform: %s", platform)
-	}
-
-	return source.URL, nil
-}
-
-func (i *Build) GetExecutableName(platform runtime.Platform) (string, error) {
-	source := i.GetSourceForPlatform(platform)
-	if source == nil {
-		return "", fmt.Errorf("failed to find source for platform: %s", platform)
-	}
-
-	return source.Executable, nil
 }

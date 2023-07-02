@@ -104,8 +104,7 @@ func platformHookFunc() mapstructure.DecodeHookFuncType {
 		}
 
 		// Return the parsed value
-		p := runtime.Platform(0)
-		return p.FromString(data.(string)), nil
+		return runtime.PlatformFromString(data.(string)), nil
 	}
 }
 
