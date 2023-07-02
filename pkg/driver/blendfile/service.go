@@ -28,9 +28,10 @@ type (
 	}
 
 	Options struct {
-		Logger       logger.Logger
-		AddonScript  string
-		CreateScript string
+		Logger        logger.Logger
+		addonsEnabled bool
+		AddonScript   string
+		CreateScript  string
 	}
 
 	Option func(*Options)
@@ -46,6 +47,12 @@ type (
 func WithLogger(logger logger.Logger) Option {
 	return func(o *Options) {
 		o.Logger = logger
+	}
+}
+
+func WithAddonsEnabled() Option {
+	return func(o *Options) {
+		o.addonsEnabled = true
 	}
 }
 
@@ -68,12 +75,13 @@ func NewService(opts ...Option) (Service, error) {
 		return nil, fmt.Errorf("create script is required")
 	}
 
-	options.Logger.Debug("Initializing blendfile service")
+	options.Logger.Debug("Initializing blendfile service", map[string]interface{}{"addonsEnabled": options.addonsEnabled})
 
 	return &service{
-		logger:       options.Logger,
-		addonScript:  options.AddonScript,
-		createScript: options.CreateScript,
+		logger:        options.Logger,
+		addonsEnabled: options.addonsEnabled,
+		addonScript:   options.AddonScript,
+		createScript:  options.CreateScript,
 	}, nil
 }
 

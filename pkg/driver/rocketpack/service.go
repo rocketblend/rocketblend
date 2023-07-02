@@ -181,7 +181,7 @@ func (s *service) InsertPackages(ctx context.Context, packs map[reference.Refere
 func (s *service) insertPackage(ctx context.Context, ref reference.Reference, pack *RocketPack) error {
 	packagePath := filepath.Join(s.storagePath, ref.String(), FileName)
 
-	err := os.MkdirAll(packagePath, 0755)
+	err := os.MkdirAll(filepath.Dir(packagePath), 0755)
 	if err != nil {
 		s.logger.Error("Error creating directory", map[string]interface{}{"error": err, "reference": ref.String(), "path": filepath.Dir(packagePath)})
 		return err

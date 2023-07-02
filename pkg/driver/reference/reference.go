@@ -34,7 +34,7 @@ func (r Reference) GetRepo() (string, error) {
 	}
 
 	if r.IsLocalOnly() {
-		return "", fmt.Errorf("local reference: %s has no repo", r)
+		return "local/", nil
 	}
 
 	parts := strings.SplitN(string(r), "/", 4)
