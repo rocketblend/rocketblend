@@ -14,7 +14,7 @@ import (
 
 type (
 	Service interface {
-		GetPackages(ctx context.Context, references ...reference.Reference) (map[reference.Reference]*RocketPack, error)
+		GetPackages(ctx context.Context, forceUpdate bool, references ...reference.Reference) (map[reference.Reference]*RocketPack, error)
 		RemovePackages(ctx context.Context, references ...reference.Reference) error
 		InsertPackages(ctx context.Context, packs map[reference.Reference]*RocketPack) error
 	}
@@ -77,7 +77,7 @@ func NewService(opts ...Option) (Service, error) {
 	}, nil
 }
 
-func (s *service) GetPackages(ctx context.Context, references ...reference.Reference) (map[reference.Reference]*RocketPack, error) {
+func (s *service) GetPackages(ctx context.Context, forceUpdate bool, references ...reference.Reference) (map[reference.Reference]*RocketPack, error) {
 	results := make(chan getResult)
 
 	var wg sync.WaitGroup
@@ -86,7 +86,7 @@ func (s *service) GetPackages(ctx context.Context, references ...reference.Refer
 	for _, ref := range references {
 		go func(ref reference.Reference) {
 			defer wg.Done()
-			packs, err := s.getPackages(ctx, ref)
+			packs, err := s.getPackages(ctx, forceUpdate, ref)
 			if err != nil {
 				s.logger.Debug("Error getting package", map[string]interface{}{
 					"ref":   ref,
@@ -195,7 +195,7 @@ func (s *service) insertPackage(ctx context.Context, ref reference.Reference, pa
 	return nil
 }
 
-func (s *service) getPackages(ctx context.Context, ref reference.Reference) (map[reference.Reference]*RocketPack, error) {
+func (s *service) getPackages(ctx context.Context, forceUpdate bool, ref reference.Reference) (map[reference.Reference]*RocketPack, error) {
 	s.logger.Info("Processing reference", map[string]interface{}{"reference": ref.String()})
 
 	packages := make(map[reference.Reference]*RocketPack)
@@ -210,23 +210,23 @@ func (s *service) getPackages(ctx context.Context, ref reference.Reference) (map
 	packagePath := filepath.Join(s.storagePath, ref.String(), FileName)
 
 	// The repository does not exist locally, clone it
-	if _, err := os.Stat(repoPath); os.IsNotExist(err) && !ref.IsLocalOnly() {
+	if _, err := os.Stat(repoPath); os.IsNotExist(err) || forceUpdate && !ref.IsLocalOnly() {
 		repoURL, err := ref.GetRepoURL()
 		if err != nil {
 			s.logger.Error("Error getting repository URL", map[string]interface{}{"error": err, "reference": ref.String()})
 			return nil, err
 		}
 
-		s.logger.Info("Repository does not exist locally, cloning repository", map[string]interface{}{"repoURL": repoURL, "path": repoPath, "reference": ref.String()})
+		s.logger.Info("Cloning repository", map[string]interface{}{"repoURL": repoURL, "path": repoPath, "reference": ref.String()})
 		if err := s.cloneRepo(ctx, repoPath, repoURL); err != nil {
 			return nil, fmt.Errorf("error cloning repository: %w", err)
 		}
 	}
 
 	// Check if the file exists in the repository
-	if _, err := os.Stat(packagePath); os.IsNotExist(err) && !ref.IsLocalOnly() {
-		// The file does not exist, pull the latest changes
-		s.logger.Info("File does not exist locally, pulling latest changes", map[string]interface{}{"path": packagePath, "reference": ref.String()})
+	if _, err := os.Stat(packagePath); os.IsNotExist(err) || forceUpdate && !ref.IsLocalOnly() {
+		// The file does not exist or forced update, pull the latest changes
+		s.logger.Info("Pulling latest changes for repository", map[string]interface{}{"path": packagePath, "reference": ref.String()})
 		if err := s.pullChanges(ctx, repoPath); err != nil {
 			return nil, fmt.Errorf("error pulling latest changes: %w", err)
 		}
@@ -243,7 +243,7 @@ func (s *service) getPackages(ctx context.Context, ref reference.Reference) (map
 		s.logger.Debug("Package has dependencies", map[string]interface{}{"reference": ref.String()})
 
 		// Get the dependencies
-		depPackages, err := s.GetPackages(ctx, deps...)
+		depPackages, err := s.GetPackages(ctx, forceUpdate, deps...)
 		if err != nil {
 			s.logger.Error("Error getting dependency packages", map[string]interface{}{"error": err, "reference": ref.String()})
 			return nil, err

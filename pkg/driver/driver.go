@@ -25,7 +25,7 @@ type (
 
 		InstallDependencies(ctx context.Context) error
 
-		AddDependencies(ctx context.Context, references ...reference.Reference) error
+		AddDependencies(ctx context.Context, forceUpdate bool, references ...reference.Reference) error
 		RemoveDependencies(ctx context.Context, references ...reference.Reference) error
 
 		ResolveBlendFile(ctx context.Context) (*blendfile.BlendFile, error)
@@ -201,11 +201,11 @@ func (d *driver) Create(ctx context.Context) error {
 	return nil
 }
 
-func (d *driver) AddDependencies(ctx context.Context, references ...reference.Reference) error {
+func (d *driver) AddDependencies(ctx context.Context, forceUpdate bool, references ...reference.Reference) error {
 	d.logger.Debug("Adding dependencies", map[string]interface{}{"References": references})
 
 	// This will also include the dependencies of the dependencies
-	packs, err := d.rocketPackService.GetPackages(ctx, references...)
+	packs, err := d.rocketPackService.GetPackages(ctx, forceUpdate, references...)
 	if err != nil {
 		return fmt.Errorf("failed to get rocket packs: %w", err)
 	}
@@ -239,7 +239,7 @@ func (d *driver) AddDependencies(ctx context.Context, references ...reference.Re
 func (d *driver) RemoveDependencies(ctx context.Context, references ...reference.Reference) error {
 	d.logger.Debug("Removing dependencies", map[string]interface{}{"References": references})
 
-	packs, err := d.rocketPackService.GetPackages(ctx, references...)
+	packs, err := d.rocketPackService.GetPackages(ctx, false, references...)
 	if err != nil {
 		return fmt.Errorf("failed to get rocket packs: %w", err)
 	}
@@ -323,7 +323,7 @@ func (d *driver) resolveBlendFile(ctx context.Context, installations map[referen
 }
 
 func (d *driver) getDependencies(ctx context.Context) (map[reference.Reference]*rocketpack.RocketPack, error) {
-	return d.rocketPackService.GetPackages(ctx, d.blendConfig.RocketFile.GetDependencies()...)
+	return d.rocketPackService.GetPackages(ctx, false, d.blendConfig.RocketFile.GetDependencies()...)
 }
 
 func (d *driver) save(ctx context.Context) error {
