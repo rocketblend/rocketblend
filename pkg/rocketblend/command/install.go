@@ -10,6 +10,8 @@ import (
 
 // newInstallCommand creates a new cobra command for installing project dependencies.
 func (srv *Service) newInstallCommand() *cobra.Command {
+	var forceUpdate bool
+
 	c := &cobra.Command{
 		Use:   "install [reference]",
 		Short: "Installs project dependencies",
@@ -29,7 +31,7 @@ func (srv *Service) newInstallCommand() *cobra.Command {
 
 				// Add and installs the dependency to the project.
 				return srv.runWithSpinner(cmd.Context(), func(ctx context.Context) error {
-					return rocketblend.AddDependencies(ctx, ref)
+					return rocketblend.AddDependencies(ctx, forceUpdate, ref)
 				}, &helpers.SpinnerOptions{Suffix: "Installing package..."})
 			}
 
@@ -39,6 +41,8 @@ func (srv *Service) newInstallCommand() *cobra.Command {
 			}, &helpers.SpinnerOptions{Suffix: "Installing dependencies..."})
 		},
 	}
+
+	c.Flags().BoolVarP(&forceUpdate, "update", "u", false, "refreshes the package definition before installing it")
 
 	return c
 }
