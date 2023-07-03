@@ -303,7 +303,6 @@ func (s *service) downloadInstallation(ctx context.Context, downloadURI *downloa
 		if err := s.extractor.ExtractWithContext(ctx, downloadedFilePath, filepath.Dir(downloadedFilePath)); err != nil {
 			return err
 		}
-
 	}
 
 	return nil
