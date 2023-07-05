@@ -16,13 +16,16 @@ Once you have everything ready, you can create your first project! Open a termin
 
 ```shell-session
 $ rocketblend new hello-world
-github.com/rocketblend/official-library/packages/blender/builds/stable/3.4.1
-Downloading  31% |██████████████████        | (68/213 MB, 6.0 MB/s) [13s:24s]
+⣻ Creating project...
 ```
+
+{% hint style="info" %}
+To see a more detailed output of what's happening, add the `-v` flag.
+{% endhint %}
 
 In the example above we can see it installing the default build `github.com/rocketblend/official-library/packages/blender/builds/stable/3.4.1`
 
-Once complete you'll have a new `.blend` project and a `rocketfile.yaml` file used to define all your packages for your project.&#x20;
+Once complete you'll have a new `.blend` project and a `rocketfile.yaml` file used to define all your packages for your project.
 
 ```shell-session
 $ ls
@@ -35,22 +38,21 @@ To install a package, you can run the `rocketblend install` command. RocketBlend
 
 ```shell-session
 $ rocketblend install github.com/rocketblend/official-library/packages/blender/builds/stable/2.93.9
-installed: github.com/rocketblend/official-library/packages/blender/builds/stable/2.93.9
+⣯ Installing package...
 ```
 
 In this example, we're changing the project to use a Blender 2.93 build.
 
 {% hint style="info" %}
-If you have purchased a build or addon, you can create a custom package definition locally. To do this, simply place the package definition files in your installation directory. Then, use the corresponding reference to install your build or addon.
+If you have purchased a build or addon, you can create a custom package definition locally. Then use the `rocketblend insert` command to insert it into your library.
 {% endhint %}
 
 Running this command without specifying a package will install all dependencies for a project. This is particularly helpful when sharing projects across multiple machines.
 
 ## Open a project <a href="#uninstall-a-release" id="uninstall-a-release"></a>
 
-With the project successfully configured, you can initiate it by executing the `rocketblend start` command. Blender will then launch with all the necessary dependencies defined for the project.
+With the project successfully configured, you can initiate it by executing the `rocketblend run` command. Blender will then launch with all the necessary dependencies defined for the project.
 
 {% hint style="warning" %}
 Addon injection is still very much a work-in-progress feature so is turned off by default. It can be turned on by running the command: `rocketblend config feature.addons -s true`
 {% endhint %}
-

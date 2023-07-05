@@ -16,11 +16,12 @@ $ rocketblend resolve [flags]
 
 ```shell-session
   -h, --help            help for resolve
-  -o, --output string   output format (pretty, json) (default "json")
+  -o, --output string   output format (table, json) (default "table")
 ```
 
 ### Options inherited from parent commands
 
 ```shell-session
   -d, --directory string   working directory for the command (default ".")
+  -v, --verbose            enable verbose logging
 ```

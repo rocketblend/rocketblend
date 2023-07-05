@@ -15,8 +15,7 @@ $ rocketblend install [reference] [flags]
 ## Options
 
 ```shell-session
-  -f, --force    force install dependencies (even if they are already installed)
-  -g, --global   install dependencies globally
+  -u, --update   refreshes a package definition before installing it
   -h, --help     help for install
 ```
 
@@ -24,5 +23,5 @@ $ rocketblend install [reference] [flags]
 
 ```shell-session
   -d, --directory string   working directory for the command (default ".")
+  -v, --verbose            enable verbose logging
 ```
-

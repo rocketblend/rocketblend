@@ -6,7 +6,7 @@ description: Running a project
 
 ## Synopsis
 
-Run project in the terminal current session
+Run the project in the current working directory.
 
 ```shell-session
 $ rocketblend run [flags]
@@ -15,7 +15,6 @@ $ rocketblend run [flags]
 ## Options
 
 ```shell-session
-  -b, --background   run the project in the background
   -h, --help         help for run
 ```
 
@@ -23,4 +22,5 @@ $ rocketblend run [flags]
 
 ```shell-session
   -d, --directory string   working directory for the command (default ".")
+  -v, --verbose            enable verbose logging
 ```

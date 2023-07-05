@@ -16,11 +16,12 @@ $ rocketblend describe [reference] [flags]
 
 ```shell-session
   -h, --help            help for describe
-  -o, --output string   output format (default "json")
+  -o, --output string   output format (table, json) (default "table")
 ```
 
 ### Options inherited from parent commands
 
 ```shell-session
   -d, --directory string   working directory for the command (default ".")
+  -v, --verbose            enable verbose logging
 ```

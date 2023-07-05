@@ -14,7 +14,6 @@ Remove dependencies on the current project
 ## Options
 
 ```shell-session
-  -g, --global   install dependencies globally
   -h, --help     help for uninstall
 ```
 
@@ -22,4 +21,5 @@ Remove dependencies on the current project
 
 ```shell-session
   -d, --directory string   working directory for the command (default ".")
+  -v, --verbose            enable verbose logging
 ```

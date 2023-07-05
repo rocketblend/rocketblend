@@ -1,7 +1,7 @@
 ---
 description: >-
-  Here you’ll find the list of CLI commands for Rocketblend, with help info on their
-  usage.
+  Here you’ll find the list of CLI commands for Rocketblend, with help info on
+  their usage.
 ---
 
 # Commands
@@ -20,10 +20,6 @@ description: >-
 
 {% content-ref url="uninstall.md" %}
 [uninstall.md](uninstall.md)
-{% endcontent-ref %}
-
-{% content-ref url="start.md" %}
-[start.md](start.md)
 {% endcontent-ref %}
 
 {% content-ref url="run.md" %}
@@ -49,4 +45,3 @@ description: >-
 {% content-ref url="completion.md" %}
 [completion.md](completion.md)
 {% endcontent-ref %}
-

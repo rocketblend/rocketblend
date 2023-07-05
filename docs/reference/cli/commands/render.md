@@ -27,4 +27,5 @@ $ rocketblend render [flags]
 
 ```shell-session
   -d, --directory string   working directory for the command (default ".")
+  -v, --verbose            enable verbose logging
 ```
