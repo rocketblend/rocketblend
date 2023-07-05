@@ -50,9 +50,9 @@ func WithLogger(logger logger.Logger) Option {
 	}
 }
 
-func WithAddonsEnabled() Option {
+func WithAddonsEnabled(enabled bool) Option {
 	return func(o *Options) {
-		o.addonsEnabled = true
+		o.addonsEnabled = enabled
 	}
 }
 

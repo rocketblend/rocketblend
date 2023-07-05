@@ -183,8 +183,19 @@ func (f *factory) GetBlendFileService() (blendfile.Service, error) {
 			return nil, err
 		}
 
+		configService, err := f.GetConfigService()
+		if err != nil {
+			return nil, err
+		}
+
+		config, err := configService.Get()
+		if err != nil {
+			return nil, err
+		}
+
 		service, err := blendfile.NewService(
 			blendfile.WithLogger(logger),
+			blendfile.WithAddonsEnabled(config.Features.Addons),
 		)
 		if err != nil {
 			return nil, err
