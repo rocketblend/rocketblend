@@ -121,6 +121,7 @@ func load(rootPath string) (*viper.Viper, error) {
 	v.SetDefault("logLevel", "info")
 	v.SetDefault("installationsPath", filepath.Join(rootPath, "installations"))
 	v.SetDefault("packagesPath", filepath.Join(rootPath, "packages"))
+	v.SetDefault("features.addons", false)
 
 	v.SetConfigName("settings") // Set the name of the configuration file
 	v.AddConfigPath(rootPath)   // Look for the configuration file at the home directory
