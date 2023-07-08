@@ -53,7 +53,7 @@ func Load(filePath string) (*RocketPack, error) {
 	}
 
 	if err := helpers.FileExists(filePath); err != nil {
-		return nil, fmt.Errorf("failed to find blend file: %s", err)
+		return nil, fmt.Errorf("failed to find rocketpack: %s", err)
 	}
 
 	f, err := os.ReadFile(filePath)
