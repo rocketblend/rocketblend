@@ -2,16 +2,20 @@ package installation
 
 import (
 	"path/filepath"
+	"strings"
 )
 
 // SupportedArchiveExtensions is a list of supported archive extensions
-var SupportedArchiveExtensions = []string{".zip", ".tar", ".tar.gz", ".tar.bz2", ".dmg"}
+var SupportedArchiveExtensions = []string{".zip", ".tar", ".tar.gz", ".tar.bz2", "tar.xz", ".dmg"}
 
 // isArchive returns true if the file extension is a supported archive extension
 func isArchive(filePath string) bool {
-	ext := filepath.Ext(filePath)
+	// get the file name from the path
+	_, fileName := filepath.Split(filePath)
+
 	for _, extension := range SupportedArchiveExtensions {
-		if ext == extension {
+		// check if the file name ends with the extension
+		if strings.HasSuffix(fileName, extension) {
 			return true
 		}
 	}
