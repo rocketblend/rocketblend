@@ -116,7 +116,7 @@ func Load(filePath string) (*RocketFile, error) {
 	}
 
 	if err := helpers.FileExists(filePath); err != nil {
-		return nil, fmt.Errorf("failed to find blend file: %s", err)
+		return nil, fmt.Errorf("failed to find rocketfile: %s", err)
 	}
 
 	f, err := os.ReadFile(filePath)

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
+	"syscall"
 
 	cli "github.com/rocketblend/rocketblend/pkg/rocketblend"
 )
@@ -23,12 +24,11 @@ func main() {
 	sigs := make(chan os.Signal, 1)
 
 	// Catch all signals since we can't block SIGKILL
-	signal.Notify(sigs)
+	signal.Notify(sigs, syscall.SIGINT)
 
 	go func() {
 		// Wait for a signal
 		<-sigs
-		// fmt.Println("Cancellation received: ", s)
 
 		// Cancel the context on receipt of a signal
 		cancel()

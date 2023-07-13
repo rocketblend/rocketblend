@@ -8,8 +8,8 @@ import (
 )
 
 const (
-	ExecutionTimeout = 5 * time.Minute // 5 minutes
-	HeartBeatTicker  = 1 * time.Minute // 1 minute
+	ExecutionTimeout = 30 * time.Second // 30 seconds
+	HeartBeatTicker  = 15 * time.Second // 15 seconds
 )
 
 type Locker struct {

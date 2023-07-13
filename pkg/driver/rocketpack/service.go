@@ -297,8 +297,9 @@ func (s *service) removePackage(ctx context.Context, reference reference.Referen
 
 func (s *service) cloneRepo(ctx context.Context, repoPath string, repoURL string) error {
 	_, err := git.PlainCloneContext(ctx, repoPath, false, &git.CloneOptions{
-		URL:      repoURL,
-		Progress: LoggerWriter{s.logger},
+		URL: repoURL,
+		// TODO: Fix this
+		// Progress: LoggerWriter{s.logger},
 	})
 	return err
 }
@@ -314,8 +315,8 @@ func (s *service) pullChanges(ctx context.Context, repoPath string) error {
 	}
 
 	err = w.PullContext(ctx, &git.PullOptions{
-		Force:    true,
-		Progress: LoggerWriter{s.logger},
+		Force: true,
+		// Progress: LoggerWriter{s.logger},
 	})
 	if err != nil && err != git.NoErrAlreadyUpToDate {
 		return err
