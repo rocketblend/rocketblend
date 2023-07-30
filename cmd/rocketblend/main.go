@@ -24,7 +24,7 @@ func main() {
 	sigs := make(chan os.Signal, 1)
 
 	// Catch all signals since we can't block SIGKILL
-	signal.Notify(sigs, syscall.SIGINT)
+	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
 
 	go func() {
 		// Wait for a signal
