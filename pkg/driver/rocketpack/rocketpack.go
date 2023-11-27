@@ -7,6 +7,8 @@ import (
 	"github.com/go-playground/validator/v10"
 	"github.com/rocketblend/rocketblend/pkg/driver/helpers"
 	"github.com/rocketblend/rocketblend/pkg/driver/reference"
+	"github.com/rocketblend/rocketblend/pkg/driver/runtime"
+	"github.com/rocketblend/rocketblend/pkg/semver"
 	"sigs.k8s.io/yaml"
 )
 
@@ -40,11 +42,29 @@ func (r *RocketPack) GetDependencies() []reference.Reference {
 		return r.Build.Addons
 	}
 
+	return nil
+}
+
+func (r *RocketPack) GetSources() Sources {
 	if r.IsAddon() {
-		return nil
+		sources := make(Sources)
+		sources[runtime.Undefined] = &Source{
+			Resource: r.Addon.Source.Resource,
+			URI:      r.Addon.Source.URI,
+		}
+
+		return sources
 	}
 
-	return nil
+	return r.Build.Sources
+}
+
+func (r *RocketPack) GetVersion() semver.Version {
+	if r.IsAddon() {
+		return *r.Addon.Version
+	}
+
+	return *r.Build.Version
 }
 
 func Load(filePath string) (*RocketPack, error) {
