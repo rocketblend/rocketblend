@@ -47,6 +47,10 @@ func (r *RocketPack) GetDependencies() []reference.Reference {
 
 func (r *RocketPack) GetSources() Sources {
 	if r.IsAddon() {
+		if r.Addon.Source == nil {
+			return nil
+		}
+
 		sources := make(Sources)
 		sources[runtime.Undefined] = &Source{
 			Resource: r.Addon.Source.Resource,
@@ -59,12 +63,12 @@ func (r *RocketPack) GetSources() Sources {
 	return r.Build.Sources
 }
 
-func (r *RocketPack) GetVersion() semver.Version {
+func (r *RocketPack) GetVersion() *semver.Version {
 	if r.IsAddon() {
-		return *r.Addon.Version
+		return r.Addon.Version
 	}
 
-	return *r.Build.Version
+	return r.Build.Version
 }
 
 func Load(filePath string) (*RocketPack, error) {
