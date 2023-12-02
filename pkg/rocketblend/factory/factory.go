@@ -18,7 +18,7 @@ type (
 	Factory interface {
 		GetLogger() (logger.Logger, error)
 		SetLogger(logger.Logger) error
-		GetConfigService() (*config.Service, error)
+		GetConfigService() (config.Service, error)
 		GetRocketPackService() (rocketpack.Service, error)
 		GetInstallationService() (installation.Service, error)
 		GetBlendFileService() (blendfile.Service, error)
@@ -31,7 +31,7 @@ type (
 		logger      logger.Logger
 
 		configMutex   sync.Mutex
-		configService *config.Service
+		configService config.Service
 
 		rocketPackMutex   sync.Mutex
 		rocketPackService rocketpack.Service
@@ -64,7 +64,7 @@ func New() (Factory, error) {
 	}, nil
 }
 
-func (f *factory) GetConfigService() (*config.Service, error) {
+func (f *factory) GetConfigService() (config.Service, error) {
 	f.configMutex.Lock()
 	defer f.configMutex.Unlock()
 
