@@ -40,14 +40,14 @@ func (srv *Service) newInsertCommand() *cobra.Command {
 
 			// Insert the package into the library
 			if err := srv.runWithSpinner(cmd.Context(), func(ctx context.Context) error {
-				return srv.insertPackages(cmd.Context(), map[reference.Reference]*rocketpack.RocketPack{ref: pack})
+				return srv.Insert(cmd.Context(), map[reference.Reference]*rocketpack.RocketPack{ref: pack})
 			}, &helpers.SpinnerOptions{Suffix: "Inserting package..."}); err != nil {
 				return err
 			}
 
 			// Get Installations to trigger the installation process
 			if err := srv.runWithSpinner(cmd.Context(), func(ctx context.Context) error {
-				return srv.getInstallations(cmd.Context(), map[reference.Reference]*rocketpack.RocketPack{ref: pack})
+				return srv.Get(cmd.Context(), map[reference.Reference]*rocketpack.RocketPack{ref: pack})
 			}, &helpers.SpinnerOptions{Suffix: "Installing package..."}); err != nil {
 				return err
 			}
@@ -59,22 +59,22 @@ func (srv *Service) newInsertCommand() *cobra.Command {
 	return c
 }
 
-func (srv *Service) insertPackages(ctx context.Context, packs map[reference.Reference]*rocketpack.RocketPack) error {
+func (srv *Service) Insert(ctx context.Context, packs map[reference.Reference]*rocketpack.RocketPack) error {
 	packageService, err := srv.factory.GetRocketPackService()
 	if err != nil {
 		return err
 	}
 
-	return packageService.InsertPackages(ctx, packs)
+	return packageService.Insert(ctx, packs)
 }
 
-func (srv *Service) getInstallations(ctx context.Context, packs map[reference.Reference]*rocketpack.RocketPack) error {
+func (srv *Service) Get(ctx context.Context, packs map[reference.Reference]*rocketpack.RocketPack) error {
 	installationService, err := srv.factory.GetInstallationService()
 	if err != nil {
 		return err
 	}
 
-	_, err = installationService.GetInstallations(ctx, packs, false)
+	_, err = installationService.Get(ctx, packs, false)
 	return err
 }
 

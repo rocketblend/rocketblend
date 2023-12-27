@@ -21,8 +21,8 @@ const LockFileName = "reference.lock"
 
 type (
 	Service interface {
-		GetInstallations(ctx context.Context, rocketPacks map[reference.Reference]*rocketpack.RocketPack, readOnly bool) (map[reference.Reference]*Installation, error)
-		RemoveInstallations(ctx context.Context, rocketPacks map[reference.Reference]*rocketpack.RocketPack) error
+		Get(ctx context.Context, rocketPacks map[reference.Reference]*rocketpack.RocketPack, readOnly bool) (map[reference.Reference]*Installation, error)
+		Remove(ctx context.Context, rocketPacks map[reference.Reference]*rocketpack.RocketPack) error
 	}
 
 	Options struct {
@@ -133,7 +133,7 @@ func NewService(opts ...Option) (Service, error) {
 	}, nil
 }
 
-func (s *service) GetInstallations(ctx context.Context, rocketPacks map[reference.Reference]*rocketpack.RocketPack, readOnly bool) (map[reference.Reference]*Installation, error) {
+func (s *service) Get(ctx context.Context, rocketPacks map[reference.Reference]*rocketpack.RocketPack, readOnly bool) (map[reference.Reference]*Installation, error) {
 	results := make(chan getResult, len(rocketPacks))
 
 	var wg sync.WaitGroup
@@ -176,7 +176,7 @@ func (s *service) GetInstallations(ctx context.Context, rocketPacks map[referenc
 	return installations, nil
 }
 
-func (s *service) RemoveInstallations(ctx context.Context, rocketPacks map[reference.Reference]*rocketpack.RocketPack) error {
+func (s *service) Remove(ctx context.Context, rocketPacks map[reference.Reference]*rocketpack.RocketPack) error {
 	errs := make(chan error, len(rocketPacks))
 	var wg sync.WaitGroup
 	wg.Add(len(rocketPacks))
