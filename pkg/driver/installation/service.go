@@ -305,12 +305,11 @@ func (s *service) downloadInstallation(ctx context.Context, downloadURI *downloa
 	}
 
 	// Lock the installation path to prevent concurrent downloads.
-	locker := s.newLocker(installationPath)
-	if err := locker.Lock(ctx); err != nil {
-		s.logger.Error("failed to acquire lock", map[string]interface{}{"error": err, "installationPath": installationPath})
+	cancel, err := s.lock(ctx, installationPath)
+	if err != nil {
 		return err
 	}
-	defer locker.Unlock()
+	defer cancel()
 
 	downloadedFilePath := filepath.Join(installationPath, path.Base(downloadURI.Path))
 	s.logger.Info("downloading installation", map[string]interface{}{
@@ -340,22 +339,20 @@ func (s *service) removeInstallation(ctx context.Context, reference reference.Re
 
 	installationPath := filepath.Join(s.storagePath, reference.String())
 
-	locker := s.newLocker(installationPath)
-	if err := locker.Lock(ctx); err != nil {
-		s.logger.Error("failed to acquire lock", map[string]interface{}{"error": err, "installationPath": installationPath})
+	cancel, err := s.lock(ctx, installationPath)
+	if err != nil {
 		return err
 	}
-	defer locker.Unlock()
+	defer cancel()
 
-	err := os.RemoveAll(installationPath)
-	if err != nil {
+	if err := os.RemoveAll(installationPath); err != nil {
 		return err
 	}
 
 	return nil
 }
 
-func (s *service) newLocker(dir string) *lockfile.Locker {
+func (s *service) lock(ctx context.Context, dir string) (cancelFunc func(), err error) {
 	s.logger.Debug("creating new file lock", map[string]interface{}{"path": dir, "lockFile": LockFileName})
-	return lockfile.NewLocker(filepath.Join(dir, LockFileName))
+	return lockfile.New(ctx, lockfile.WithPath(filepath.Join(dir, LockFileName)), lockfile.WithLogger(s.logger))
 }
