@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"context"
 	"encoding/json"
+	"errors"
 	"os/exec"
 	"strings"
 
@@ -12,6 +13,10 @@ import (
 )
 
 func (s *service) Run(ctx context.Context, blendFile *BlendFile, opts ...runoptions.Option) error {
+	if err := ctx.Err(); err != nil {
+		return err
+	}
+
 	options := &runoptions.Options{
 		Background: false,
 	}
@@ -69,8 +74,11 @@ func (s *service) getRuntimeArguments(blendFile *BlendFile, background bool, pos
 }
 
 func (s *service) runCommand(ctx context.Context, name string, args ...string) error {
-	cmd := exec.CommandContext(ctx, name, args...)
+	if err := ctx.Err(); err != nil {
+		return err
+	}
 
+	cmd := exec.CommandContext(ctx, name, args...)
 	cmdReader, err := cmd.StdoutPipe()
 	if err != nil {
 		return s.logAndReturnError("failed to get stdout pipe", err)
@@ -83,24 +91,30 @@ func (s *service) runCommand(ctx context.Context, name string, args ...string) e
 			info, err := blenderparser.ParseRenderOutput(scanner.Text())
 			if err != nil {
 				if scanner.Text() != "" {
-					s.logger.Debug("Blender", map[string]interface{}{"Message": strings.TrimSpace(scanner.Text())})
+					s.logger.Debug("blender", map[string]interface{}{"Message": strings.TrimSpace(scanner.Text())})
 				}
 			} else {
-				s.logger.Info("Rendering", map[string]interface{}{"Frame": info.FrameNumber, "Memory": info.Memory, "PeakMemory": info.PeakMemory, "Time": info.Time, "Operation": info.Operation})
+				s.logger.Info("rendering", map[string]interface{}{"Frame": info.FrameNumber, "Memory": info.Memory, "PeakMemory": info.PeakMemory, "Time": info.Time, "Operation": info.Operation})
 			}
 		}
 	}()
 
-	s.logger.Info("Running command", map[string]interface{}{"command": cmd.String()})
+	s.logger.Info("running command", map[string]interface{}{"command": cmd.String()})
 
 	if err := cmd.Start(); err != nil {
+		if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
+			return err
+		}
+
 		return s.logAndReturnError("failed to start command", err)
 	}
 
 	if err := cmd.Wait(); err != nil {
-		return s.logAndReturnError("failed to wait for command", err, map[string]interface{}{
-			"canceled": ctx.Err() != nil,
-		})
+		if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
+			return err
+		}
+
+		return s.logAndReturnError("failed to wait for command", err)
 	}
 
 	return nil

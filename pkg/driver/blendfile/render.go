@@ -14,6 +14,10 @@ type (
 )
 
 func (s *service) Render(ctx context.Context, blendFile *BlendFile, opts ...renderoptions.Option) error {
+	if err := ctx.Err(); err != nil {
+		return err
+	}
+
 	options := &renderoptions.Options{
 		Background: true,
 	}

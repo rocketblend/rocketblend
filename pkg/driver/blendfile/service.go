@@ -75,7 +75,7 @@ func NewService(opts ...Option) (Service, error) {
 		return nil, fmt.Errorf("create script is required")
 	}
 
-	options.Logger.Debug("Initializing blendfile service", map[string]interface{}{"addonsEnabled": options.addonsEnabled})
+	options.Logger.Debug("initializing blendfile service", map[string]interface{}{"addonsEnabled": options.addonsEnabled})
 
 	return &service{
 		logger:        options.Logger,

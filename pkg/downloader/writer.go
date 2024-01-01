@@ -23,7 +23,7 @@ type progressWriter struct {
 func (pw *progressWriter) Write(p []byte) (n int, err error) {
 	n, err = pw.w.Write(p)
 	if err != nil {
-		pw.logger.Error("Error during write operation", map[string]interface{}{"error": err.Error()})
+		pw.logger.Error("error during write operation", map[string]interface{}{"error": err.Error()})
 		return n, err
 	}
 
@@ -33,7 +33,7 @@ func (pw *progressWriter) Write(p []byte) (n int, err error) {
 }
 
 func (pw *progressWriter) startLogging() {
-	pw.logger.Info("Download started", map[string]interface{}{
+	pw.logger.Info("download started", map[string]interface{}{
 		"id":       pw.id,
 		"maxBytes": pw.maxSize,
 	})
@@ -44,7 +44,7 @@ func (pw *progressWriter) startLogging() {
 		for n := range pw.logCh {
 			pw.logged += n
 			if pw.logged >= pw.logFreq {
-				pw.logger.Info("Download progress", map[string]interface{}{
+				pw.logger.Info("download progress", map[string]interface{}{
 					"id":         pw.id,
 					"bytes":      pw.logged,
 					"totalBytes": pw.total,
@@ -58,9 +58,9 @@ func (pw *progressWriter) startLogging() {
 
 func (pw *progressWriter) stopLogging() {
 	close(pw.logCh)
-	msg := "Download finished"
+	msg := "download finished"
 	if pw.total != pw.maxSize {
-		msg = "Download cancelled"
+		msg = "download cancelled"
 	}
 
 	pw.logger.Info(msg, map[string]interface{}{

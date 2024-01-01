@@ -111,14 +111,14 @@ func NewService(opts ...Option) (Service, error) {
 		options.Extractor = extractor
 	}
 
-	options.Logger.Debug("Initializing installation service", map[string]interface{}{
+	options.Logger.Debug("initializing installation service", map[string]interface{}{
 		"storagePath": options.StoragePath,
 		"platform":    options.Platform,
 	})
 
 	err := os.MkdirAll(options.StoragePath, 0755)
 	if err != nil {
-		options.Logger.Error(fmt.Sprintf("Unable to create directory %s", options.StoragePath), map[string]interface{}{
+		options.Logger.Error(fmt.Sprintf("unable to create directory %s", options.StoragePath), map[string]interface{}{
 			"error": err,
 		})
 		return nil, err
@@ -133,25 +133,25 @@ func NewService(opts ...Option) (Service, error) {
 	}, nil
 }
 
+// TODO: Return a map of reference to error instead of returning the first error encountered.
 func (s *service) Get(ctx context.Context, rocketPacks map[reference.Reference]*rocketpack.RocketPack, readOnly bool) (map[reference.Reference]*Installation, error) {
-	results := make(chan getResult, len(rocketPacks))
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
 
+	results := make(chan getResult, len(rocketPacks))
 	var wg sync.WaitGroup
 	wg.Add(len(rocketPacks))
 
 	for ref, pack := range rocketPacks {
 		go func(ref reference.Reference, pack *rocketpack.RocketPack) {
 			defer wg.Done()
+
 			installation, err := s.getInstallation(ctx, ref, pack, readOnly)
 			if err != nil {
-				s.logger.Error("Failed to get installation", map[string]interface{}{
-					"error":     err,
-					"reference": ref.String(),
-				})
+				cancel() // Cancel all operations as soon as an error is encountered
 				results <- getResult{ref: ref, error: err}
 				return
 			}
-
 			results <- getResult{ref: ref, inst: installation}
 		}(ref, pack)
 	}
@@ -162,10 +162,14 @@ func (s *service) Get(ctx context.Context, rocketPacks map[reference.Reference]*
 	}()
 
 	installations := make(map[reference.Reference]*Installation, len(rocketPacks))
+	var retErr error
 
 	for res := range results {
 		if res.error != nil {
-			return nil, res.error
+			if retErr == nil { // Store the first error encountered
+				retErr = res.error
+			}
+			// Continue to drain the channel
 		}
 
 		if res.inst != nil {
@@ -173,10 +177,14 @@ func (s *service) Get(ctx context.Context, rocketPacks map[reference.Reference]*
 		}
 	}
 
-	return installations, nil
+	return installations, retErr
 }
 
+// TODO: Return a map of reference to error instead of returning the first error encountered.
 func (s *service) Remove(ctx context.Context, rocketPacks map[reference.Reference]*rocketpack.RocketPack) error {
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
+
 	errs := make(chan error, len(rocketPacks))
 	var wg sync.WaitGroup
 	wg.Add(len(rocketPacks))
@@ -184,13 +192,9 @@ func (s *service) Remove(ctx context.Context, rocketPacks map[reference.Referenc
 	for ref := range rocketPacks {
 		go func(r reference.Reference) {
 			defer wg.Done()
-			err := s.removeInstallation(ctx, r)
-			if err != nil {
-				s.logger.Error("Failed to remove installation", map[string]interface{}{
-					"error":     err,
-					"reference": r.String(),
-				})
-				errs <- fmt.Errorf("failed to remove installation for %s: %w", r.String(), err)
+			if err := s.removeInstallation(ctx, r); err != nil {
+				cancel()
+				errs <- err
 				return
 			}
 		}(ref)
@@ -201,15 +205,24 @@ func (s *service) Remove(ctx context.Context, rocketPacks map[reference.Referenc
 		close(errs)
 	}()
 
-	if len(errs) > 0 {
-		return fmt.Errorf("errors occurred: %v", <-errs) // return first error for simplicity
+	var retErr error
+	for err := range errs {
+		if err != nil {
+			if retErr == nil {
+				retErr = err
+			}
+		}
 	}
 
-	return nil
+	return retErr
 }
 
 func (s *service) getInstallation(ctx context.Context, reference reference.Reference, rocketPack *rocketpack.RocketPack, readOnly bool) (*Installation, error) {
-	s.logger.Info("Checking installation", map[string]interface{}{
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
+
+	s.logger.Info("checking installation", map[string]interface{}{
 		"preInstalled": rocketPack.IsPreInstalled(),
 		"readOnly":     readOnly,
 		"reference":    reference.String(),
@@ -269,26 +282,30 @@ func (s *service) getInstallation(ctx context.Context, reference reference.Refer
 }
 
 func (s *service) downloadInstallation(ctx context.Context, downloadURI *downloader.URI, installationPath string) error {
+	if err := ctx.Err(); err != nil {
+		return err
+	}
+
 	if downloadURI == nil {
 		return fmt.Errorf("no download URI provided")
 	}
 
 	// Create the installation path if it doesn't exist.
 	if err := os.MkdirAll(installationPath, 0755); err != nil {
-		s.logger.Error("Failed to create installation path", map[string]interface{}{"error": err, "installationPath": installationPath})
+		s.logger.Error("failed to create installation path", map[string]interface{}{"error": err, "installationPath": installationPath})
 		return err
 	}
 
 	// Lock the installation path to prevent concurrent downloads.
 	locker := s.newLocker(installationPath)
 	if err := locker.Lock(ctx); err != nil {
-		s.logger.Error("Failed to acquire lock", map[string]interface{}{"error": err, "installationPath": installationPath})
+		s.logger.Error("failed to acquire lock", map[string]interface{}{"error": err, "installationPath": installationPath})
 		return err
 	}
 	defer locker.Unlock()
 
 	downloadedFilePath := filepath.Join(installationPath, path.Base(downloadURI.Path))
-	s.logger.Info("Downloading installation", map[string]interface{}{
+	s.logger.Info("downloading installation", map[string]interface{}{
 		"downloadURI":        downloadURI.String(),
 		"downloadedFilePath": downloadedFilePath,
 	})
@@ -309,11 +326,15 @@ func (s *service) downloadInstallation(ctx context.Context, downloadURI *downloa
 }
 
 func (s *service) removeInstallation(ctx context.Context, reference reference.Reference) error {
+	if err := ctx.Err(); err != nil {
+		return err
+	}
+
 	installationPath := filepath.Join(s.storagePath, reference.String())
 
 	locker := s.newLocker(installationPath)
 	if err := locker.Lock(ctx); err != nil {
-		s.logger.Error("Failed to acquire lock", map[string]interface{}{"error": err, "installationPath": installationPath})
+		s.logger.Error("failed to acquire lock", map[string]interface{}{"error": err, "installationPath": installationPath})
 		return err
 	}
 	defer locker.Unlock()
@@ -327,6 +348,6 @@ func (s *service) removeInstallation(ctx context.Context, reference reference.Re
 }
 
 func (s *service) newLocker(dir string) *lockfile.Locker {
-	s.logger.Debug("Creating new file lock", map[string]interface{}{"path": dir, "lockFile": LockFileName})
+	s.logger.Debug("creating new file lock", map[string]interface{}{"path": dir, "lockFile": LockFileName})
 	return lockfile.NewLocker(filepath.Join(dir, LockFileName))
 }

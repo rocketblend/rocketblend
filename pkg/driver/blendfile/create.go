@@ -9,6 +9,10 @@ import (
 )
 
 func (s *service) Create(ctx context.Context, blendFile *BlendFile) error {
+	if err := ctx.Err(); err != nil {
+		return err
+	}
+
 	if err := os.MkdirAll(filepath.Dir(blendFile.FilePath), 0755); err != nil {
 		return errors.Wrap(err, "error creating directories")
 	}
