@@ -65,7 +65,7 @@ func (srv *Service) Insert(ctx context.Context, packs map[reference.Reference]*r
 		return err
 	}
 
-	return packageService.Insert(ctx, packs)
+	return packageService.InsertWithContext(ctx, packs)
 }
 
 func (srv *Service) Get(ctx context.Context, packs map[reference.Reference]*rocketpack.RocketPack) error {
@@ -74,7 +74,7 @@ func (srv *Service) Get(ctx context.Context, packs map[reference.Reference]*rock
 		return err
 	}
 
-	_, err = installationService.Get(ctx, packs, false)
+	_, err = installationService.GetWithContext(ctx, packs, false)
 	return err
 }
 

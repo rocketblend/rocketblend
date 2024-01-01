@@ -45,7 +45,7 @@ type (
 	driver struct {
 		logger logger.Logger
 
-		InstallationService installation.Service
+		installationService installation.Service
 		rocketPackService   rocketpack.Service
 		blendFileService    blendfile.Service
 
@@ -133,14 +133,14 @@ func New(opts ...Option) (Driver, error) {
 		return nil, fmt.Errorf("invalid blend config: %w", err)
 	}
 
-	options.Logger.Debug("Initializing rocketblend driver", map[string]interface{}{
+	options.Logger.Debug("initializing rocketblend driver", map[string]interface{}{
 		"ProjectPath":   options.BlendConfig.ProjectPath,
 		"BlendFileName": options.BlendConfig.BlendFileName,
 	})
 
 	return &driver{
 		logger:              options.Logger,
-		InstallationService: options.InstallationService,
+		installationService: options.InstallationService,
 		rocketPackService:   options.RocketPackService,
 		blendFileService:    options.BlendFileService,
 		blendConfig:         options.BlendConfig,
@@ -148,14 +148,14 @@ func New(opts ...Option) (Driver, error) {
 }
 
 func (d *driver) Render(ctx context.Context, opts ...renderoptions.Option) error {
-	d.logger.Debug("Rendering blend file")
+	d.logger.Debug("rendering blend file")
 
 	blendFile, err := d.ResolveBlendFile(ctx)
 	if err != nil {
 		return fmt.Errorf("failed to resolve blend file: %w", err)
 	}
 
-	if err := d.blendFileService.Render(ctx, blendFile, opts...); err != nil {
+	if err := d.blendFileService.RenderWithContext(ctx, blendFile, opts...); err != nil {
 		return fmt.Errorf("failed to render blend file: %w", err)
 	}
 
@@ -163,14 +163,14 @@ func (d *driver) Render(ctx context.Context, opts ...renderoptions.Option) error
 }
 
 func (d *driver) Run(ctx context.Context, opts ...runoptions.Option) error {
-	d.logger.Debug("Running blend file")
+	d.logger.Debug("running blend file")
 
 	blendFile, err := d.ResolveBlendFile(ctx)
 	if err != nil {
 		return fmt.Errorf("failed to resolve blend file: %w", err)
 	}
 
-	if err := d.blendFileService.Run(ctx, blendFile, opts...); err != nil {
+	if err := d.blendFileService.RunWithContext(ctx, blendFile, opts...); err != nil {
 		return fmt.Errorf("failed to run blend file: %w", err)
 	}
 
@@ -178,7 +178,7 @@ func (d *driver) Run(ctx context.Context, opts ...runoptions.Option) error {
 }
 
 func (d *driver) Create(ctx context.Context) error {
-	d.logger.Debug("Creating blend file")
+	d.logger.Debug("creating blend file")
 
 	installations, err := d.Get(ctx, false)
 	if err != nil {
@@ -190,7 +190,7 @@ func (d *driver) Create(ctx context.Context) error {
 		return fmt.Errorf("failed to resolve blend file: %w", err)
 	}
 
-	if err := d.blendFileService.Create(ctx, blendFile); err != nil {
+	if err := d.blendFileService.CreateWithContext(ctx, blendFile); err != nil {
 		return fmt.Errorf("failed to create blend file: %w", err)
 	}
 
@@ -202,10 +202,10 @@ func (d *driver) Create(ctx context.Context) error {
 }
 
 func (d *driver) AddDependencies(ctx context.Context, forceUpdate bool, references ...reference.Reference) error {
-	d.logger.Debug("Adding dependencies", map[string]interface{}{"References": references})
+	d.logger.Debug("adding dependencies", map[string]interface{}{"References": references})
 
 	// This will also include the dependencies of the dependencies
-	packs, err := d.rocketPackService.Get(ctx, forceUpdate, references...)
+	packs, err := d.rocketPackService.GetWithContext(ctx, forceUpdate, references...)
 	if err != nil {
 		return fmt.Errorf("failed to get rocket packs: %w", err)
 	}
@@ -223,7 +223,7 @@ func (d *driver) AddDependencies(ctx context.Context, forceUpdate bool, referenc
 	}
 
 	// Install new dependencies
-	_, err = d.InstallationService.Get(ctx, packs, false)
+	_, err = d.installationService.GetWithContext(ctx, packs, false)
 	if err != nil {
 		return fmt.Errorf("failed to get installations: %w", err)
 	}
@@ -237,9 +237,9 @@ func (d *driver) AddDependencies(ctx context.Context, forceUpdate bool, referenc
 }
 
 func (d *driver) RemoveDependencies(ctx context.Context, references ...reference.Reference) error {
-	d.logger.Debug("Removing dependencies", map[string]interface{}{"References": references})
+	d.logger.Debug("removing dependencies", map[string]interface{}{"References": references})
 
-	packs, err := d.rocketPackService.Get(ctx, false, references...)
+	packs, err := d.rocketPackService.GetWithContext(ctx, false, references...)
 	if err != nil {
 		return fmt.Errorf("failed to get rocket packs: %w", err)
 	}
@@ -262,7 +262,7 @@ func (d *driver) RemoveDependencies(ctx context.Context, references ...reference
 }
 
 func (d *driver) InstallDependencies(ctx context.Context) error {
-	d.logger.Debug("Installing dependencies")
+	d.logger.Debug("installing dependencies")
 
 	_, err := d.Get(ctx, false)
 	if err != nil {
@@ -273,7 +273,7 @@ func (d *driver) InstallDependencies(ctx context.Context) error {
 }
 
 func (d *driver) ResolveBlendFile(ctx context.Context) (*blendfile.BlendFile, error) {
-	d.logger.Debug("Resolving blend file")
+	d.logger.Debug("resolving blend file")
 
 	installations, err := d.Get(ctx, true)
 	if err != nil {
@@ -298,7 +298,7 @@ func (d *driver) Get(ctx context.Context, readOnly bool) (map[reference.Referenc
 		return nil, err
 	}
 
-	return d.InstallationService.Get(ctx, packs, readOnly)
+	return d.installationService.GetWithContext(ctx, packs, readOnly)
 }
 
 func (d *driver) resolveBlendFile(ctx context.Context, installations map[reference.Reference]*installation.Installation) (*blendfile.BlendFile, error) {
@@ -323,7 +323,7 @@ func (d *driver) resolveBlendFile(ctx context.Context, installations map[referen
 }
 
 func (d *driver) getDependencies(ctx context.Context) (map[reference.Reference]*rocketpack.RocketPack, error) {
-	return d.rocketPackService.Get(ctx, false, d.blendConfig.RocketFile.GetDependencies()...)
+	return d.rocketPackService.GetWithContext(ctx, false, d.blendConfig.RocketFile.GetDependencies()...)
 }
 
 func (d *driver) save(ctx context.Context) error {

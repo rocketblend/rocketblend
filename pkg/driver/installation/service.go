@@ -21,8 +21,11 @@ const LockFileName = "reference.lock"
 
 type (
 	Service interface {
-		Get(ctx context.Context, rocketPacks map[reference.Reference]*rocketpack.RocketPack, readOnly bool) (map[reference.Reference]*Installation, error)
-		Remove(ctx context.Context, rocketPacks map[reference.Reference]*rocketpack.RocketPack) error
+		Get(rocketPacks map[reference.Reference]*rocketpack.RocketPack, readOnly bool) (map[reference.Reference]*Installation, error)
+		Remove(rocketPacks map[reference.Reference]*rocketpack.RocketPack) error
+
+		GetWithContext(ctx context.Context, rocketPacks map[reference.Reference]*rocketpack.RocketPack, readOnly bool) (map[reference.Reference]*Installation, error)
+		RemoveWithContext(ctx context.Context, rocketPacks map[reference.Reference]*rocketpack.RocketPack) error
 	}
 
 	Options struct {
@@ -133,8 +136,12 @@ func NewService(opts ...Option) (Service, error) {
 	}, nil
 }
 
+func (s *service) Get(rocketPacks map[reference.Reference]*rocketpack.RocketPack, readOnly bool) (map[reference.Reference]*Installation, error) {
+	return s.GetWithContext(context.Background(), rocketPacks, readOnly)
+}
+
 // TODO: Return a map of reference to error instead of returning the first error encountered.
-func (s *service) Get(ctx context.Context, rocketPacks map[reference.Reference]*rocketpack.RocketPack, readOnly bool) (map[reference.Reference]*Installation, error) {
+func (s *service) GetWithContext(ctx context.Context, rocketPacks map[reference.Reference]*rocketpack.RocketPack, readOnly bool) (map[reference.Reference]*Installation, error) {
 	if err := ctx.Err(); err != nil {
 		return nil, err
 	}
@@ -184,8 +191,12 @@ func (s *service) Get(ctx context.Context, rocketPacks map[reference.Reference]*
 	return installations, retErr
 }
 
+func (s *service) Remove(rocketPacks map[reference.Reference]*rocketpack.RocketPack) error {
+	return s.RemoveWithContext(context.Background(), rocketPacks)
+}
+
 // TODO: Return a map of reference to error instead of returning the first error encountered.
-func (s *service) Remove(ctx context.Context, rocketPacks map[reference.Reference]*rocketpack.RocketPack) error {
+func (s *service) RemoveWithContext(ctx context.Context, rocketPacks map[reference.Reference]*rocketpack.RocketPack) error {
 	if err := ctx.Err(); err != nil {
 		return err
 	}

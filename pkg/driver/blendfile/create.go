@@ -8,7 +8,11 @@ import (
 	"github.com/pkg/errors"
 )
 
-func (s *service) Create(ctx context.Context, blendFile *BlendFile) error {
+func (s *service) Create(blendFile *BlendFile) error {
+	return s.CreateWithContext(context.Background(), blendFile)
+}
+
+func (s *service) CreateWithContext(ctx context.Context, blendFile *BlendFile) error {
 	if err := ctx.Err(); err != nil {
 		return err
 	}

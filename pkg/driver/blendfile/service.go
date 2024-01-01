@@ -22,9 +22,13 @@ var createScript string
 
 type (
 	Service interface {
-		Render(ctx context.Context, blendFile *BlendFile, opts ...renderoptions.Option) error
-		Run(ctx context.Context, blendFile *BlendFile, opts ...runoptions.Option) error
-		Create(ctx context.Context, blendFile *BlendFile) error
+		Render(blendFile *BlendFile, opts ...renderoptions.Option) error
+		Run(blendFile *BlendFile, opts ...runoptions.Option) error
+		Create(blendFile *BlendFile) error
+
+		RenderWithContext(ctx context.Context, blendFile *BlendFile, opts ...renderoptions.Option) error
+		RunWithContext(ctx context.Context, blendFile *BlendFile, opts ...runoptions.Option) error
+		CreateWithContext(ctx context.Context, blendFile *BlendFile) error
 	}
 
 	Options struct {
