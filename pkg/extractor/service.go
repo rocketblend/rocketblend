@@ -64,6 +64,10 @@ func (e *extractor) Extract(path string, extractPath string) error {
 }
 
 func (e *extractor) ExtractWithContext(ctx context.Context, path string, extractPath string) error {
+	if err := ctx.Err(); err != nil {
+		return err
+	}
+
 	logContext := map[string]interface{}{
 		"path":        path,
 		"extractPath": extractPath,

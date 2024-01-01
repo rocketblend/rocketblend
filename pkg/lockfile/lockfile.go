@@ -25,6 +25,10 @@ func NewLocker(lockFilePath string) *Locker {
 }
 
 func (l *Locker) Lock(ctx context.Context) error {
+	if err := ctx.Err(); err != nil {
+		return err
+	}
+
 	// Try to create the lock file
 	lockFile, err := os.OpenFile(l.lockFilePath, os.O_CREATE|os.O_EXCL, 0600)
 	if err != nil {
