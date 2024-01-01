@@ -159,7 +159,7 @@ func (d *driver) Render(ctx context.Context, opts ...renderoptions.Option) error
 		return err
 	}
 
-	if err := d.blendFileService.RenderWithContext(ctx, blendFile, opts...); err != nil {
+	if err := d.blendFileService.Render(ctx, blendFile, opts...); err != nil {
 		return err
 	}
 
@@ -178,7 +178,7 @@ func (d *driver) Run(ctx context.Context, opts ...runoptions.Option) error {
 		return err
 	}
 
-	if err := d.blendFileService.RunWithContext(ctx, blendFile, opts...); err != nil {
+	if err := d.blendFileService.Run(ctx, blendFile, opts...); err != nil {
 		return err
 	}
 
@@ -198,7 +198,7 @@ func (d *driver) Create(ctx context.Context) error {
 	}
 
 	blendFile := d.resolveBlendFile(installations)
-	if err := d.blendFileService.CreateWithContext(ctx, blendFile); err != nil {
+	if err := d.blendFileService.Create(ctx, blendFile); err != nil {
 		return err
 	}
 
@@ -217,7 +217,7 @@ func (d *driver) AddDependencies(ctx context.Context, forceUpdate bool, referenc
 	d.logger.Debug("adding dependencies", map[string]interface{}{"References": references})
 
 	// This will also include the dependencies of the dependencies
-	packs, err := d.rocketPackService.GetWithContext(ctx, forceUpdate, references...)
+	packs, err := d.rocketPackService.Get(ctx, forceUpdate, references...)
 	if err != nil {
 		return err
 	}
@@ -235,7 +235,7 @@ func (d *driver) AddDependencies(ctx context.Context, forceUpdate bool, referenc
 	}
 
 	// Install new dependencies
-	_, err = d.installationService.GetWithContext(ctx, packs, false)
+	_, err = d.installationService.Get(ctx, packs, false)
 	if err != nil {
 		return err
 	}
@@ -255,7 +255,7 @@ func (d *driver) RemoveDependencies(ctx context.Context, references ...reference
 
 	d.logger.Debug("removing dependencies", map[string]interface{}{"References": references})
 
-	packs, err := d.rocketPackService.GetWithContext(ctx, false, references...)
+	packs, err := d.rocketPackService.Get(ctx, false, references...)
 	if err != nil {
 		return fmt.Errorf("failed to get rocket packs: %w", err)
 	}
@@ -322,7 +322,7 @@ func (d *driver) Get(ctx context.Context, readOnly bool) (map[reference.Referenc
 		return nil, err
 	}
 
-	return d.installationService.GetWithContext(ctx, packs, readOnly)
+	return d.installationService.Get(ctx, packs, readOnly)
 }
 
 func (d *driver) resolveBlendFile(installations map[reference.Reference]*installation.Installation) *blendfile.BlendFile {
@@ -347,7 +347,7 @@ func (d *driver) resolveBlendFile(installations map[reference.Reference]*install
 }
 
 func (d *driver) getDependencies(ctx context.Context) (map[reference.Reference]*rocketpack.RocketPack, error) {
-	return d.rocketPackService.GetWithContext(ctx, false, d.blendConfig.RocketFile.GetDependencies()...)
+	return d.rocketPackService.Get(ctx, false, d.blendConfig.RocketFile.GetDependencies()...)
 }
 
 func (d *driver) save(ctx context.Context) error {

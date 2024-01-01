@@ -13,11 +13,7 @@ type (
 	}
 )
 
-func (s *service) Render(blendFile *BlendFile, opts ...renderoptions.Option) error {
-	return s.RenderWithContext(context.Background(), blendFile, opts...)
-}
-
-func (s *service) RenderWithContext(ctx context.Context, blendFile *BlendFile, opts ...renderoptions.Option) error {
+func (s *service) Render(ctx context.Context, blendFile *BlendFile, opts ...renderoptions.Option) error {
 	if err := ctx.Err(); err != nil {
 		return err
 	}

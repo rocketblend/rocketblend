@@ -12,8 +12,7 @@ import (
 
 type (
 	Extractor interface {
-		Extract(path string, extractPath string) error
-		ExtractWithContext(ctx context.Context, path string, extractPath string) error
+		Extract(ctx context.Context, path string, extractPath string) error
 	}
 
 	Options struct {
@@ -59,11 +58,7 @@ func New(opts ...Option) Extractor {
 	}
 }
 
-func (e *extractor) Extract(path string, extractPath string) error {
-	return e.ExtractWithContext(context.Background(), path, extractPath)
-}
-
-func (e *extractor) ExtractWithContext(ctx context.Context, path string, extractPath string) error {
+func (e *extractor) Extract(ctx context.Context, path string, extractPath string) error {
 	if err := ctx.Err(); err != nil {
 		return err
 	}
@@ -81,7 +76,7 @@ func (e *extractor) ExtractWithContext(ctx context.Context, path string, extract
 	switch strings.ToLower(filepath.Ext(path)) {
 	case ".dmg":
 		e.logger.Debug("extracting DMG file", logContext)
-		err = e.extractDMGWithContext(ctx, path, extractPath)
+		err = e.extractDMG(ctx, path, extractPath)
 	default:
 		e.logger.Debug("extracting archive", logContext)
 		err = archiver.Unarchive(path, extractPath)

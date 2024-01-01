@@ -14,13 +14,9 @@ import (
 
 type (
 	Service interface {
-		Get(forceUpdate bool, references ...reference.Reference) (map[reference.Reference]*RocketPack, error)
-		Remove(references ...reference.Reference) error
-		Insert(packs map[reference.Reference]*RocketPack) error
-
-		GetWithContext(ctx context.Context, forceUpdate bool, references ...reference.Reference) (map[reference.Reference]*RocketPack, error)
-		RemoveWithContext(ctx context.Context, references ...reference.Reference) error
-		InsertWithContext(ctx context.Context, packs map[reference.Reference]*RocketPack) error
+		Get(ctx context.Context, forceUpdate bool, references ...reference.Reference) (map[reference.Reference]*RocketPack, error)
+		Remove(ctx context.Context, references ...reference.Reference) error
+		Insert(ctx context.Context, packs map[reference.Reference]*RocketPack) error
 	}
 
 	Options struct {
@@ -81,11 +77,7 @@ func NewService(opts ...Option) (Service, error) {
 	}, nil
 }
 
-func (s *service) Get(forceUpdate bool, references ...reference.Reference) (map[reference.Reference]*RocketPack, error) {
-	return s.GetWithContext(context.Background(), forceUpdate, references...)
-}
-
-func (s *service) GetWithContext(ctx context.Context, forceUpdate bool, references ...reference.Reference) (map[reference.Reference]*RocketPack, error) {
+func (s *service) Get(ctx context.Context, forceUpdate bool, references ...reference.Reference) (map[reference.Reference]*RocketPack, error) {
 	if err := ctx.Err(); err != nil {
 		return nil, err
 	}
@@ -133,11 +125,7 @@ func (s *service) GetWithContext(ctx context.Context, forceUpdate bool, referenc
 	return packages, nil
 }
 
-func (s *service) Remove(references ...reference.Reference) error {
-	return s.RemoveWithContext(context.Background(), references...)
-}
-
-func (s *service) RemoveWithContext(ctx context.Context, references ...reference.Reference) error {
+func (s *service) Remove(ctx context.Context, references ...reference.Reference) error {
 	if err := ctx.Err(); err != nil {
 		return err
 	}
@@ -176,11 +164,7 @@ func (s *service) RemoveWithContext(ctx context.Context, references ...reference
 	return nil
 }
 
-func (s *service) Insert(packs map[reference.Reference]*RocketPack) error {
-	return s.InsertWithContext(context.Background(), packs)
-}
-
-func (s *service) InsertWithContext(ctx context.Context, packs map[reference.Reference]*RocketPack) error {
+func (s *service) Insert(ctx context.Context, packs map[reference.Reference]*RocketPack) error {
 	if err := ctx.Err(); err != nil {
 		return err
 	}
@@ -295,7 +279,7 @@ func (s *service) get(ctx context.Context, forceUpdate bool, ref reference.Refer
 		s.logger.Debug("Package has dependencies", map[string]interface{}{"reference": ref.String()})
 
 		// Get the dependencies
-		depPackages, err := s.GetWithContext(ctx, forceUpdate, deps...)
+		depPackages, err := s.Get(ctx, forceUpdate, deps...)
 		if err != nil {
 			s.logger.Error("Error getting dependency packages", map[string]interface{}{"error": err, "reference": ref.String()})
 			return nil, err

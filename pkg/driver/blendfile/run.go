@@ -12,11 +12,7 @@ import (
 	"github.com/rocketblend/rocketblend/pkg/driver/blendfile/runoptions"
 )
 
-func (s *service) Run(blendFile *BlendFile, opts ...runoptions.Option) error {
-	return s.RunWithContext(context.Background(), blendFile, opts...)
-}
-
-func (s *service) RunWithContext(ctx context.Context, blendFile *BlendFile, opts ...runoptions.Option) error {
+func (s *service) Run(ctx context.Context, blendFile *BlendFile, opts ...runoptions.Option) error {
 	if err := ctx.Err(); err != nil {
 		return err
 	}

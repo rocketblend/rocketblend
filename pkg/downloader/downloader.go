@@ -18,8 +18,7 @@ const TempFileExtension = ".tmp"
 
 type (
 	Downloader interface {
-		Download(path string, uri *URI) error
-		DownloadWithContext(ctx context.Context, path string, uri *URI) error
+		Download(ctx context.Context, path string, uri *URI) error
 	}
 
 	Options struct {
@@ -68,13 +67,8 @@ func New(opts ...Option) Downloader {
 	}
 }
 
-// Download downloads a file from downloadUrl to path.
-func (d *downloader) Download(path string, uri *URI) error {
-	return d.DownloadWithContext(context.Background(), path, uri)
-}
-
-// DownloadWithContext downloads a file from downloadUrl to path. It uses the provided context to cancel the download.
-func (d *downloader) DownloadWithContext(ctx context.Context, path string, uri *URI) error {
+// Download downloads a file from downloadUrl to path. It uses the provided context to cancel the download.
+func (d *downloader) Download(ctx context.Context, path string, uri *URI) error {
 	if err := ctx.Err(); err != nil {
 		return err
 	}

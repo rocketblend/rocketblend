@@ -21,11 +21,8 @@ const LockFileName = "reference.lock"
 
 type (
 	Service interface {
-		Get(rocketPacks map[reference.Reference]*rocketpack.RocketPack, readOnly bool) (map[reference.Reference]*Installation, error)
-		Remove(rocketPacks map[reference.Reference]*rocketpack.RocketPack) error
-
-		GetWithContext(ctx context.Context, rocketPacks map[reference.Reference]*rocketpack.RocketPack, readOnly bool) (map[reference.Reference]*Installation, error)
-		RemoveWithContext(ctx context.Context, rocketPacks map[reference.Reference]*rocketpack.RocketPack) error
+		Get(ctx context.Context, rocketPacks map[reference.Reference]*rocketpack.RocketPack, readOnly bool) (map[reference.Reference]*Installation, error)
+		Remove(ctx context.Context, rocketPacks map[reference.Reference]*rocketpack.RocketPack) error
 	}
 
 	Options struct {
@@ -136,12 +133,8 @@ func NewService(opts ...Option) (Service, error) {
 	}, nil
 }
 
-func (s *service) Get(rocketPacks map[reference.Reference]*rocketpack.RocketPack, readOnly bool) (map[reference.Reference]*Installation, error) {
-	return s.GetWithContext(context.Background(), rocketPacks, readOnly)
-}
-
 // TODO: Return a map of reference to error instead of returning the first error encountered.
-func (s *service) GetWithContext(ctx context.Context, rocketPacks map[reference.Reference]*rocketpack.RocketPack, readOnly bool) (map[reference.Reference]*Installation, error) {
+func (s *service) Get(ctx context.Context, rocketPacks map[reference.Reference]*rocketpack.RocketPack, readOnly bool) (map[reference.Reference]*Installation, error) {
 	if err := ctx.Err(); err != nil {
 		return nil, err
 	}
@@ -191,12 +184,8 @@ func (s *service) GetWithContext(ctx context.Context, rocketPacks map[reference.
 	return installations, retErr
 }
 
-func (s *service) Remove(rocketPacks map[reference.Reference]*rocketpack.RocketPack) error {
-	return s.RemoveWithContext(context.Background(), rocketPacks)
-}
-
 // TODO: Return a map of reference to error instead of returning the first error encountered.
-func (s *service) RemoveWithContext(ctx context.Context, rocketPacks map[reference.Reference]*rocketpack.RocketPack) error {
+func (s *service) Remove(ctx context.Context, rocketPacks map[reference.Reference]*rocketpack.RocketPack) error {
 	if err := ctx.Err(); err != nil {
 		return err
 	}
@@ -330,13 +319,13 @@ func (s *service) downloadInstallation(ctx context.Context, downloadURI *downloa
 	})
 
 	// Download the file.
-	if err := s.downloader.DownloadWithContext(ctx, downloadedFilePath, downloadURI); err != nil {
+	if err := s.downloader.Download(ctx, downloadedFilePath, downloadURI); err != nil {
 		return err
 	}
 
 	// Extract the file if it's an archive.
 	if isArchive(downloadedFilePath) {
-		if err := s.extractor.ExtractWithContext(ctx, downloadedFilePath, filepath.Dir(downloadedFilePath)); err != nil {
+		if err := s.extractor.Extract(ctx, downloadedFilePath, filepath.Dir(downloadedFilePath)); err != nil {
 			return err
 		}
 	}
