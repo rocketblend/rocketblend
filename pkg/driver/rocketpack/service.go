@@ -14,9 +14,9 @@ import (
 
 type (
 	Service interface {
-		GetPackages(ctx context.Context, forceUpdate bool, references ...reference.Reference) (map[reference.Reference]*RocketPack, error)
-		RemovePackages(ctx context.Context, references ...reference.Reference) error
-		InsertPackages(ctx context.Context, packs map[reference.Reference]*RocketPack) error
+		Get(ctx context.Context, forceUpdate bool, references ...reference.Reference) (map[reference.Reference]*RocketPack, error)
+		Remove(ctx context.Context, references ...reference.Reference) error
+		Insert(ctx context.Context, packs map[reference.Reference]*RocketPack) error
 	}
 
 	Options struct {
@@ -77,22 +77,26 @@ func NewService(opts ...Option) (Service, error) {
 	}, nil
 }
 
-func (s *service) GetPackages(ctx context.Context, forceUpdate bool, references ...reference.Reference) (map[reference.Reference]*RocketPack, error) {
-	results := make(chan getResult)
+func (s *service) Get(ctx context.Context, forceUpdate bool, references ...reference.Reference) (map[reference.Reference]*RocketPack, error) {
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
 
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
+
+	results := make(chan getResult)
 	var wg sync.WaitGroup
 	wg.Add(len(references))
 
 	for _, ref := range references {
 		go func(ref reference.Reference) {
 			defer wg.Done()
-			packs, err := s.getPackages(ctx, forceUpdate, ref)
+
+			packs, err := s.get(ctx, forceUpdate, ref)
 			if err != nil {
-				s.logger.Debug("Error getting package", map[string]interface{}{
-					"ref":   ref,
-					"error": err.Error(),
-				})
-				results <- getResult{packs: nil, error: fmt.Errorf("error getting package %s: %w", ref, err)}
+				cancel()
+				results <- getResult{packs: nil, error: err}
 				return
 			}
 
@@ -106,7 +110,6 @@ func (s *service) GetPackages(ctx context.Context, forceUpdate bool, references 
 	}()
 
 	packages := make(map[reference.Reference]*RocketPack)
-
 	for res := range results {
 		if res.error != nil {
 			return nil, res.error
@@ -122,7 +125,14 @@ func (s *service) GetPackages(ctx context.Context, forceUpdate bool, references 
 	return packages, nil
 }
 
-func (s *service) RemovePackages(ctx context.Context, references ...reference.Reference) error {
+func (s *service) Remove(ctx context.Context, references ...reference.Reference) error {
+	if err := ctx.Err(); err != nil {
+		return err
+	}
+
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
+
 	errs := make(chan error, len(references))
 	var wg sync.WaitGroup
 	wg.Add(len(references))
@@ -130,9 +140,11 @@ func (s *service) RemovePackages(ctx context.Context, references ...reference.Re
 	for _, ref := range references {
 		go func(ref reference.Reference) {
 			defer wg.Done()
+
 			err := s.removePackage(ctx, ref)
 			if err != nil {
-				errs <- fmt.Errorf("error removing package %s: %w", ref, err)
+				cancel()
+				errs <- err
 				return
 			}
 		}(ref)
@@ -143,14 +155,23 @@ func (s *service) RemovePackages(ctx context.Context, references ...reference.Re
 		close(errs)
 	}()
 
-	if len(errs) > 0 {
-		return fmt.Errorf("errors occurred: %v", <-errs) // return first error for simplicity
+	for err := range errs {
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil
 }
 
-func (s *service) InsertPackages(ctx context.Context, packs map[reference.Reference]*RocketPack) error {
+func (s *service) Insert(ctx context.Context, packs map[reference.Reference]*RocketPack) error {
+	if err := ctx.Err(); err != nil {
+		return err
+	}
+
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
+
 	errs := make(chan error, len(packs))
 	var wg sync.WaitGroup
 	wg.Add(len(packs))
@@ -158,9 +179,11 @@ func (s *service) InsertPackages(ctx context.Context, packs map[reference.Refere
 	for ref, pack := range packs {
 		go func(ref reference.Reference, pack *RocketPack) {
 			defer wg.Done()
+
 			err := s.insertPackage(ctx, ref, pack)
 			if err != nil {
-				errs <- fmt.Errorf("error inserting package %s: %w", ref, err)
+				cancel()
+				errs <- err
 				return
 			}
 		}(ref, pack)
@@ -171,14 +194,23 @@ func (s *service) InsertPackages(ctx context.Context, packs map[reference.Refere
 		close(errs)
 	}()
 
-	if len(errs) > 0 {
-		return fmt.Errorf("errors occurred: %v", <-errs) // return first error for simplicity
+	var firstErr error
+	for err := range errs {
+		if err != nil {
+			if firstErr == nil {
+				firstErr = err
+			}
+		}
 	}
 
-	return nil
+	return firstErr
 }
 
 func (s *service) insertPackage(ctx context.Context, ref reference.Reference, pack *RocketPack) error {
+	if err := ctx.Err(); err != nil {
+		return err
+	}
+
 	packagePath := filepath.Join(s.storagePath, ref.String(), FileName)
 
 	err := os.MkdirAll(filepath.Dir(packagePath), 0755)
@@ -195,7 +227,11 @@ func (s *service) insertPackage(ctx context.Context, ref reference.Reference, pa
 	return nil
 }
 
-func (s *service) getPackages(ctx context.Context, forceUpdate bool, ref reference.Reference) (map[reference.Reference]*RocketPack, error) {
+func (s *service) get(ctx context.Context, forceUpdate bool, ref reference.Reference) (map[reference.Reference]*RocketPack, error) {
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
+
 	s.logger.Info("Processing reference", map[string]interface{}{"reference": ref.String()})
 
 	packages := make(map[reference.Reference]*RocketPack)
@@ -219,7 +255,7 @@ func (s *service) getPackages(ctx context.Context, forceUpdate bool, ref referen
 
 		s.logger.Info("Cloning repository", map[string]interface{}{"repoURL": repoURL, "path": repoPath, "reference": ref.String()})
 		if err := s.cloneRepo(ctx, repoPath, repoURL); err != nil {
-			return nil, fmt.Errorf("error cloning repository: %w", err)
+			return nil, err
 		}
 	}
 
@@ -228,7 +264,7 @@ func (s *service) getPackages(ctx context.Context, forceUpdate bool, ref referen
 		// The file does not exist or forced update, pull the latest changes
 		s.logger.Info("Pulling latest changes for repository", map[string]interface{}{"path": packagePath, "reference": ref.String()})
 		if err := s.pullChanges(ctx, repoPath); err != nil {
-			return nil, fmt.Errorf("error pulling latest changes: %w", err)
+			return nil, err
 		}
 	}
 
@@ -243,7 +279,7 @@ func (s *service) getPackages(ctx context.Context, forceUpdate bool, ref referen
 		s.logger.Debug("Package has dependencies", map[string]interface{}{"reference": ref.String()})
 
 		// Get the dependencies
-		depPackages, err := s.GetPackages(ctx, forceUpdate, deps...)
+		depPackages, err := s.Get(ctx, forceUpdate, deps...)
 		if err != nil {
 			s.logger.Error("Error getting dependency packages", map[string]interface{}{"error": err, "reference": ref.String()})
 			return nil, err
@@ -263,6 +299,10 @@ func (s *service) getPackages(ctx context.Context, forceUpdate bool, ref referen
 }
 
 func (s *service) removePackage(ctx context.Context, reference reference.Reference) error {
+	if err := ctx.Err(); err != nil {
+		return err
+	}
+
 	s.logger.Info("Processing reference", map[string]interface{}{"reference": reference.String()})
 
 	repo, err := reference.GetRepo()

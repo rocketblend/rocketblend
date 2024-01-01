@@ -12,8 +12,7 @@ import (
 
 type (
 	Extractor interface {
-		Extract(path string, extractPath string) error
-		ExtractWithContext(ctx context.Context, path string, extractPath string) error
+		Extract(ctx context.Context, path string, extractPath string) error
 	}
 
 	Options struct {
@@ -51,7 +50,7 @@ func New(opts ...Option) Extractor {
 		opt(options)
 	}
 
-	options.Logger.Debug("Initializing extractor", map[string]interface{}{"cleanup": options.Cleanup})
+	options.Logger.Debug("initializing extractor", map[string]interface{}{"cleanup": options.Cleanup})
 
 	return &extractor{
 		cleanup: options.Cleanup,
@@ -59,46 +58,46 @@ func New(opts ...Option) Extractor {
 	}
 }
 
-func (e *extractor) Extract(path string, extractPath string) error {
-	return e.ExtractWithContext(context.Background(), path, extractPath)
-}
+func (e *extractor) Extract(ctx context.Context, path string, extractPath string) error {
+	if err := ctx.Err(); err != nil {
+		return err
+	}
 
-func (e *extractor) ExtractWithContext(ctx context.Context, path string, extractPath string) error {
 	logContext := map[string]interface{}{
 		"path":        path,
 		"extractPath": extractPath,
 	}
 
-	e.logger.Info("Extracting", logContext)
+	e.logger.Info("extracting", logContext)
 
 	// mholt/archiver doesn't support .dmg files, so we need to handle them separately.
 	// This isn't a 100% golang solution, but it works for now.
 	var err error
 	switch strings.ToLower(filepath.Ext(path)) {
 	case ".dmg":
-		e.logger.Debug("Extracting DMG file", logContext)
-		err = e.extractDMGWithContext(ctx, path, extractPath)
+		e.logger.Debug("extracting DMG file", logContext)
+		err = e.extractDMG(ctx, path, extractPath)
 	default:
-		e.logger.Debug("Extracting archive", logContext)
+		e.logger.Debug("extracting archive", logContext)
 		err = archiver.Unarchive(path, extractPath)
 	}
 	if err != nil {
 		logContext["error"] = err.Error()
-		e.logger.Error("Extraction error", logContext)
+		e.logger.Error("extraction error", logContext)
 		return err
 	}
 
 	if e.cleanup {
-		e.logger.Debug("Cleaning up source file", logContext)
+		e.logger.Debug("cleaning up source file", logContext)
 		err = os.Remove(path)
 		if err != nil {
 			logContext["error"] = err.Error()
-			e.logger.Error("Cleanup error", logContext)
+			e.logger.Error("cleanup error", logContext)
 			return err
 		}
 	}
 
-	e.logger.Debug("Extraction complete", logContext)
+	e.logger.Debug("extraction complete", logContext)
 
 	return nil
 }

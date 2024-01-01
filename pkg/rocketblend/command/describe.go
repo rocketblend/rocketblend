@@ -29,7 +29,7 @@ func (srv *Service) newDescribeCommand() *cobra.Command {
 				return err
 			}
 
-			pkg, err := packages.GetPackages(cmd.Context(), false, ref)
+			pkg, err := packages.Get(cmd.Context(), false, ref)
 			if err != nil {
 				return err
 			}

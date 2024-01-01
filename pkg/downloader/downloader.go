@@ -14,10 +14,11 @@ import (
 	"github.com/rocketblend/rocketblend/pkg/driver/helpers"
 )
 
+const TempFileExtension = ".tmp"
+
 type (
 	Downloader interface {
-		Download(path string, uri *URI) error
-		DownloadWithContext(ctx context.Context, path string, uri *URI) error
+		Download(ctx context.Context, path string, uri *URI) error
 	}
 
 	Options struct {
@@ -58,7 +59,7 @@ func New(opts ...Option) Downloader {
 		opt(options)
 	}
 
-	options.Logger.Debug("Initializing downloader", map[string]interface{}{"logFreq": options.LogFreq})
+	options.Logger.Debug("initializing downloader", map[string]interface{}{"logFreq": options.LogFreq})
 
 	return &downloader{
 		logger:  options.Logger,
@@ -66,18 +67,17 @@ func New(opts ...Option) Downloader {
 	}
 }
 
-// Download downloads a file from downloadUrl to path.
-func (d *downloader) Download(path string, uri *URI) error {
-	return d.DownloadWithContext(context.Background(), path, uri)
-}
+// Download downloads a file from downloadUrl to path. It uses the provided context to cancel the download.
+func (d *downloader) Download(ctx context.Context, path string, uri *URI) error {
+	if err := ctx.Err(); err != nil {
+		return err
+	}
 
-// DownloadWithContext downloads a file from downloadUrl to path. It uses the provided context to cancel the download.
-func (d *downloader) DownloadWithContext(ctx context.Context, path string, uri *URI) error {
 	downloadID := uuid.New().String()
-	tempPath := path + ".tmp"
+	tempPath := path + TempFileExtension
 
 	if err := os.MkdirAll(filepath.Dir(tempPath), 0755); err != nil {
-		return d.logAndReturnError("Error creating directory", err)
+		return d.logAndReturnError("error creating directory", err)
 	}
 
 	var fileSize int64
@@ -102,7 +102,7 @@ func (d *downloader) DownloadWithContext(ctx context.Context, path string, uri *
 		return err
 	}
 
-	d.logger.Debug("File successfully downloaded", map[string]interface{}{"downloadID": downloadID, "uri": uri.String(), "path": path})
+	d.logger.Debug("file successfully downloaded", map[string]interface{}{"downloadID": downloadID, "uri": uri.String(), "path": path})
 	return nil
 }
 
@@ -131,20 +131,24 @@ func (d *downloader) setupReader(ctx context.Context, uri *URI, fileSize int64) 
 
 // setupRemoteReader sets up an io.ReadCloser for a remote file
 func (d *downloader) setupRemoteReader(ctx context.Context, uri *URI, fileSize int64) (io.ReadCloser, int64, error) {
+	if err := ctx.Err(); err != nil {
+		return nil, 0, err
+	}
+
 	req, err := http.NewRequestWithContext(ctx, "GET", uri.String(), nil)
 	if err != nil {
-		return nil, 0, d.logAndReturnError("Error creating HTTP request", err)
+		return nil, 0, d.logAndReturnError("error creating HTTP request", err)
 	}
 	req.Header.Set("Range", fmt.Sprintf("bytes=%d-", fileSize))
 
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
-		return nil, 0, d.logAndReturnError("Error making HTTP request", err)
+		return nil, 0, d.logAndReturnError("error making HTTP request", err)
 	}
 
 	if resp.StatusCode != 200 && resp.StatusCode != 206 {
 		err = fmt.Errorf("received non 200/206 status code: %s", resp.Status)
-		d.logger.Error("Received non 200/206 status code", map[string]interface{}{"err": err.Error()})
+		d.logger.Error("received non 200/206 status code", map[string]interface{}{"err": err.Error()})
 		return nil, 0, err
 	}
 
@@ -163,12 +167,12 @@ func (d *downloader) setupRemoteReader(ctx context.Context, uri *URI, fileSize i
 func (d *downloader) setupLocalReader(uri *URI) (io.ReadCloser, int64, error) {
 	file, err := os.Open(uri.Path)
 	if err != nil {
-		return nil, 0, d.logAndReturnError("Error opening local file", err)
+		return nil, 0, d.logAndReturnError("error opening local file", err)
 	}
 
 	fi, err := file.Stat()
 	if err != nil {
-		return nil, 0, d.logAndReturnError("Error getting local file info", err)
+		return nil, 0, d.logAndReturnError("error getting local file info", err)
 	}
 
 	return file, fi.Size(), nil
@@ -176,9 +180,13 @@ func (d *downloader) setupLocalReader(uri *URI) (io.ReadCloser, int64, error) {
 
 // openAndWriteToFile opens the file for writing and starts the download process
 func (d *downloader) openAndWriteToFile(ctx context.Context, tempPath string, contentLength int64, reader io.ReadCloser, downloadID string) error {
+	if err := ctx.Err(); err != nil {
+		return err
+	}
+
 	f, err := os.OpenFile(tempPath, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0644)
 	if err != nil {
-		return d.logAndReturnError("Error opening temporary file", err)
+		return d.logAndReturnError("error opening temporary file", err)
 	}
 	defer f.Close()
 
@@ -207,15 +215,16 @@ func (d *downloader) openAndWriteToFile(ctx context.Context, tempPath string, co
 	wg.Wait() // Wait for the logging goroutine to finish
 
 	if err != nil {
-		return d.logAndReturnError("Error downloading file", err)
+		return d.logAndReturnError("error downloading file", err)
 	}
+
 	return nil
 }
 
 // renameFile renames the temporary file to its final name once the download is complete
 func (d *downloader) renameFile(tempPath string, path string) error {
 	if err := os.Rename(tempPath, path); err != nil {
-		return d.logAndReturnError("Error renaming temporary file", err, map[string]interface{}{"from": tempPath, "to": path})
+		return d.logAndReturnError("error renaming temporary file", err, map[string]interface{}{"from": tempPath, "to": path})
 	}
 	return nil
 }
