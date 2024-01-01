@@ -78,6 +78,10 @@ func NewService(opts ...Option) (Service, error) {
 }
 
 func (s *service) Get(ctx context.Context, forceUpdate bool, references ...reference.Reference) (map[reference.Reference]*RocketPack, error) {
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
+
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 
@@ -122,6 +126,10 @@ func (s *service) Get(ctx context.Context, forceUpdate bool, references ...refer
 }
 
 func (s *service) Remove(ctx context.Context, references ...reference.Reference) error {
+	if err := ctx.Err(); err != nil {
+		return err
+	}
+
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 
@@ -157,6 +165,10 @@ func (s *service) Remove(ctx context.Context, references ...reference.Reference)
 }
 
 func (s *service) Insert(ctx context.Context, packs map[reference.Reference]*RocketPack) error {
+	if err := ctx.Err(); err != nil {
+		return err
+	}
+
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 
