@@ -210,6 +210,6 @@ func (f *factory) GetBlendFileService() (blendfile.Service, error) {
 func (f *factory) getLogger(logLevel string) logger.Logger {
 	return logger.New(
 		logger.WithLogLevel(logLevel),
-		logger.WithPretty(),
+		logger.WithWriters(logger.PrettyWriter()),
 	)
 }
