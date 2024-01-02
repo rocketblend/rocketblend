@@ -4,7 +4,7 @@ go 1.19
 
 require (
 	github.com/briandowns/spinner v1.23.0
-	github.com/flowshot-io/x v0.0.0-20230527165654-eb51ba61aa82
+	github.com/flowshot-io/x v0.0.0-20240102003836-a3532f1d23dd
 	github.com/go-git/go-git/v5 v5.7.1-0.20230708113425-dc17aae65035
 	github.com/go-playground/validator/v10 v10.13.0
 	github.com/google/uuid v1.1.2

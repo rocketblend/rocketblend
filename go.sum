@@ -86,8 +86,8 @@ github.com/envoyproxy/protoc-gen-validate v0.1.0/go.mod h1:iSmxcyjqTsJpI2R4NaDN7
 github.com/fatih/color v1.13.0/go.mod h1:kLAiJbzzSOZDVNGyDpeOxJ47H46qBXwg5ILebYFFOfk=
 github.com/fatih/color v1.15.0 h1:kOqh6YHBtK8aywxGerMG2Eq3H6Qgoqeo13Bk2Mv/nBs=
 github.com/fatih/color v1.15.0/go.mod h1:0h5ZqXfHYED7Bhv2ZJamyIOUej9KtShiJESRwBDUSsw=
-github.com/flowshot-io/x v0.0.0-20230527165654-eb51ba61aa82 h1:0126jjvydWIA22wq46GrSxSK6UpK3w5suBintkBqGas=
-github.com/flowshot-io/x v0.0.0-20230527165654-eb51ba61aa82/go.mod h1:Pj36VrwNal4mK4RPn3+4rGYhK4yQPgmSowcXvqwbmrs=
+github.com/flowshot-io/x v0.0.0-20240102003836-a3532f1d23dd h1:sPIf+6NYLcfkLE4UyMpvtx3EVq+2iL0FWjV7AtSVC5k=
+github.com/flowshot-io/x v0.0.0-20240102003836-a3532f1d23dd/go.mod h1:HXbGDiVZOvoVOIRvkWaY+Lz7Pzh0Fku19KVbJDTuPkg=
 github.com/frankban/quicktest v1.14.3 h1:FJKSZTDHjyhriyC81FLQ0LY93eSai0ZyR/ZIkd3ZUKE=
 github.com/fsnotify/fsnotify v1.6.0 h1:n+5WquG0fcWoWp6xPWfHdbskMCQaFnG6PfBrh1Ky4HY=
 github.com/fsnotify/fsnotify v1.6.0/go.mod h1:sl3t1tCWJFWoRz9R8WJCbQihKKwmorjAbSClcnxKAGw=
