@@ -36,10 +36,10 @@ Dive a little deeper and start exploring our references documentation to get an 
 
 Check out the other RocketBlend related projects:
 
-{% content-ref url="http://localhost:5000/o/4FesCgkV4J6qvlt8rzNP/s/JYAvMxX4q5tA7nq6MNBH/" %}
-[Launcher](http://localhost:5000/o/4FesCgkV4J6qvlt8rzNP/s/JYAvMxX4q5tA7nq6MNBH/)
+{% content-ref url="https://app.gitbook.com/o/4FesCgkV4J6qvlt8rzNP/s/JYAvMxX4q5tA7nq6MNBH/" %}
+[Launcher](https://app.gitbook.com/o/4FesCgkV4J6qvlt8rzNP/s/JYAvMxX4q5tA7nq6MNBH/)
 {% endcontent-ref %}
 
-{% content-ref url="http://localhost:5000/o/4FesCgkV4J6qvlt8rzNP/s/m6ZeaZBwoSUNJBkqXOCz/" %}
-[Collector](http://localhost:5000/o/4FesCgkV4J6qvlt8rzNP/s/m6ZeaZBwoSUNJBkqXOCz/)
+{% content-ref url="https://app.gitbook.com/o/4FesCgkV4J6qvlt8rzNP/s/m6ZeaZBwoSUNJBkqXOCz/" %}
+[Collector](https://app.gitbook.com/o/4FesCgkV4J6qvlt8rzNP/s/m6ZeaZBwoSUNJBkqXOCz/)
 {% endcontent-ref %}
