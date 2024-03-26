@@ -11,6 +11,11 @@ import (
 	"github.com/spf13/viper"
 )
 
+const (
+	FileName      = "settings"
+	FileExtension = "json"
+)
+
 type (
 	Service interface {
 		Get() (config *Config, err error)
@@ -18,6 +23,7 @@ type (
 		GetValueByString(key string) string
 		SetValueByString(key string, value string) error
 		Save(config *Config) error
+		Path() string
 	}
 
 	service struct {
@@ -89,6 +95,10 @@ func (srv *service) Save(config *Config) error {
 	return srv.viper.WriteConfig()
 }
 
+func (srv *service) Path() string {
+	return fmt.Sprintf("%s.%s", filepath.Join(srv.rootPath, FileName), FileExtension)
+}
+
 func (srv *service) validate(config *Config) error {
 	if err := srv.validator.Struct(config); err != nil {
 		return err
@@ -133,9 +143,9 @@ func load(rootPath string) (*viper.Viper, error) {
 	v.SetDefault("packagesPath", filepath.Join(rootPath, "packages"))
 	v.SetDefault("features.addons", false)
 
-	v.SetConfigName("settings") // Set the name of the configuration file
-	v.AddConfigPath(rootPath)   // Look for the configuration file at the home directory
-	v.SetConfigType("json")     // Set the config type to JSON
+	v.SetConfigName(FileName)      // Set the name of the configuration file
+	v.AddConfigPath(rootPath)      // Look for the configuration file at the home directory
+	v.SetConfigType(FileExtension) // Set the config type to JSON
 
 	v.SafeWriteConfig()
 
