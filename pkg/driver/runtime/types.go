@@ -15,7 +15,7 @@ const (
 )
 
 func (p Platform) String() string {
-	return [...]string{"unknown", "windows", "linux", "macos/intel", "macos/apple"}[p]
+	return [...]string{"undefined", "windows", "linux", "macos/intel", "macos/apple"}[p]
 }
 
 func (p Platform) MarshalJSON() ([]byte, error) {
@@ -35,7 +35,7 @@ func (p *Platform) UnmarshalJSON(b []byte) error {
 
 func PlatformFromString(str string) Platform {
 	return map[string]Platform{
-		"unknown":     Undefined,
+		"undefined":   Undefined,
 		"windows":     Windows,
 		"linux":       Linux,
 		"macos/intel": DarwinAmd,
