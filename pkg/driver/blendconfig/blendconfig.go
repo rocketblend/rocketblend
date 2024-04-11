@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"path/filepath"
 
-	"github.com/rocketblend/rocketblend/pkg/driver/helpers"
 	"github.com/rocketblend/rocketblend/pkg/driver/rocketfile"
+	"github.com/rocketblend/rocketblend/pkg/helpers"
 )
 
 const BlenderFileExtension = ".blend"

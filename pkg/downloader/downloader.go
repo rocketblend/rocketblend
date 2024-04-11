@@ -11,7 +11,7 @@ import (
 
 	"github.com/flowshot-io/x/pkg/logger"
 	"github.com/google/uuid"
-	"github.com/rocketblend/rocketblend/pkg/driver/helpers"
+	"github.com/rocketblend/rocketblend/pkg/helpers"
 )
 
 const TempFileExtension = ".tmp"

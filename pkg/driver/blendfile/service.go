@@ -11,7 +11,7 @@ import (
 	"github.com/flowshot-io/x/pkg/logger"
 	"github.com/rocketblend/rocketblend/pkg/driver/blendfile/renderoptions"
 	"github.com/rocketblend/rocketblend/pkg/driver/blendfile/runoptions"
-	"github.com/rocketblend/rocketblend/pkg/driver/helpers"
+	"github.com/rocketblend/rocketblend/pkg/helpers"
 )
 
 //go:embed scripts/addonScript.gopy

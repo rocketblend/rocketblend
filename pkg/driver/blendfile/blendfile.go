@@ -3,8 +3,8 @@ package blendfile
 import (
 	"fmt"
 
-	"github.com/rocketblend/rocketblend/pkg/driver/helpers"
 	"github.com/rocketblend/rocketblend/pkg/driver/installation"
+	"github.com/rocketblend/rocketblend/pkg/helpers"
 )
 
 type (

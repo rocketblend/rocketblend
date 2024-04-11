@@ -3,7 +3,6 @@ package types
 import (
 	"context"
 
-	"github.com/rocketblend/rocketblend/pkg/downloader"
 	"github.com/rocketblend/rocketblend/pkg/driver/reference"
 	"github.com/rocketblend/rocketblend/pkg/semver"
 )
@@ -17,9 +16,9 @@ type (
 	PackageType string
 
 	Source struct {
-		Resource string          `json:"resource,omitempty"`
-		URI      *downloader.URI `json:"uri,omitempty"`
-		Platform *Platform       `json:"platform,omitempty" validate:"omitempty,oneof=any windows linux macos/intel macos/apple"`
+		Resource string    `json:"resource,omitempty"`
+		URI      *URI      `json:"uri,omitempty"`
+		Platform *Platform `json:"platform,omitempty" validate:"omitempty,oneof=any windows linux macos/intel macos/apple"`
 	}
 
 	RocketPack struct {
@@ -31,26 +30,27 @@ type (
 		Dependencies []*Dependency   `json:"dependencies,omitempty" validate:"omitempty,dive"`
 	}
 
-	GetPackageOpts struct {
-		References  []reference.Reference `validate:"required"`
-		ForceUpdate bool
+	GetPackagesOpts struct {
+		References []reference.Reference `validate:"required"`
+		Update     bool                  `validate:"omitempty"`
+		Depth      int                   `validate:"omitempty,gte=0" default:"0"` // 0 means no limit
 	}
 
-	GetPackageResult struct {
+	GetPackagesResult struct {
 		Packs map[reference.Reference]*RocketPack
 	}
 
-	RemovePackageOpts struct {
+	RemovePackagesOpts struct {
 		References []reference.Reference `validate:"required"`
 	}
 
-	InsertPackageOpts struct {
+	InsertPackagesOpts struct {
 		Packs map[reference.Reference]*RocketPack `validate:"required"`
 	}
 
 	PackageRepository interface {
-		GetPackage(ctx context.Context, opts *GetPackageOpts) (*GetPackageResult, error)
-		RemovePackage(ctx context.Context, opts *RemovePackageOpts) error
-		InsertPackage(ctx context.Context, opts *InsertPackageOpts) error
+		GetPackages(ctx context.Context, opts *GetPackagesOpts) (*GetPackagesResult, error)
+		RemovePackages(ctx context.Context, opts *RemovePackagesOpts) error
+		InsertPackages(ctx context.Context, opts *InsertPackagesOpts) error
 	}
 )

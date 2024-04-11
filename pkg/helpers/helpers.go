@@ -12,7 +12,7 @@ import (
 
 func ValidateFilePath(filePath string, requiredFileName string) error {
 	if filePath == "" {
-		return fmt.Errorf("file path cannot be empty")
+		return errors.New("file path is empty")
 	}
 
 	if filepath.Base(filePath) != requiredFileName && requiredFileName != "" {
@@ -25,11 +25,11 @@ func ValidateFilePath(filePath string, requiredFileName string) error {
 func FileExists(filePath string) error {
 	info, err := os.Stat(filePath)
 	if os.IsNotExist(err) {
-		return fmt.Errorf("file does not exist")
+		return errors.New("file does not exist")
 	}
 
 	if info.IsDir() {
-		return fmt.Errorf("file is a directory")
+		return errors.New("file is a directory")
 	}
 
 	return nil
