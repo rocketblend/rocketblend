@@ -1,7 +1,10 @@
 package types
 
 import (
+	"context"
+
 	"github.com/rocketblend/rocketblend/pkg/downloader"
+	"github.com/rocketblend/rocketblend/pkg/driver/reference"
 	"github.com/rocketblend/rocketblend/pkg/semver"
 )
 
@@ -26,5 +29,28 @@ type (
 		Version      *semver.Version `json:"version,omitempty"`
 		Sources      []*Source       `json:"sources" validate:"required,dive"`
 		Dependencies []*Dependency   `json:"dependencies,omitempty" validate:"omitempty,dive"`
+	}
+
+	GetPackageOpts struct {
+		References  []reference.Reference `validate:"required"`
+		ForceUpdate bool
+	}
+
+	GetPackageResult struct {
+		Packs map[reference.Reference]*RocketPack
+	}
+
+	RemovePackageOpts struct {
+		References []reference.Reference `validate:"required"`
+	}
+
+	InsertPackageOpts struct {
+		Packs map[reference.Reference]*RocketPack `validate:"required"`
+	}
+
+	PackageRepository interface {
+		GetPackage(ctx context.Context, opts *GetPackageOpts) (*GetPackageResult, error)
+		RemovePackage(ctx context.Context, opts *RemovePackageOpts) error
+		InsertPackage(ctx context.Context, opts *InsertPackageOpts) error
 	}
 )

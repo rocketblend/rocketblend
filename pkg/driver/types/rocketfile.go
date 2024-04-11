@@ -12,7 +12,7 @@ type (
 
 	RocketFile struct {
 		Spec         semver.Version `json:"spec,omitempty"`
-		Args         []string       `json:"args,omitempty"`
+		ARGS         []string       `json:"args,omitempty"`
 		Dependencies *Dependencies  `json:"dependencies,omitempty" validate:"omitempty"`
 	}
 )
