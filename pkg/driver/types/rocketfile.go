@@ -16,3 +16,26 @@ type (
 		Dependencies *Dependencies  `json:"dependencies,omitempty" validate:"omitempty"`
 	}
 )
+
+func (r *RocketFile) FindAll(packageType PackageType) []*Dependency {
+	if r.Dependencies == nil {
+		return nil
+	}
+
+	var dependencies []*Dependency
+	for _, d := range r.Requires() {
+		if d.Type == packageType {
+			dependencies = append(dependencies, d)
+		}
+	}
+
+	return dependencies
+}
+
+func (r *RocketFile) Requires() []*Dependency {
+	if r.Dependencies == nil {
+		return nil
+	}
+
+	return append(r.Dependencies.Direct, r.Dependencies.Indirect...)
+}
