@@ -27,6 +27,10 @@ type (
 )
 
 func (r *repository) GetInstallations(ctx context.Context, opts *types.GetInstallationsOpts) (*types.GetInstallationsResult, error) {
+	if err := r.validator.Validate(opts); err != nil {
+		return nil, err
+	}
+
 	installations, err := r.getInstallations(ctx, opts.Dependencies, opts.Fetch)
 	if err != nil {
 		return nil, err
@@ -38,6 +42,10 @@ func (r *repository) GetInstallations(ctx context.Context, opts *types.GetInstal
 }
 
 func (r *repository) RemoveInstallations(ctx context.Context, opts *types.RemoveInstallationsOpts) error {
+	if err := r.validator.Validate(opts); err != nil {
+		return err
+	}
+
 	if err := r.removeInstallations(ctx, opts.References); err != nil {
 		return err
 	}
@@ -51,9 +59,24 @@ func (r *repository) getInstallations(ctx context.Context, dependencies []*types
 		return nil, err
 	}
 
-	rocketPacks, err := r.getPackages(ctx, references, 0, false)
+	references := make([]reference.Reference, 0, len(dependencies))
+	for _, dep := range dependencies {
+		references = append(references, dep.Reference)
+	}
+
+	rocketPacks, err := r.getPackages(ctx, references, 1, false)
 	if err != nil {
 		return nil, err
+	}
+
+	for _, dep := range dependencies {
+		if pack, ok := rocketPacks[dep.Reference]; ok {
+			if pack.Type != dep.Type {
+				return nil, fmt.Errorf("dependency type mismatch: %s", dep.Reference.String())
+			}
+		} else {
+			return nil, fmt.Errorf("dependency not found: %s", dep.Reference.String())
+		}
 	}
 
 	ctx, cancel := context.WithCancel(ctx)

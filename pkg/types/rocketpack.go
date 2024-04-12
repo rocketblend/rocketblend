@@ -31,21 +31,21 @@ type (
 	}
 
 	GetPackagesOpts struct {
-		References []reference.Reference `validate:"required"`
-		Update     bool                  `validate:"omitempty"`
-		Depth      int                   `validate:"omitempty,gte=0" default:"0"` // 0 means no limit
+		References []reference.Reference `json:"references" validate:"required"`
+		Update     bool                  `json:"update"`
+		Depth      int                   `json:"depth" validate:"gte=0,lte=10"`
 	}
 
 	GetPackagesResult struct {
-		Packs map[reference.Reference]*RocketPack
+		Packs map[reference.Reference]*RocketPack `json:"packs"`
 	}
 
 	RemovePackagesOpts struct {
-		References []reference.Reference `validate:"required"`
+		References []reference.Reference `json:"references" validate:"required"`
 	}
 
 	InsertPackagesOpts struct {
-		Packs map[reference.Reference]*RocketPack `validate:"required"`
+		Packs map[reference.Reference]*RocketPack `json:"packs" validate:"required"`
 	}
 
 	PackageRepository interface {

@@ -4,6 +4,10 @@ import (
 	"github.com/rocketblend/rocketblend/pkg/semver"
 )
 
+const (
+	RocketFileName = "rocketfile.yaml"
+)
+
 type (
 	Dependencies struct {
 		Direct   []*Dependency `json:"direct,omitempty" validate:"omitempty,dive,required"`
