@@ -1,4 +1,4 @@
-package helpers
+package workloader
 
 import (
 	"context"
@@ -15,7 +15,7 @@ const (
 type (
 	ExecutionMode int
 
-	RunTasksOpts struct {
+	RunOpts struct {
 		Tasks          []Task
 		Mode           ExecutionMode
 		MaxConcurrency int
@@ -24,7 +24,7 @@ type (
 	Task func(ctx context.Context) error
 )
 
-func RunTasks(ctx context.Context, opts *RunTasksOpts) error {
+func Run(ctx context.Context, opts *RunOpts) error {
 	switch opts.Mode {
 	case Sequential:
 		return runSequentially(ctx, opts.Tasks)
