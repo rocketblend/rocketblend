@@ -30,7 +30,7 @@ type (
 	}
 
 	InstallationRepository interface {
-		GetInstallation(ctx context.Context, opts *GetInstallationOpts) (*GetInstallationOpts, error)
+		GetInstallation(ctx context.Context, opts *GetInstallationOpts) (*GetInstallationResult, error)
 		RemoveInstallation(ctx context.Context, opts *RemoveInstallationOpts) error
 	}
 )

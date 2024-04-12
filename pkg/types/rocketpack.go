@@ -54,3 +54,13 @@ type (
 		InsertPackages(ctx context.Context, opts *InsertPackagesOpts) error
 	}
 )
+
+func (r *RocketPack) Bundled() bool {
+	for _, s := range r.Sources {
+		if s.URI != nil {
+			return false
+		}
+	}
+
+	return true
+}

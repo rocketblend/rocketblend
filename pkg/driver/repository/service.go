@@ -1,42 +1,38 @@
 package repository
 
 import (
-	"context"
 	"errors"
 	"os"
-	"path/filepath"
-	"sync"
 
 	"github.com/flowshot-io/x/pkg/logger"
-	"github.com/go-git/go-git/v5"
-	"github.com/rocketblend/rocketblend/pkg/driver/reference"
-	"github.com/rocketblend/rocketblend/pkg/helpers"
+	"github.com/rocketblend/rocketblend/pkg/driver/runtime"
 	"github.com/rocketblend/rocketblend/pkg/types"
 	"github.com/rocketblend/rocketblend/pkg/validator"
 )
 
-const (
-	PackageFileName = "rocketpack.json"
-)
-
 type (
 	Options struct {
-		Logger      logger.Logger
-		Validator   *validator.Validate
-		StoragePath string
+		Logger    logger.Logger
+		Validator *validator.Validate
+
+		Platform         runtime.Platform
+		StoragePath      string
+		InstallationPath string
+
+		Downloader types.Downloader
+		Extractor  types.Extractor
 	}
 
 	Option func(*Options)
 
-	getResult struct {
-		packs map[reference.Reference]*types.RocketPack
-		error error
-	}
-
 	repository struct {
-		logger      logger.Logger
-		validator   *validator.Validate
-		storagePath string
+		logger           logger.Logger
+		validator        *validator.Validate
+		downloader       types.Downloader
+		extractor        types.Extractor
+		platform         runtime.Platform
+		storagePath      string
+		installationPath string
 	}
 )
 
@@ -58,6 +54,12 @@ func WithStoragePath(storagePath string) Option {
 	}
 }
 
+func WithInstallationPath(installationPath string) Option {
+	return func(o *Options) {
+		o.InstallationPath = installationPath
+	}
+}
+
 func NewService(opts ...Option) (*repository, error) {
 	options := &Options{
 		Logger:    logger.NoOp(),
@@ -68,12 +70,27 @@ func NewService(opts ...Option) (*repository, error) {
 		opt(options)
 	}
 
+	if options.Downloader == nil {
+		return nil, errors.New("downloader is nil")
+	}
+
+	if options.Extractor == nil {
+		return nil, errors.New("extractor is nil")
+	}
+
 	if options.StoragePath == "" {
 		return nil, errors.New("storage path is empty")
 	}
 
-	err := os.MkdirAll(options.StoragePath, 0755)
-	if err != nil {
+	if options.InstallationPath == "" {
+		return nil, errors.New("installation path is empty")
+	}
+
+	if err := os.MkdirAll(options.StoragePath, 0755); err != nil {
+		return nil, err
+	}
+
+	if err := os.MkdirAll(options.InstallationPath, 0755); err != nil {
 		return nil, err
 	}
 
@@ -82,323 +99,12 @@ func NewService(opts ...Option) (*repository, error) {
 	})
 
 	return &repository{
-		logger:      options.Logger,
-		validator:   options.Validator,
-		storagePath: options.StoragePath,
+		logger:           options.Logger,
+		validator:        options.Validator,
+		downloader:       options.Downloader,
+		extractor:        options.Extractor,
+		platform:         options.Platform,
+		storagePath:      options.StoragePath,
+		installationPath: options.InstallationPath,
 	}, nil
-}
-
-func (r *repository) GetPackages(ctx context.Context, opts *types.GetPackagesOpts) (*types.GetPackagesResult, error) {
-	if err := ctx.Err(); err != nil {
-		return nil, err
-	}
-
-	packs, err := r.getPackages(ctx, opts.References, opts.Depth, opts.Update)
-	if err != nil {
-		return nil, err
-	}
-
-	return &types.GetPackagesResult{
-		Packs: packs,
-	}, nil
-}
-
-func (r *repository) getPackages(ctx context.Context, references []reference.Reference, depth int, update bool) (map[reference.Reference]*types.RocketPack, error) {
-	if err := ctx.Err(); err != nil {
-		return nil, err
-	}
-
-	ctx, cancel := context.WithCancel(ctx)
-	defer cancel()
-
-	results := make(chan getResult)
-	var wg sync.WaitGroup
-	wg.Add(len(references))
-
-	for _, ref := range references {
-		go func(ref reference.Reference) {
-			defer wg.Done()
-
-			packs, err := r.getPackage(ctx, ref, depth, update)
-			if err != nil {
-				cancel()
-				results <- getResult{packs: nil, error: err}
-				return
-			}
-
-			results <- getResult{packs: packs, error: nil}
-		}(ref)
-	}
-
-	go func() {
-		wg.Wait()
-		close(results)
-	}()
-
-	packages := make(map[reference.Reference]*types.RocketPack)
-	for res := range results {
-		if res.error != nil {
-			return nil, res.error
-		}
-
-		if res.packs != nil {
-			for ref, pack := range res.packs {
-				packages[ref] = pack
-			}
-		}
-	}
-
-	return packages, nil
-}
-
-func (r *repository) RemovePackages(ctx context.Context, opts *types.RemovePackagesOpts) error {
-	if err := ctx.Err(); err != nil {
-		return err
-	}
-
-	ctx, cancel := context.WithCancel(ctx)
-	defer cancel()
-
-	errs := make(chan error, len(opts.References))
-	var wg sync.WaitGroup
-	wg.Add(len(opts.References))
-
-	for _, ref := range opts.References {
-		go func(ref reference.Reference) {
-			defer wg.Done()
-
-			err := r.removePackage(ctx, ref)
-			if err != nil {
-				cancel()
-				errs <- err
-				return
-			}
-		}(ref)
-	}
-
-	go func() {
-		wg.Wait()
-		close(errs)
-	}()
-
-	for err := range errs {
-		if err != nil {
-			return err
-		}
-	}
-
-	return nil
-}
-
-func (r *repository) InsertPackages(ctx context.Context, opts *types.InsertPackagesOpts) error {
-	if err := ctx.Err(); err != nil {
-		return err
-	}
-
-	ctx, cancel := context.WithCancel(ctx)
-	defer cancel()
-
-	errs := make(chan error, len(opts.Packs))
-	var wg sync.WaitGroup
-	wg.Add(len(opts.Packs))
-
-	for ref, pack := range opts.Packs {
-		go func(ref reference.Reference, pack *types.RocketPack) {
-			defer wg.Done()
-
-			err := r.insertPackage(ctx, ref, pack)
-			if err != nil {
-				cancel()
-				errs <- err
-				return
-			}
-		}(ref, pack)
-	}
-
-	go func() {
-		wg.Wait()
-		close(errs)
-	}()
-
-	var firstErr error
-	for err := range errs {
-		if err != nil {
-			if firstErr == nil {
-				firstErr = err
-			}
-		}
-	}
-
-	return firstErr
-}
-
-func (r *repository) insertPackage(ctx context.Context, ref reference.Reference, pack *types.RocketPack) error {
-	if err := ctx.Err(); err != nil {
-		return err
-	}
-
-	packagePath := filepath.Join(r.storagePath, ref.String(), PackageFileName)
-
-	err := os.MkdirAll(filepath.Dir(packagePath), 0755)
-	if err != nil {
-		r.logger.Error("error creating directory", map[string]interface{}{"error": err, "reference": ref.String(), "path": filepath.Dir(packagePath)})
-		return err
-	}
-
-	if err := helpers.Save(r.validator, packagePath, pack); err != nil {
-		r.logger.Error("error saving package", map[string]interface{}{
-			"error":     err,
-			"reference": ref.String(),
-			"path":      packagePath,
-		})
-
-		return err
-	}
-
-	return nil
-}
-
-func (s *repository) getPackage(ctx context.Context, ref reference.Reference, depth int, update bool) (map[reference.Reference]*types.RocketPack, error) {
-	if err := ctx.Err(); err != nil {
-		return nil, err
-	}
-
-	s.logger.Info("processing reference", map[string]interface{}{"reference": ref.String()})
-
-	packages := make(map[reference.Reference]*types.RocketPack)
-	repo, err := ref.GetRepo()
-	if err != nil {
-		s.logger.Error("error getting repository", map[string]interface{}{"error": err, "reference": ref.String()})
-		return nil, err
-	}
-
-	repoPath := filepath.Join(s.storagePath, repo)
-	packagePath := filepath.Join(s.storagePath, ref.String(), PackageFileName)
-
-	// The repository does not exist locally, clone it
-	if _, err := os.Stat(repoPath); os.IsNotExist(err) || update && !ref.IsLocalOnly() {
-		repoURL, err := ref.GetRepoURL()
-		if err != nil {
-			s.logger.Error("error getting repository URL", map[string]interface{}{"error": err, "reference": ref.String()})
-			return nil, err
-		}
-
-		s.logger.Info("cloning repository", map[string]interface{}{"repoURL": repoURL, "path": repoPath, "reference": ref.String()})
-		if err := s.cloneRepo(ctx, repoPath, repoURL); err != nil {
-			return nil, err
-		}
-	}
-
-	// Check if the file exists in the repository
-	if _, err := os.Stat(packagePath); os.IsNotExist(err) || update && !ref.IsLocalOnly() {
-		// The file does not exist or forced update, pull the latest changes
-		s.logger.Info("pulling latest changes for repository", map[string]interface{}{"path": packagePath, "reference": ref.String()})
-		if err := s.pullChanges(ctx, repoPath); err != nil {
-			return nil, err
-		}
-	}
-
-	pack, err := helpers.Load[types.RocketPack](s.validator, packagePath)
-	if err != nil {
-		s.logger.Error("error loading package", map[string]interface{}{
-			"error":     err,
-			"reference": ref.String(),
-			"path":      packagePath,
-		})
-
-		return nil, err
-	}
-
-	if len(pack.Dependencies) > 0 && depth > 0 {
-		s.logger.Debug("package has dependencies", map[string]interface{}{"reference": ref.String()})
-		deps := make([]reference.Reference, 0, len(pack.Dependencies))
-		for _, dep := range pack.Dependencies {
-			deps = append(deps, dep.Reference)
-		}
-
-		// Get the packages for the dependencies
-		indirect, err := s.getPackages(ctx, deps, depth-1, update)
-		if err != nil {
-			s.logger.Error("error getting dependency packages", map[string]interface{}{"error": err, "reference": ref.String()})
-			return nil, err
-		}
-
-		// Add the dependencies to the packages map
-		for index, dep := range indirect {
-			packages[index] = dep
-		}
-
-		s.logger.Debug("dependency packages successfully loaded", map[string]interface{}{"reference": ref.String()})
-	}
-
-	packages[ref] = pack
-
-	return packages, nil
-}
-
-func (s *repository) removePackage(ctx context.Context, reference reference.Reference) error {
-	if err := ctx.Err(); err != nil {
-		return err
-	}
-
-	s.logger.Info("processing reference", map[string]interface{}{"reference": reference.String()})
-
-	repo, err := reference.GetRepo()
-	if err != nil {
-		s.logger.Error("error getting repository path", map[string]interface{}{"error": err, "reference": reference.String()})
-		return err
-	}
-
-	repoPath := filepath.Join(s.storagePath, repo)
-
-	// Check if the file exists in the local storage
-	_, err = os.Stat(repoPath)
-	if os.IsNotExist(err) {
-		// The file does not exist, nothing to remove
-		s.logger.Debug("file does not exist locally, nothing to remove", map[string]interface{}{"localPath": repoPath, "reference": reference.String()})
-	} else if err != nil {
-		// There was an error checking the file
-		s.logger.Error("error checking file", map[string]interface{}{"error": err, "reference": reference.String()})
-		return err
-	}
-
-	// Remove the directory
-	s.logger.Debug("removing directory", map[string]interface{}{"localPath": repoPath, "reference": reference.String()})
-	err = os.RemoveAll(repoPath)
-	if err != nil {
-		s.logger.Error("error removing directory", map[string]interface{}{"error": err, "reference": reference.String()})
-		return err
-	}
-
-	return nil
-}
-
-func (s *repository) cloneRepo(ctx context.Context, repoPath string, repoURL string) error {
-	_, err := git.PlainCloneContext(ctx, repoPath, false, &git.CloneOptions{
-		URL: repoURL,
-		// TODO: Fix this
-		// Progress: LoggerWriter{s.logger},
-	})
-	return err
-}
-
-func (s *repository) pullChanges(ctx context.Context, repoPath string) error {
-	r, err := git.PlainOpen(repoPath)
-	if err != nil {
-		return err
-	}
-	w, err := r.Worktree()
-	if err != nil {
-		return err
-	}
-
-	err = w.PullContext(ctx, &git.PullOptions{
-		Force: true,
-		// Progress: LoggerWriter{s.logger},
-	})
-	if err != nil && err != git.NoErrAlreadyUpToDate {
-		return err
-	}
-
-	return nil
 }
