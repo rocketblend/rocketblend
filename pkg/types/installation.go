@@ -17,8 +17,7 @@ type (
 
 	GetInstallationsOpts struct {
 		Dependencies []*Dependency `json:"dependencies"`
-		// References []reference.Reference `json:"references"`
-		Fetch bool `json:"fetch"`
+		Fetch        bool          `json:"fetch"`
 	}
 
 	GetInstallationsResult struct {
