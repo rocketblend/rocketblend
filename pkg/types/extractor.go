@@ -4,8 +4,8 @@ import "context"
 
 type (
 	ExtractOpts struct {
-		Path       string
-		OutputPath string
+		Path       string `json:"path" validate:"required"`
+		OutputPath string `json:"outputPath" validate:"required"`
 	}
 
 	Extractor interface {

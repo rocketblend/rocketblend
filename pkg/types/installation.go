@@ -9,24 +9,24 @@ import (
 
 type (
 	Installation struct {
-		Reference reference.Reference
-		Path      string
-		Type      PackageType
-		Name      string
-		Version   *semver.Version
+		Reference reference.Reference `json:"reference"` // TODO: Do I need this here?
+		Path      string              `json:"path"`
+		Type      PackageType         `json:"type"`
+		Name      string              `json:"name"`
+		Version   *semver.Version     `json:"version"`
 	}
 
 	GetInstallationOpts struct {
-		References []reference.Reference
-		Fetch      bool
+		References []reference.Reference `json:"references"`
+		Fetch      bool                  `json:"fetch"`
 	}
 
 	GetInstallationResult struct {
-		Installations []*Installation
+		Installations []*Installation `json:"installations"`
 	}
 
 	RemoveInstallationOpts struct {
-		References []reference.Reference
+		References []reference.Reference `json:"references"`
 	}
 
 	InstallationRepository interface {

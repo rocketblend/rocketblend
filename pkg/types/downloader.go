@@ -4,8 +4,8 @@ import "context"
 
 type (
 	DownloadOpts struct {
-		URI  *URI
-		Path string
+		URI  *URI   `json:"uri" validate:"required"`
+		Path string `json:"path" validate:"required"`
 	}
 
 	Downloader interface {
