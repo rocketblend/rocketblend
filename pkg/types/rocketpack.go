@@ -16,9 +16,9 @@ type (
 	PackageType string
 
 	Source struct {
-		Resource string    `json:"resource,omitempty"`
-		URI      *URI      `json:"uri,omitempty"`
-		Platform *Platform `json:"platform,omitempty" validate:"omitempty,oneof=any windows linux macos/intel macos/apple"`
+		Resource string   `json:"resource,omitempty"`
+		URI      *URI     `json:"uri,omitempty"`
+		Platform Platform `json:"platform,omitempty" validate:"omitempty,oneof=any windows linux macos/intel macos/apple"`
 	}
 
 	RocketPack struct {
@@ -54,6 +54,21 @@ type (
 		InsertPackages(ctx context.Context, opts *InsertPackagesOpts) error
 	}
 )
+
+func (r *RocketPack) Source(platform Platform) *Source {
+	var defaultSource *Source
+
+	for _, source := range r.Sources {
+		switch {
+		case source.Platform == platform:
+			return source
+		case (source.Platform == "" || source.Platform == "any") && defaultSource == nil:
+			defaultSource = source
+		}
+	}
+
+	return defaultSource
+}
 
 func (r *RocketPack) Bundled() bool {
 	for _, s := range r.Sources {

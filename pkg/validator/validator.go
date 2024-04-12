@@ -18,6 +18,7 @@ func New() *Validate {
 
 	validate.RegisterStructValidation(DependenciesValidation, types.Dependencies{})
 	validate.RegisterStructValidation(RocketPackDependenciesValidator, types.RocketPack{})
+	validate.RegisterStructValidation(ValidateUniquePlatforms, types.RocketPack{})
 
 	return &Validate{validate}
 }

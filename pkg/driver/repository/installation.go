@@ -9,7 +9,7 @@ import (
 	"sync"
 
 	"github.com/rocketblend/rocketblend/pkg/driver/reference"
-	"github.com/rocketblend/rocketblend/pkg/driver/rocketpack"
+	"github.com/rocketblend/rocketblend/pkg/helpers"
 	"github.com/rocketblend/rocketblend/pkg/lockfile"
 	"github.com/rocketblend/rocketblend/pkg/types"
 )
@@ -116,26 +116,15 @@ func (r *repository) getInstallation(ctx context.Context, reference reference.Re
 
 	// Bundled rocketpacks are not downloaded as they are already available within the build.
 	if !rocketPack.Bundled() {
-		var source *rocketpack.Source
-
-		if rocketPack.IsBuild() {
-			source = rocketPack.Build.Sources[r.platform]
-		}
-
-		if rocketpack.IsAddon() {
-			source = rocketPack.Addon.Source
-		}
-
-		if source == nil {
-			return nil, fmt.Errorf("no source found for %s", reference.String())
-		}
+		// TODO: Clean up this platform stuff.
+		source := rocketPack.Source(types.Platform(r.platform.String()))
 
 		installationPath := filepath.Join(r.installationPath, reference.String())
 		resourcePath = filepath.Join(installationPath, source.Resource)
 
 		_, err := os.Stat(resourcePath)
 		if err != nil {
-			if os.IsNotExist(err) && !readOnly {
+			if os.IsNotExist(err) && fetch {
 				err := r.downloadInstallation(ctx, source.URI, installationPath)
 				if err != nil {
 					return nil, err
@@ -238,7 +227,7 @@ func (r *repository) downloadInstallation(ctx context.Context, downloadURI *type
 	}
 
 	// Extract the file if it's an archive.
-	if isArchive(downloadedFilePath) {
+	if helpers.IsSupportedArchive(downloadedFilePath) {
 		if err := r.extractor.Extract(ctx, &types.ExtractOpts{
 			Path:       downloadedFilePath,
 			OutputPath: filepath.Dir(downloadedFilePath),
