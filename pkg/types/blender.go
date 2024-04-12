@@ -12,24 +12,33 @@ type (
 		ARGS         []string        `json:"args"`
 	}
 
-	RenderBlendFileOpts struct {
-		BlendFile *BlendFile `json:"blendFile" validate:"required"`
-		RenderOpts
+	BlenderOpts struct {
+		Background bool `json:"background"`
 	}
 
-	RunBlendFileOpts struct {
-		BlendFile *BlendFile `json:"blendFile" validate:"required"`
-		RunOpts
+	RenderOpts struct {
+		BlendFile  *BlendFile `json:"blendFile" validate:"required"`
+		FrameStart int        `json:"frameStart" validate:"gte=0"`
+		FrameEnd   int        `json:"frameEnd" validate:"gtfield=FrameStart"`
+		FrameStep  int        `json:"frameStep" validate:"gte=1"`
+		Output     string     `json:"output"`
+		Format     string     `json:"format"`
+		BlenderOpts
 	}
 
-	CreateBlendFileOpts struct {
+	RunOpts struct {
+		BlendFile *BlendFile `json:"blendFile" validate:"required"`
+		BlenderOpts
+	}
+
+	CreateOpts struct {
 		BlendFile *BlendFile `json:"blendFile" validate:"required"`
 	}
 
 	Blender interface {
-		RenderBlendFile(ctx context.Context, opts *RenderBlendFileOpts) error
-		RunBlendFile(ctx context.Context, opts *RunBlendFileOpts) error
-		CreateBlendFile(ctx context.Context, blendFile *BlendFile) error
+		Render(ctx context.Context, opts *RenderOpts) error
+		Run(ctx context.Context, opts *RunOpts) error
+		Create(ctx context.Context, opts *CreateOpts) error
 	}
 )
 
