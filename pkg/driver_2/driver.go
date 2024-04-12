@@ -20,7 +20,7 @@ type (
 		Logger    logger.Logger
 		Validator types.Validator
 
-		Project *types.Project // Make list?
+		Project *types.Project
 
 		Repository types.Repository
 		Blender    types.Blender
@@ -82,16 +82,16 @@ func New(opts ...Option) (*driver, error) {
 		return nil, errors.New("validator is required")
 	}
 
-	if options.Project == nil {
-		return nil, errors.New("project is required")
-	}
-
 	if options.Repository == nil {
 		return nil, errors.New("repository is required")
 	}
 
 	if options.Blender == nil {
 		return nil, errors.New("blender is required")
+	}
+
+	if options.Project == nil {
+		return nil, errors.New("project is required")
 	}
 
 	return &driver{
@@ -101,63 +101,6 @@ func New(opts ...Option) (*driver, error) {
 		repository: options.Repository,
 		blender:    options.Blender,
 	}, nil
-}
-
-func (d *driver) Render(ctx context.Context, opts *types.RenderOpts) error {
-	if err := d.validator.Validate(opts); err != nil {
-		return err
-	}
-
-	blendFile, err := d.resolve(ctx, d.project)
-	if err != nil {
-		return err
-	}
-
-	if err := d.blender.RenderBlendFile(ctx, &types.RenderBlendFileOpts{
-		BlendFile:  blendFile,
-		RenderOpts: *opts,
-	}); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func (d *driver) Run(ctx context.Context, opts *types.RunOpts) error {
-	if err := d.validator.Validate(opts); err != nil {
-		return err
-	}
-
-	blendFile, err := d.resolve(ctx, d.project)
-	if err != nil {
-		return err
-	}
-
-	if err := d.blender.RunBlendFile(ctx, &types.RunBlendFileOpts{
-		BlendFile: blendFile,
-		RunOpts:   *opts,
-	}); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func (d *driver) Create(ctx context.Context) error {
-	blendFile, err := d.resolve(ctx, d.project)
-	if err != nil {
-		return err
-	}
-
-	if err := d.blender.CreateBlendFile(ctx, blendFile); err != nil {
-		return err
-	}
-
-	if err := d.save(ctx, d.project); err != nil {
-		return err
-	}
-
-	return nil
 }
 
 func (d *driver) AddDependencies(ctx context.Context, opts *types.AddDependenciesOpts) error {
@@ -209,6 +152,14 @@ func (d *driver) Resolve(ctx context.Context) (*types.BlendFile, error) {
 	return blendFile, nil
 }
 
+func (d *driver) Save(ctx context.Context) error {
+	if err := d.save(ctx, d.project); err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func (d *driver) addDependencies(ctx context.Context, project *types.Project, references []reference.Reference) error {
 	if err := ctx.Err(); err != nil {
 		return err
@@ -229,9 +180,6 @@ func (d *driver) addDependencies(ctx context.Context, project *types.Project, re
 	}
 
 	project.RocketFile.Dependencies = result.Dependencies
-	if err = d.save(ctx, project); err != nil {
-		return err
-	}
 
 	return nil
 }
@@ -259,9 +207,6 @@ func (d *driver) removeDependencies(ctx context.Context, project *types.Project,
 	}
 
 	project.RocketFile.Dependencies = result.Dependencies
-	if err = d.save(ctx, project); err != nil {
-		return err
-	}
 
 	return nil
 }
@@ -275,9 +220,6 @@ func (d *driver) tidy(ctx context.Context, project *types.Project) error {
 	}
 
 	project.RocketFile.Dependencies = result.Dependencies
-	if err = d.save(ctx, project); err != nil {
-		return err
-	}
 
 	return nil
 }
