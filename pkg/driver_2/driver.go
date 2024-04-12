@@ -4,10 +4,12 @@ import (
 	"context"
 	"errors"
 	"path/filepath"
+	"sync"
 
 	"github.com/flowshot-io/x/pkg/logger"
 	"github.com/rocketblend/rocketblend/pkg/driver/reference"
 	"github.com/rocketblend/rocketblend/pkg/helpers"
+	"github.com/rocketblend/rocketblend/pkg/taskrunner"
 	"github.com/rocketblend/rocketblend/pkg/types"
 )
 
@@ -20,7 +22,10 @@ type (
 		Logger    logger.Logger
 		Validator types.Validator
 
-		Project *types.Project
+		MaxConcurrency int
+		ExecutionMode  taskrunner.ExecutionMode
+
+		Projects []*types.Project
 
 		Repository types.Repository
 		Blender    types.Blender
@@ -32,10 +37,15 @@ type (
 		logger    logger.Logger
 		validator types.Validator
 
-		project *types.Project
+		maxConcurrency int
+		executionMode  taskrunner.ExecutionMode
+
+		projects []*types.Project
 
 		repository types.Repository
 		blender    types.Blender
+
+		mutex sync.Mutex
 	}
 )
 
@@ -51,9 +61,16 @@ func WithValidator(validator types.Validator) Option {
 	}
 }
 
-func WithProject(project *types.Project) Option {
+func WithExecutionMode(mode taskrunner.ExecutionMode, maxConcurrency int) Option {
 	return func(o *Options) {
-		o.Project = project
+		o.ExecutionMode = mode
+		o.MaxConcurrency = maxConcurrency
+	}
+}
+
+func WithProject(projects ...*types.Project) Option {
+	return func(o *Options) {
+		o.Projects = projects
 	}
 }
 
@@ -71,7 +88,9 @@ func WithBlender(blender types.Blender) Option {
 
 func New(opts ...Option) (*driver, error) {
 	options := &Options{
-		Logger: logger.NoOp(),
+		Logger:         logger.NoOp(),
+		ExecutionMode:  taskrunner.Concurrent,
+		MaxConcurrency: 5,
 	}
 
 	for _, opt := range opts {
@@ -90,14 +109,14 @@ func New(opts ...Option) (*driver, error) {
 		return nil, errors.New("blender is required")
 	}
 
-	if options.Project == nil {
-		return nil, errors.New("project is required")
+	if len(options.Projects) == 0 {
+		return nil, errors.New("projects are required")
 	}
 
 	return &driver{
 		logger:     options.Logger,
 		validator:  options.Validator,
-		project:    options.Project,
+		projects:   options.Projects,
 		repository: options.Repository,
 		blender:    options.Blender,
 	}, nil
@@ -108,11 +127,21 @@ func (d *driver) AddDependencies(ctx context.Context, opts *types.AddDependencie
 		return err
 	}
 
-	if err := d.addDependencies(ctx, d.project, opts.References); err != nil {
-		return err
+	d.mutex.Lock()
+	defer d.mutex.Unlock()
+
+	tasks := make([]taskrunner.Task, len(d.projects))
+	for i, project := range d.projects {
+		tasks[i] = func(ctx context.Context) error {
+			return d.addDependencies(ctx, project, opts.References)
+		}
 	}
 
-	return nil
+	return taskrunner.Run(ctx, &taskrunner.RunOpts{
+		Tasks:          tasks,
+		Mode:           d.executionMode,
+		MaxConcurrency: d.maxConcurrency,
+	})
 }
 
 func (d *driver) RemoveDependencies(ctx context.Context, opts *types.RemoveDependenciesOpts) error {
@@ -120,31 +149,64 @@ func (d *driver) RemoveDependencies(ctx context.Context, opts *types.RemoveDepen
 		return err
 	}
 
-	if err := d.removeDependencies(ctx, d.project, opts.References); err != nil {
-		return err
+	d.mutex.Lock()
+	defer d.mutex.Unlock()
+
+	tasks := make([]taskrunner.Task, len(d.projects))
+	for i, project := range d.projects {
+		tasks[i] = func(ctx context.Context) error {
+			return d.removeDependencies(ctx, project, opts.References)
+		}
 	}
 
-	return nil
+	return taskrunner.Run(ctx, &taskrunner.RunOpts{
+		Tasks:          tasks,
+		Mode:           d.executionMode,
+		MaxConcurrency: d.maxConcurrency,
+	})
 }
 
 func (d *driver) InstallDependencies(ctx context.Context) error {
-	if err := d.installDependencies(ctx, d.project); err != nil {
-		return err
+	d.mutex.Lock()
+	defer d.mutex.Unlock()
+
+	tasks := make([]taskrunner.Task, len(d.projects))
+	for i, project := range d.projects {
+		tasks[i] = func(ctx context.Context) error {
+			return d.installDependencies(ctx, project)
+		}
 	}
 
-	return nil
+	return taskrunner.Run(ctx, &taskrunner.RunOpts{
+		Tasks:          tasks,
+		Mode:           d.executionMode,
+		MaxConcurrency: d.maxConcurrency,
+	})
 }
 
 func (d *driver) Tidy(ctx context.Context) error {
-	if err := d.tidy(ctx, d.project); err != nil {
-		return err
+	d.mutex.Lock()
+	defer d.mutex.Unlock()
+
+	tasks := make([]taskrunner.Task, len(d.projects))
+	for i, project := range d.projects {
+		tasks[i] = func(ctx context.Context) error {
+			return d.tidy(ctx, project)
+		}
 	}
 
-	return nil
+	return taskrunner.Run(ctx, &taskrunner.RunOpts{
+		Tasks:          tasks,
+		Mode:           d.executionMode,
+		MaxConcurrency: d.maxConcurrency,
+	})
 }
 
 func (d *driver) Resolve(ctx context.Context) (*types.BlendFile, error) {
-	blendFile, err := d.resolve(ctx, d.project)
+	d.mutex.Lock()
+	defer d.mutex.Unlock()
+
+	blendFile, err := d.resolve(ctx, d.projects[0]) // TOOD: Handle multiple projects
 	if err != nil {
 		return nil, err
 	}
@@ -153,11 +215,21 @@ func (d *driver) Resolve(ctx context.Context) (*types.BlendFile, error) {
 }
 
 func (d *driver) Save(ctx context.Context) error {
-	if err := d.save(ctx, d.project); err != nil {
-		return err
+	d.mutex.Lock()
+	defer d.mutex.Unlock()
+
+	tasks := make([]taskrunner.Task, len(d.projects))
+	for i, project := range d.projects {
+		tasks[i] = func(ctx context.Context) error {
+			return d.save(ctx, project)
+		}
 	}
 
-	return nil
+	return taskrunner.Run(ctx, &taskrunner.RunOpts{
+		Tasks:          tasks,
+		Mode:           d.executionMode,
+		MaxConcurrency: d.maxConcurrency,
+	})
 }
 
 func (d *driver) addDependencies(ctx context.Context, project *types.Project, references []reference.Reference) error {
