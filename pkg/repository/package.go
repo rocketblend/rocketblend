@@ -50,7 +50,7 @@ func (r *repository) InsertPackages(ctx context.Context, opts *types.InsertPacka
 	return nil
 }
 
-func (r *repository) getPackages(ctx context.Context, references []reference.Reference, depth int, update bool) (map[reference.Reference]*types.RocketPack, error) {
+func (r *repository) getPackages(ctx context.Context, dependencies []*types.Dependency, depth int, update bool) (map[reference.Reference]*types.RocketPack, error) {
 	if err := ctx.Err(); err != nil {
 		return nil, err
 	}
@@ -60,13 +60,13 @@ func (r *repository) getPackages(ctx context.Context, references []reference.Ref
 
 	results := make(chan getPackageResult)
 	var wg sync.WaitGroup
-	wg.Add(len(references))
+	wg.Add(len(dependencies))
 
-	for _, ref := range references {
-		go func(ref reference.Reference) {
+	for _, dep := range dependencies {
+		go func(d *types.Dependency) {
 			defer wg.Done()
 
-			packs, err := r.getPackage(ctx, ref, depth, update)
+			packs, err := r.getPackage(ctx, d, depth, update)
 			if err != nil {
 				cancel()
 				results <- getPackageResult{packs: nil, error: err}
@@ -74,7 +74,7 @@ func (r *repository) getPackages(ctx context.Context, references []reference.Ref
 			}
 
 			results <- getPackageResult{packs: packs, error: nil}
-		}(ref)
+		}(dep)
 	}
 
 	go func() {
@@ -205,41 +205,44 @@ func (r *repository) insertPackage(ctx context.Context, ref reference.Reference,
 	return nil
 }
 
-func (s *repository) getPackage(ctx context.Context, ref reference.Reference, depth int, update bool) (map[reference.Reference]*types.RocketPack, error) {
+func (s *repository) getPackage(ctx context.Context, dependency *types.Dependency, depth int, update bool) (map[reference.Reference]*types.RocketPack, error) {
 	if err := ctx.Err(); err != nil {
 		return nil, err
 	}
 
-	s.logger.Info("processing reference", map[string]interface{}{"reference": ref.String()})
+	s.logger.Info("processing reference", map[string]interface{}{
+		"reference": dependency.Reference.String(),
+		"type":      dependency.Type,
+	})
 
 	packages := make(map[reference.Reference]*types.RocketPack)
-	repo, err := ref.GetRepo()
+	repo, err := dependency.Reference.GetRepo()
 	if err != nil {
-		s.logger.Error("error getting repository", map[string]interface{}{"error": err, "reference": ref.String()})
+		s.logger.Error("error getting repository", map[string]interface{}{"error": err, "reference": dependency.Reference.String()})
 		return nil, err
 	}
 
 	repoPath := filepath.Join(s.storagePath, repo)
-	packagePath := filepath.Join(s.storagePath, ref.String(), PackageFileName)
+	packagePath := filepath.Join(s.storagePath, dependency.Reference.String(), PackageFileName)
 
 	// The repository does not exist locally, clone it
-	if _, err := os.Stat(repoPath); os.IsNotExist(err) || update && !ref.IsLocalOnly() {
-		repoURL, err := ref.GetRepoURL()
+	if _, err := os.Stat(repoPath); os.IsNotExist(err) || update && !dependency.Reference.IsLocalOnly() {
+		repoURL, err := dependency.Reference.GetRepoURL()
 		if err != nil {
-			s.logger.Error("error getting repository URL", map[string]interface{}{"error": err, "reference": ref.String()})
+			s.logger.Error("error getting repository URL", map[string]interface{}{"error": err, "reference": dependency.Reference.String()})
 			return nil, err
 		}
 
-		s.logger.Info("cloning repository", map[string]interface{}{"repoURL": repoURL, "path": repoPath, "reference": ref.String()})
+		s.logger.Info("cloning repository", map[string]interface{}{"repoURL": repoURL, "path": repoPath, "reference": dependency.Reference.String()})
 		if err := s.cloneRepo(ctx, repoPath, repoURL); err != nil {
 			return nil, err
 		}
 	}
 
 	// Check if the file exists in the repository
-	if _, err := os.Stat(packagePath); os.IsNotExist(err) || update && !ref.IsLocalOnly() {
+	if _, err := os.Stat(packagePath); os.IsNotExist(err) || update && !dependency.Reference.IsLocalOnly() {
 		// The file does not exist or forced update, pull the latest changes
-		s.logger.Info("pulling latest changes for repository", map[string]interface{}{"path": packagePath, "reference": ref.String()})
+		s.logger.Info("pulling latest changes for repository", map[string]interface{}{"path": packagePath, "reference": dependency.Reference.String()})
 		if err := s.pullChanges(ctx, repoPath); err != nil {
 			return nil, err
 		}
@@ -249,7 +252,7 @@ func (s *repository) getPackage(ctx context.Context, ref reference.Reference, de
 	if err != nil {
 		s.logger.Error("error loading package", map[string]interface{}{
 			"error":     err,
-			"reference": ref.String(),
+			"reference": dependency.Reference.String(),
 			"path":      packagePath,
 		})
 
@@ -257,16 +260,12 @@ func (s *repository) getPackage(ctx context.Context, ref reference.Reference, de
 	}
 
 	if len(pack.Dependencies) > 0 && depth > 0 {
-		s.logger.Debug("package has dependencies", map[string]interface{}{"reference": ref.String()})
-		deps := make([]reference.Reference, 0, len(pack.Dependencies))
-		for _, dep := range pack.Dependencies {
-			deps = append(deps, dep.Reference)
-		}
+		s.logger.Debug("package has dependencies", map[string]interface{}{"reference": dependency.Reference.String()})
 
 		// Get the packages for the dependencies
-		indirect, err := s.getPackages(ctx, deps, depth-1, update)
+		indirect, err := s.getPackages(ctx, pack.Dependencies, depth-1, update)
 		if err != nil {
-			s.logger.Error("error getting dependency packages", map[string]interface{}{"error": err, "reference": ref.String()})
+			s.logger.Error("error getting dependency packages", map[string]interface{}{"error": err, "reference": dependency.Reference.String()})
 			return nil, err
 		}
 

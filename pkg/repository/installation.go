@@ -26,18 +26,18 @@ type (
 	}
 )
 
-func (r *repository) GetInstallations(ctx context.Context, opts *types.GetInstallationOpts) (*types.GetInstallationResult, error) {
-	installations, err := r.getInstallations(ctx, opts.References, opts.Fetch)
+func (r *repository) GetInstallations(ctx context.Context, opts *types.GetInstallationsOpts) (*types.GetInstallationsResult, error) {
+	installations, err := r.getInstallations(ctx, opts.Dependencies, opts.Fetch)
 	if err != nil {
 		return nil, err
 	}
 
-	return &types.GetInstallationResult{
+	return &types.GetInstallationsResult{
 		Installations: installations,
 	}, nil
 }
 
-func (r *repository) RemoveInstallations(ctx context.Context, opts *types.RemoveInstallationOpts) error {
+func (r *repository) RemoveInstallations(ctx context.Context, opts *types.RemoveInstallationsOpts) error {
 	if err := r.removeInstallations(ctx, opts.References); err != nil {
 		return err
 	}
@@ -46,7 +46,7 @@ func (r *repository) RemoveInstallations(ctx context.Context, opts *types.Remove
 }
 
 // TODO: Return a map of reference to error instead of returning the first error encountered.
-func (r *repository) getInstallations(ctx context.Context, references []reference.Reference, fetch bool) (map[reference.Reference]*types.Installation, error) {
+func (r *repository) getInstallations(ctx context.Context, dependencies []*types.Dependency, fetch bool) (map[reference.Reference]*types.Installation, error) {
 	if err := ctx.Err(); err != nil {
 		return nil, err
 	}

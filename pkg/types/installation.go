@@ -15,21 +15,22 @@ type (
 		Version *semver.Version `json:"version,omitempty"`
 	}
 
-	GetInstallationOpts struct {
-		References []reference.Reference `json:"references"`
-		Fetch      bool                  `json:"fetch"`
+	GetInstallationsOpts struct {
+		Dependencies []*Dependency `json:"dependencies"`
+		// References []reference.Reference `json:"references"`
+		Fetch bool `json:"fetch"`
 	}
 
-	GetInstallationResult struct {
+	GetInstallationsResult struct {
 		Installations map[reference.Reference]*Installation `json:"installations"`
 	}
 
-	RemoveInstallationOpts struct {
+	RemoveInstallationsOpts struct {
 		References []reference.Reference `json:"references"`
 	}
 
 	InstallationRepository interface {
-		GetInstallation(ctx context.Context, opts *GetInstallationOpts) (*GetInstallationResult, error)
-		RemoveInstallation(ctx context.Context, opts *RemoveInstallationOpts) error
+		GetInstallations(ctx context.Context, opts *GetInstallationsOpts) (*GetInstallationsResult, error)
+		RemoveInstallations(ctx context.Context, opts *RemoveInstallationsOpts) error
 	}
 )
