@@ -13,7 +13,7 @@ import (
 type (
 	Options struct {
 		Logger    logger.Logger
-		Validator *validator.Validate
+		Validator types.Validator
 
 		Platform         runtime.Platform
 		StoragePath      string
@@ -27,7 +27,7 @@ type (
 
 	repository struct {
 		logger           logger.Logger
-		validator        *validator.Validate
+		validator        types.Validator
 		downloader       types.Downloader
 		extractor        types.Extractor
 		platform         runtime.Platform
@@ -42,7 +42,7 @@ func WithLogger(logger logger.Logger) Option {
 	}
 }
 
-func WithValidator(validator *validator.Validate) Option {
+func WithValidator(validator types.Validator) Option {
 	return func(o *Options) {
 		o.Validator = validator
 	}

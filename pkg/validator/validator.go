@@ -6,12 +6,12 @@ import (
 )
 
 type (
-	Validate struct {
-		*validator.Validate
+	Validator struct {
+		validator *validator.Validate
 	}
 )
 
-func New() *Validate {
+func New() *Validator {
 	validate := validator.New(
 		validator.WithRequiredStructEnabled(),
 	)
@@ -23,5 +23,11 @@ func New() *Validate {
 	validate.RegisterStructValidation(RocketPackDependenciesValidator, types.RocketPack{})
 	validate.RegisterStructValidation(ValidateUniquePlatforms, types.RocketPack{})
 
-	return &Validate{validate}
+	return &Validator{
+		validator: validate,
+	}
+}
+
+func (v *Validator) Validate(i interface{}) error {
+	return v.validator.Struct(i)
 }

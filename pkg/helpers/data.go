@@ -5,11 +5,11 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/rocketblend/rocketblend/pkg/validator"
+	"github.com/rocketblend/rocketblend/pkg/types"
 	"sigs.k8s.io/yaml"
 )
 
-func Load[T any](validator *validator.Validate, filePath string) (*T, error) {
+func Load[T any](validator types.Validator, filePath string) (*T, error) {
 	if validator == nil {
 		return nil, errors.New("validator is required")
 	}
@@ -28,19 +28,19 @@ func Load[T any](validator *validator.Validate, filePath string) (*T, error) {
 		return nil, fmt.Errorf("failed to unmarshal file: %s", err)
 	}
 
-	if err := validator.Struct(result); err != nil {
+	if err := validator.Validate(result); err != nil {
 		return nil, err
 	}
 
 	return &result, nil
 }
 
-func Save[T any](validator *validator.Validate, filePath string, object *T) error {
+func Save[T any](validator types.Validator, filePath string, object *T) error {
 	if validator == nil {
 		return errors.New("validator is required")
 	}
 
-	if err := validator.Struct(object); err != nil {
+	if err := validator.Validate(object); err != nil {
 		return fmt.Errorf("failed to validate object: %w", err)
 	}
 
