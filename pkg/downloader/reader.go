@@ -18,11 +18,9 @@ type (
 
 // Read method for contextReader
 func (cr *contextReader) Read(p []byte) (n int, err error) {
-	select {
-	case <-cr.ctx.Done():
-		cr.logger.Debug("context cancelled during read operation", map[string]interface{}{"id": cr.id, "error": cr.ctx.Err().Error()})
-		return 0, cr.ctx.Err()
-	default:
-		return cr.r.Read(p)
+	if err := cr.ctx.Err(); err != nil {
+		return 0, err
 	}
+
+	return cr.r.Read(p)
 }

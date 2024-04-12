@@ -2,6 +2,7 @@ package downloader
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
@@ -11,12 +12,19 @@ import (
 
 	"github.com/flowshot-io/x/pkg/logger"
 	"github.com/google/uuid"
-	"github.com/rocketblend/rocketblend/pkg/helpers"
 )
 
-const TempFileExtension = ".tmp"
+const (
+	TempFileExtension = ".tmp"
+	DownloadInfoFile  = "download-info.json"
+)
 
 type (
+	DownloadInfo struct {
+		URI  string `json:"uri"`
+		Size int64  `json:"size"`
+	}
+
 	Downloader interface {
 		Download(ctx context.Context, path string, uri *URI) error
 	}
@@ -75,34 +83,80 @@ func (d *downloader) Download(ctx context.Context, path string, uri *URI) error 
 
 	downloadID := uuid.New().String()
 	tempPath := path + TempFileExtension
+	infoPath := filepath.Join(filepath.Dir(path), DownloadInfoFile)
 
-	if err := os.MkdirAll(filepath.Dir(tempPath), 0755); err != nil {
-		return d.logAndReturnError("error creating directory", err)
-	}
-
-	var fileSize int64
-	fileSize, err := d.checkFileSize(tempPath)
-	if err != nil {
+	if err := d.prepareDirectoryAndInfoFile(tempPath, infoPath, uri); err != nil {
 		return err
 	}
+	defer os.Remove(infoPath) // Ensures removal of the info file if the download fails
 
-	reader, contentLength, err := d.setupReader(ctx, uri, fileSize)
+	reader, contentLength, err := d.setupReader(ctx, uri, 0) // fileSize is determined inside setupReader if needed
 	if err != nil {
 		return err
 	}
 	defer reader.Close()
 
-	err = d.openAndWriteToFile(ctx, tempPath, contentLength, reader, downloadID)
+	if err := d.writeToFile(ctx, tempPath, contentLength, reader); err != nil {
+		return err
+	}
+
+	if err := d.finalizeDownload(tempPath, path, downloadID, uri); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// prepareDirectoryAndInfoFile creates the directory for the download and the info file
+func (d *downloader) prepareDirectoryAndInfoFile(tempPath, infoPath string, uri *URI) error {
+	if err := os.MkdirAll(filepath.Dir(tempPath), 0755); err != nil {
+		return fmt.Errorf("error creating directory: %w", err)
+	}
+
+	fileSize, err := d.checkFileSize(tempPath)
 	if err != nil {
 		return err
 	}
 
-	err = d.renameFile(tempPath, path)
+	infoFile, err := os.Create(infoPath)
 	if err != nil {
+		return fmt.Errorf("error creating download info JSON file: %w", err)
+	}
+	defer infoFile.Close()
+
+	info := DownloadInfo{
+		URI:  uri.String(),
+		Size: fileSize,
+	}
+	infoBytes, err := json.Marshal(info)
+	if err != nil {
+		return fmt.Errorf("error marshalling download info JSON: %w", err)
+	}
+
+	if _, err := infoFile.Write(infoBytes); err != nil {
+		return fmt.Errorf("error writing download info JSON: %w", err)
+	}
+
+	return nil
+}
+
+// writeToFile writes the downloaded file to disk
+func (d *downloader) writeToFile(ctx context.Context, path string, contentLength int64, reader io.ReadCloser) error {
+	return d.openAndWriteToFile(ctx, path, contentLength, reader, uuid.New().String())
+}
+
+// finalizeDownload renames the temporary file to its final name once the download is complete
+func (d *downloader) finalizeDownload(tempPath, path, downloadID string, uri *URI) error {
+	if err := d.renameFile(tempPath, path); err != nil {
 		return err
 	}
 
-	d.logger.Debug("file successfully downloaded", map[string]interface{}{"downloadID": downloadID, "uri": uri.String(), "path": path})
+	d.logger.Debug("file successfully downloaded", map[string]interface{}{
+		"downloadID": downloadID,
+		"uri":        uri.String(),
+		"path":       path,
+	})
+
 	return nil
 }
 
@@ -137,13 +191,13 @@ func (d *downloader) setupRemoteReader(ctx context.Context, uri *URI, fileSize i
 
 	req, err := http.NewRequestWithContext(ctx, "GET", uri.String(), nil)
 	if err != nil {
-		return nil, 0, d.logAndReturnError("error creating HTTP request", err)
+		return nil, 0, err
 	}
 	req.Header.Set("Range", fmt.Sprintf("bytes=%d-", fileSize))
 
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
-		return nil, 0, d.logAndReturnError("error making HTTP request", err)
+		return nil, 0, err
 	}
 
 	if resp.StatusCode != 200 && resp.StatusCode != 206 {
@@ -158,7 +212,11 @@ func (d *downloader) setupRemoteReader(ctx context.Context, uri *URI, fileSize i
 		resumed = true
 	}
 
-	d.logger.Debug("HTTP request successful", map[string]interface{}{"status": resp.Status, "contentLength": contentLength, "resumed": resumed})
+	d.logger.Debug("HTTP request successful", map[string]interface{}{
+		"status":        resp.Status,
+		"contentLength": contentLength,
+		"resumed":       resumed,
+	})
 
 	return resp.Body, contentLength, nil
 }
@@ -167,12 +225,12 @@ func (d *downloader) setupRemoteReader(ctx context.Context, uri *URI, fileSize i
 func (d *downloader) setupLocalReader(uri *URI) (io.ReadCloser, int64, error) {
 	file, err := os.Open(uri.Path)
 	if err != nil {
-		return nil, 0, d.logAndReturnError("error opening local file", err)
+		return nil, 0, fmt.Errorf("error opening local file: %w", err)
 	}
 
 	fi, err := file.Stat()
 	if err != nil {
-		return nil, 0, d.logAndReturnError("error getting local file info", err)
+		return nil, 0, err
 	}
 
 	return file, fi.Size(), nil
@@ -186,7 +244,7 @@ func (d *downloader) openAndWriteToFile(ctx context.Context, tempPath string, co
 
 	f, err := os.OpenFile(tempPath, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0644)
 	if err != nil {
-		return d.logAndReturnError("error opening temporary file", err)
+		return err
 	}
 	defer f.Close()
 
@@ -210,12 +268,18 @@ func (d *downloader) openAndWriteToFile(ctx context.Context, tempPath string, co
 		logger: d.logger,
 	}
 
-	err = d.downloadToFile(pw, cr)
+	bufferSize := 2 << 20 // 2MB
+	buffer := make([]byte, bufferSize)
+	_, err = io.CopyBuffer(pw, cr, buffer)
 	pw.stopLogging()
 	wg.Wait() // Wait for the logging goroutine to finish
 
 	if err != nil {
-		return d.logAndReturnError("error downloading file", err)
+		if err == context.Canceled || err == context.DeadlineExceeded {
+			d.logger.Info("download cancelled", map[string]interface{}{"downloadID": downloadID})
+		}
+
+		return err
 	}
 
 	return nil
@@ -224,20 +288,8 @@ func (d *downloader) openAndWriteToFile(ctx context.Context, tempPath string, co
 // renameFile renames the temporary file to its final name once the download is complete
 func (d *downloader) renameFile(tempPath string, path string) error {
 	if err := os.Rename(tempPath, path); err != nil {
-		return d.logAndReturnError("error renaming temporary file", err, map[string]interface{}{"from": tempPath, "to": path})
+		return err
 	}
+
 	return nil
-}
-
-// downloadToFile downloads the contents of an io.Reader to an io.Writer
-func (d *downloader) downloadToFile(w io.Writer, r io.Reader) error {
-	bufferSize := 2 << 20 // 2MB
-	buffer := make([]byte, bufferSize)
-	_, err := io.CopyBuffer(w, r, buffer)
-	return err
-}
-
-// logAndReturnError logs an error and returns it
-func (d *downloader) logAndReturnError(msg string, err error, fields ...map[string]interface{}) error {
-	return helpers.LogAndReturnError(d.logger, msg, err, fields...)
 }
