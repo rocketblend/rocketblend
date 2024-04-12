@@ -4,5 +4,6 @@ type (
 	Repository interface {
 		PackageRepository
 		InstallationRepository
+		DependencyRepository
 	}
 )

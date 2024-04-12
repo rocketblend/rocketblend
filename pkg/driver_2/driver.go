@@ -221,12 +221,14 @@ func (d *driver) addDependencies(ctx context.Context, project *types.Project, re
 		})
 	}
 
-	tidied, err := d.tidyDependencies(ctx, dependencies)
+	result, err := d.repository.ResolveDependencies(ctx, &types.ResolveDependenciesOpts{
+		Dependencies: project.RocketFile.Dependencies.Direct,
+	})
 	if err != nil {
 		return err
 	}
 
-	project.RocketFile.Dependencies = tidied
+	project.RocketFile.Dependencies = result.Dependencies
 	if err = d.save(ctx, project); err != nil {
 		return err
 	}
@@ -249,12 +251,14 @@ func (d *driver) removeDependencies(ctx context.Context, project *types.Project,
 		}
 	}
 
-	tidied, err := d.tidyDependencies(ctx, dependencies)
+	result, err := d.repository.ResolveDependencies(ctx, &types.ResolveDependenciesOpts{
+		Dependencies: project.RocketFile.Dependencies.Direct,
+	})
 	if err != nil {
 		return err
 	}
 
-	project.RocketFile.Dependencies = tidied
+	project.RocketFile.Dependencies = result.Dependencies
 	if err = d.save(ctx, project); err != nil {
 		return err
 	}
@@ -263,64 +267,19 @@ func (d *driver) removeDependencies(ctx context.Context, project *types.Project,
 }
 
 func (d *driver) tidy(ctx context.Context, project *types.Project) error {
-	tidied, err := d.tidyDependencies(ctx, project.RocketFile.Dependencies.Direct)
+	result, err := d.repository.ResolveDependencies(ctx, &types.ResolveDependenciesOpts{
+		Dependencies: project.RocketFile.Dependencies.Direct,
+	})
 	if err != nil {
 		return err
 	}
 
-	project.RocketFile.Dependencies = tidied
+	project.RocketFile.Dependencies = result.Dependencies
 	if err = d.save(ctx, project); err != nil {
 		return err
 	}
 
 	return nil
-}
-
-func (d *driver) tidyDependencies(ctx context.Context, dependencies []*types.Dependency) (*types.Dependencies, error) {
-	if err := ctx.Err(); err != nil {
-		return nil, err
-	}
-
-	references := make([]reference.Reference, 0, len(dependencies))
-	for _, dep := range dependencies {
-		references = append(references, dep.Reference)
-	}
-
-	result, err := d.repository.GetPackages(ctx, &types.GetPackagesOpts{
-		References: references,
-		Depth:      MaxDependencyDepth,
-	})
-	if err != nil {
-		return nil, err
-	}
-
-	direct := make([]*types.Dependency, len(dependencies))
-	indirect := make([]*types.Dependency, len(result.Packs)-len(dependencies))
-	for ref := range result.Packs {
-		found := false
-		for _, dep := range dependencies {
-			if dep.Reference == ref {
-				found = true
-				direct = append(direct, &types.Dependency{
-					Reference: ref,
-					Type:      result.Packs[ref].Type,
-				})
-				break
-			}
-		}
-
-		if !found {
-			indirect = append(indirect, &types.Dependency{
-				Reference: ref,
-				Type:      result.Packs[ref].Type,
-			})
-		}
-	}
-
-	return &types.Dependencies{
-		Direct:   direct,
-		Indirect: indirect,
-	}, nil
 }
 
 func (d *driver) installDependencies(ctx context.Context, project *types.Project) error {
