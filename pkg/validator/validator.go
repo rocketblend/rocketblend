@@ -17,6 +17,7 @@ func New() *Validate {
 	)
 
 	validate.RegisterValidation("blendfile", ValidateBlendFile)
+	validate.RegisterValidation("onebuild", ValidateOneBuild)
 
 	validate.RegisterStructValidation(DependenciesValidation, types.Dependencies{})
 	validate.RegisterStructValidation(RocketPackDependenciesValidator, types.RocketPack{})

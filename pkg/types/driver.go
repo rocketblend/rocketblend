@@ -12,9 +12,9 @@ type (
 	}
 
 	RenderOpts struct {
-		FrameStart int    `json:"frameStart"`
-		FrameEnd   int    `json:"frameEnd"`
-		FrameStep  int    `json:"frameStep"`
+		FrameStart int    `json:"frameStart" validate:"gte=0"`
+		FrameEnd   int    `json:"frameEnd" validate:"gtfield=FrameStart"`
+		FrameStep  int    `json:"frameStep" validate:"gte=1"`
 		Output     string `json:"output"`
 		Format     string `json:"format"`
 		BlenderOpts

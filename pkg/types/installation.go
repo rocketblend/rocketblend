@@ -9,11 +9,10 @@ import (
 
 type (
 	Installation struct {
-		Reference reference.Reference `json:"reference"` // TODO: Do I need this here?
-		Path      string              `json:"path"`
-		Type      PackageType         `json:"type"`
-		Name      string              `json:"name"`
-		Version   *semver.Version     `json:"version"`
+		Path    string          `json:"path" validate:"required,filepath"`
+		Type    PackageType     `json:"type,omitempty" validate:"omitempty,oneof=build addon"`
+		Name    string          `json:"name" validate:"required"`
+		Version *semver.Version `json:"version,omitempty"`
 	}
 
 	GetInstallationOpts struct {
@@ -22,7 +21,7 @@ type (
 	}
 
 	GetInstallationResult struct {
-		Installations []*Installation `json:"installations"`
+		Installations map[reference.Reference]*Installation `json:"installations"`
 	}
 
 	RemoveInstallationOpts struct {

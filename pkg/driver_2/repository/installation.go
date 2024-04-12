@@ -46,7 +46,7 @@ func (r *repository) RemoveInstallations(ctx context.Context, opts *types.Remove
 }
 
 // TODO: Return a map of reference to error instead of returning the first error encountered.
-func (r *repository) getInstallations(ctx context.Context, references []reference.Reference, fetch bool) ([]*types.Installation, error) {
+func (r *repository) getInstallations(ctx context.Context, references []reference.Reference, fetch bool) (map[reference.Reference]*types.Installation, error) {
 	if err := ctx.Err(); err != nil {
 		return nil, err
 	}
@@ -82,7 +82,7 @@ func (r *repository) getInstallations(ctx context.Context, references []referenc
 		close(results)
 	}()
 
-	installations := make([]*types.Installation, 0, len(rocketPacks))
+	installations := make(map[reference.Reference]*types.Installation, len(rocketPacks))
 	var retErr error
 
 	for res := range results {
@@ -94,7 +94,7 @@ func (r *repository) getInstallations(ctx context.Context, references []referenc
 		}
 
 		if res.inst != nil {
-			installations = append(installations, res.inst)
+			installations[res.ref] = res.inst
 		}
 	}
 
@@ -136,11 +136,10 @@ func (r *repository) getInstallation(ctx context.Context, reference reference.Re
 	}
 
 	return &types.Installation{
-		Reference: reference,
-		Type:      rocketPack.Type,
-		Path:      resourcePath,
-		Name:      rocketPack.Name,
-		Version:   rocketPack.Version,
+		Type:    rocketPack.Type,
+		Path:    resourcePath,
+		Name:    rocketPack.Name,
+		Version: rocketPack.Version,
 	}, nil
 }
 

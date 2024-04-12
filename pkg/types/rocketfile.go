@@ -6,14 +6,14 @@ import (
 
 type (
 	Dependencies struct {
-		Direct   []*Dependency `json:"direct,omitempty" validate:"omitempty,dive"`
-		Indirect []*Dependency `json:"indirect,omitempty" validate:"omitempty,dive"`
+		Direct   []*Dependency `json:"direct,omitempty" validate:"omitempty,dive,required"`
+		Indirect []*Dependency `json:"indirect,omitempty" validate:"omitempty,dive,required"`
 	}
 
 	RocketFile struct {
 		Spec         semver.Version `json:"spec,omitempty"`
 		ARGS         []string       `json:"args,omitempty"`
-		Dependencies *Dependencies  `json:"dependencies,omitempty" validate:"omitempty"`
+		Dependencies *Dependencies  `json:"dependencies,omitempty" validate:"omitempty,dive,required"`
 	}
 )
 
