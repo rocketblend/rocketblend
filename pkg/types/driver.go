@@ -23,7 +23,6 @@ type (
 		RemoveDependencies(ctx context.Context, opts *RemoveDependenciesOpts) error
 
 		Resolve(ctx context.Context) (*BlendFile, error)
-		Tidy(ctx context.Context) error
 		Save(ctx context.Context) error
 	}
 )

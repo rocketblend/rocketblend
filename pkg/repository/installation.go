@@ -11,6 +11,7 @@ import (
 	"github.com/rocketblend/rocketblend/pkg/driver/reference"
 	"github.com/rocketblend/rocketblend/pkg/helpers"
 	"github.com/rocketblend/rocketblend/pkg/lockfile"
+	"github.com/rocketblend/rocketblend/pkg/taskrunner"
 	"github.com/rocketblend/rocketblend/pkg/types"
 )
 
@@ -166,50 +167,27 @@ func (r *repository) getInstallation(ctx context.Context, reference reference.Re
 	}, nil
 }
 
-// TODO: Return a map of reference to error instead of returning the first error encountered.
 func (r *repository) removeInstallations(ctx context.Context, references []reference.Reference) error {
 	if err := ctx.Err(); err != nil {
 		return err
 	}
 
-	rocketPacks, err := r.getPackages(ctx, references, false)
+	packs, err := r.getPackages(ctx, references, false)
 	if err != nil {
 		return err
 	}
 
-	ctx, cancel := context.WithCancel(ctx)
-	defer cancel()
-
-	errs := make(chan error, len(rocketPacks))
-	var wg sync.WaitGroup
-	wg.Add(len(rocketPacks))
-
-	for ref := range rocketPacks {
-		go func(ref reference.Reference) {
-			defer wg.Done()
-			if err := r.removeInstallation(ctx, ref); err != nil {
-				cancel()
-				errs <- err
-				return
-			}
-		}(ref)
+	tasks := make([]taskrunner.Task, len(packs))
+	for ref := range packs {
+		tasks = append(tasks, func(ctx context.Context) error {
+			return r.removeInstallation(ctx, ref)
+		})
 	}
 
-	go func() {
-		wg.Wait()
-		close(errs)
-	}()
-
-	var retErr error
-	for err := range errs {
-		if err != nil {
-			if retErr == nil {
-				retErr = err
-			}
-		}
-	}
-
-	return retErr
+	return taskrunner.Run(ctx, &taskrunner.RunOpts{
+		Tasks: tasks,
+		Mode:  taskrunner.Concurrent,
+	})
 }
 
 func (r *repository) downloadInstallation(ctx context.Context, downloadURI *types.URI, installationPath string) error {

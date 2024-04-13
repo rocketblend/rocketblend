@@ -9,6 +9,7 @@ import (
 	"github.com/go-git/go-git/v5"
 	"github.com/rocketblend/rocketblend/pkg/driver/reference"
 	"github.com/rocketblend/rocketblend/pkg/helpers"
+	"github.com/rocketblend/rocketblend/pkg/taskrunner"
 	"github.com/rocketblend/rocketblend/pkg/types"
 )
 
@@ -107,84 +108,31 @@ func (r *repository) getPackages(ctx context.Context, references []reference.Ref
 }
 
 func (r *repository) removePackages(ctx context.Context, references []reference.Reference) error {
-	if err := ctx.Err(); err != nil {
-		return err
-	}
-
-	ctx, cancel := context.WithCancel(ctx)
-	defer cancel()
-
-	errs := make(chan error, len(references))
-	var wg sync.WaitGroup
-	wg.Add(len(references))
-
+	tasks := make([]taskrunner.Task, len(references))
 	for _, ref := range references {
-		go func(ref reference.Reference) {
-			defer wg.Done()
-
-			err := r.removePackage(ctx, ref)
-			if err != nil {
-				cancel()
-				errs <- err
-				return
-			}
-		}(ref)
+		tasks = append(tasks, func(ctx context.Context) error {
+			return r.removePackage(ctx, ref)
+		})
 	}
 
-	go func() {
-		wg.Wait()
-		close(errs)
-	}()
-
-	for err := range errs {
-		if err != nil {
-			return err
-		}
-	}
-
-	return nil
+	return taskrunner.Run(ctx, &taskrunner.RunOpts{
+		Tasks: tasks,
+		Mode:  taskrunner.Concurrent,
+	})
 }
 
 func (r *repository) insertPackages(ctx context.Context, packs map[reference.Reference]*types.Package) error {
-	if err := ctx.Err(); err != nil {
-		return err
-	}
-
-	ctx, cancel := context.WithCancel(ctx)
-	defer cancel()
-
-	errs := make(chan error, len(packs))
-	var wg sync.WaitGroup
-	wg.Add(len(packs))
-
+	tasks := make([]taskrunner.Task, len(packs))
 	for ref, pack := range packs {
-		go func(ref reference.Reference, pack *types.Package) {
-			defer wg.Done()
-
-			err := r.insertPackage(ctx, ref, pack)
-			if err != nil {
-				cancel()
-				errs <- err
-				return
-			}
-		}(ref, pack)
+		tasks = append(tasks, func(ctx context.Context) error {
+			return r.insertPackage(ctx, ref, pack)
+		})
 	}
 
-	go func() {
-		wg.Wait()
-		close(errs)
-	}()
-
-	var firstErr error
-	for err := range errs {
-		if err != nil {
-			if firstErr == nil {
-				firstErr = err
-			}
-		}
-	}
-
-	return firstErr
+	return taskrunner.Run(ctx, &taskrunner.RunOpts{
+		Tasks: tasks,
+		Mode:  taskrunner.Concurrent,
+	})
 }
 
 func (r *repository) insertPackage(ctx context.Context, ref reference.Reference, pack *types.Package) error {

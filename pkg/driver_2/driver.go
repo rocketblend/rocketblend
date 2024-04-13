@@ -273,10 +273,6 @@ func (d *driver) installDependencies(ctx context.Context, project *types.Project
 }
 
 func (d *driver) resolve(ctx context.Context, project *types.Project) (*types.BlendFile, error) {
-	if err := ctx.Err(); err != nil {
-		return nil, err
-	}
-
 	installations, err := d.getInstallations(ctx, project.Requires(), false)
 	if err != nil {
 		return nil, err
