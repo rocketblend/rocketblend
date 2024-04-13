@@ -16,25 +16,25 @@ type (
 		Type      PackageType         `json:"type,omitempty" validate:"omitempty oneof=build addon"`
 	}
 
-	ProjectConfig struct {
+	Profile struct {
 		Spec         semver.Version `json:"spec,omitempty"`
 		ARGS         []string       `json:"args,omitempty"`
 		Dependencies []*Dependency  `json:"dependencies,omitempty" validate:"omitempty,dive,required"`
 	}
 
 	Project struct {
-		BlendFilePath string         `json:"blendFilePath" validate:"required,filepath,blendfile"`
-		Config        *ProjectConfig `json:"config" validate:"required"`
+		BlendFilePath string   `json:"blendFilePath" validate:"required,filepath,blendfile"`
+		Profile       *Profile `json:"config" validate:"required"`
 	}
 )
 
-func (r *ProjectConfig) FindAll(packageType PackageType) []*Dependency {
-	if r.Dependencies == nil {
+func (p *Profile) FindAll(packageType PackageType) []*Dependency {
+	if p.Dependencies == nil {
 		return nil
 	}
 
 	var dependencies []*Dependency
-	for _, d := range r.Dependencies {
+	for _, d := range p.Dependencies {
 		if d.Type == packageType {
 			dependencies = append(dependencies, d)
 		}
@@ -53,9 +53,9 @@ func (p *Project) Name() string {
 }
 
 func (p *Project) Requires() []*Dependency {
-	if p.Config == nil {
+	if p.Profile == nil {
 		return nil
 	}
 
-	return p.Config.Dependencies
+	return p.Profile.Dependencies
 }

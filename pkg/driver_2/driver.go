@@ -226,7 +226,7 @@ func (d *driver) addDependencies(ctx context.Context, project *types.Project, re
 		return err
 	}
 
-	dependencies := project.Config.Dependencies
+	dependencies := project.Profile.Dependencies
 	for ref, pack := range result.Packs {
 		dependencies = append(dependencies, &types.Dependency{
 			Reference: ref,
@@ -234,7 +234,7 @@ func (d *driver) addDependencies(ctx context.Context, project *types.Project, re
 		})
 	}
 
-	project.Config.Dependencies = dependencies
+	project.Profile.Dependencies = dependencies
 
 	return nil
 }
@@ -244,7 +244,7 @@ func (d *driver) removeDependencies(ctx context.Context, project *types.Project,
 		return err
 	}
 
-	dependencies := project.Config.Dependencies
+	dependencies := project.Profile.Dependencies
 	for _, ref := range references {
 		for index, dep := range dependencies {
 			if dep.Reference == ref {
@@ -254,7 +254,7 @@ func (d *driver) removeDependencies(ctx context.Context, project *types.Project,
 		}
 	}
 
-	project.Config.Dependencies = dependencies
+	project.Profile.Dependencies = dependencies
 
 	return nil
 }
@@ -290,7 +290,7 @@ func (d *driver) resolve(ctx context.Context, project *types.Project) (*types.Bl
 	return &types.BlendFile{
 		Name:         project.Name(),
 		Path:         project.BlendFilePath,
-		ARGS:         project.Config.ARGS,
+		ARGS:         project.Profile.ARGS,
 		Dependencies: dependencies,
 	}, nil
 }
