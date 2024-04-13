@@ -7,20 +7,6 @@ import (
 	"github.com/rocketblend/rocketblend/pkg/types"
 )
 
-func PackageDependenciesValidator(sl validator.StructLevel) {
-	rocketPack, ok := sl.Current().Interface().(types.Package)
-	if !ok {
-		return
-	}
-
-	for _, dep := range rocketPack.Dependencies {
-		if dep.Type == types.PackageBuild {
-			sl.ReportError(dep.Type, "Dependencies", "Dependencies", "NoBuildDependenciesAllowed", "")
-			break
-		}
-	}
-}
-
 func ValidateUniquePlatforms(sl validator.StructLevel) {
 	rp := sl.Current().Interface().(types.Package)
 

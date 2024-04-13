@@ -19,6 +19,14 @@ func DependenciesValidation(sl validator.StructLevel) {
 		sl.ReportError(deps.Direct, "Direct", "Direct", "OnlyOneBuildType", "")
 	}
 
+	// Validate no build type dependency in Indirect dependencies.
+	for _, dep := range deps.Indirect {
+		if dep.Type == types.PackageBuild {
+			sl.ReportError(dep.Type, "Indirect", "Indirect", "NoBuildDependenciesAllowed", "")
+			break
+		}
+	}
+
 	// Validate Indirect dependencies can exist only if there's at least one Direct dependency.
 	if len(deps.Indirect) > 0 && len(deps.Direct) == 0 {
 		sl.ReportError(deps.Indirect, "Indirect", "Indirect", "IndirectWithNoDirect", "")

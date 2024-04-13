@@ -27,7 +27,7 @@ type (
 		Name         string          `json:"name,omitempty"`
 		Version      *semver.Version `json:"version,omitempty"`
 		Sources      []*Source       `json:"sources" validate:"required"`
-		Dependencies []*Dependency   `json:"dependencies,omitempty" validate:"omitempty"`
+		Dependencies *Dependencies   `json:"dependencies,omitempty" validate:"omitempty,dive,required"`
 	}
 
 	GetPackagesOpts struct {

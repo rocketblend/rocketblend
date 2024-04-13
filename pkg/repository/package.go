@@ -268,10 +268,10 @@ func (s *repository) getPackage(ctx context.Context, ref reference.Reference, de
 		return nil, err
 	}
 
-	if len(pack.Dependencies) > 0 && depth > 0 {
+	if len(pack.Dependencies.Direct) > 0 && depth > 0 {
 		s.logger.Debug("package has dependencies", map[string]interface{}{"reference": ref.String()})
-		deps := make([]reference.Reference, 0, len(pack.Dependencies))
-		for _, dep := range pack.Dependencies {
+		deps := make([]reference.Reference, 0, len(pack.Dependencies.Direct))
+		for _, dep := range pack.Dependencies.Direct {
 			deps = append(deps, dep.Reference)
 		}
 
