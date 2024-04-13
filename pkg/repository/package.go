@@ -12,10 +12,6 @@ import (
 	"github.com/rocketblend/rocketblend/pkg/types"
 )
 
-const (
-	PackageFileName = "jetpack.json"
-)
-
 type (
 	getPackageResult struct {
 		packs map[reference.Reference]*types.Package
@@ -28,7 +24,7 @@ func (r *repository) GetPackages(ctx context.Context, opts *types.GetPackagesOpt
 		return nil, err
 	}
 
-	packs, err := r.getPackages(ctx, opts.References, opts.Depth, opts.Update)
+	packs, err := r.getPackages(ctx, opts.References, opts.Update)
 	if err != nil {
 		return nil, err
 	}
@@ -62,7 +58,7 @@ func (r *repository) InsertPackages(ctx context.Context, opts *types.InsertPacka
 	return nil
 }
 
-func (r *repository) getPackages(ctx context.Context, references []reference.Reference, depth int, update bool) (map[reference.Reference]*types.Package, error) {
+func (r *repository) getPackages(ctx context.Context, references []reference.Reference, update bool) (map[reference.Reference]*types.Package, error) {
 	if err := ctx.Err(); err != nil {
 		return nil, err
 	}
@@ -78,7 +74,7 @@ func (r *repository) getPackages(ctx context.Context, references []reference.Ref
 		go func(ref reference.Reference) {
 			defer wg.Done()
 
-			packs, err := r.getPackage(ctx, ref, depth, update)
+			packs, err := r.getPackage(ctx, ref, update)
 			if err != nil {
 				cancel()
 				results <- getPackageResult{packs: nil, error: err}
@@ -196,7 +192,7 @@ func (r *repository) insertPackage(ctx context.Context, ref reference.Reference,
 		return err
 	}
 
-	packagePath := filepath.Join(r.storagePath, ref.String(), PackageFileName)
+	packagePath := filepath.Join(r.storagePath, ref.String(), types.PackageFileName)
 
 	err := os.MkdirAll(filepath.Dir(packagePath), 0755)
 	if err != nil {
@@ -217,7 +213,7 @@ func (r *repository) insertPackage(ctx context.Context, ref reference.Reference,
 	return nil
 }
 
-func (s *repository) getPackage(ctx context.Context, ref reference.Reference, depth int, update bool) (map[reference.Reference]*types.Package, error) {
+func (s *repository) getPackage(ctx context.Context, ref reference.Reference, update bool) (map[reference.Reference]*types.Package, error) {
 	if err := ctx.Err(); err != nil {
 		return nil, err
 	}
@@ -232,7 +228,7 @@ func (s *repository) getPackage(ctx context.Context, ref reference.Reference, de
 	}
 
 	repoPath := filepath.Join(s.storagePath, repo)
-	packagePath := filepath.Join(s.storagePath, ref.String(), PackageFileName)
+	packagePath := filepath.Join(s.storagePath, ref.String(), types.PackageFileName)
 
 	// The repository does not exist locally, clone it
 	if _, err := os.Stat(repoPath); os.IsNotExist(err) || update && !ref.IsLocalOnly() {
@@ -266,28 +262,6 @@ func (s *repository) getPackage(ctx context.Context, ref reference.Reference, de
 		})
 
 		return nil, err
-	}
-
-	if len(pack.Dependencies.Direct) > 0 && depth > 0 {
-		s.logger.Debug("package has dependencies", map[string]interface{}{"reference": ref.String()})
-		deps := make([]reference.Reference, 0, len(pack.Dependencies.Direct))
-		for _, dep := range pack.Dependencies.Direct {
-			deps = append(deps, dep.Reference)
-		}
-
-		// Get the packages for the dependencies
-		indirect, err := s.getPackages(ctx, deps, depth-1, update)
-		if err != nil {
-			s.logger.Error("error getting dependency packages", map[string]interface{}{"error": err, "reference": ref.String()})
-			return nil, err
-		}
-
-		// Add the dependencies to the packages map
-		for index, dep := range indirect {
-			packages[index] = dep
-		}
-
-		s.logger.Debug("dependency packages successfully loaded", map[string]interface{}{"reference": ref.String()})
 	}
 
 	packages[ref] = pack

@@ -8,6 +8,8 @@ import (
 )
 
 const (
+	PackageFileName = "jetpack.yaml"
+
 	PackageBuild PackageType = "build"
 	PackageAddon PackageType = "addon"
 )
@@ -22,18 +24,16 @@ type (
 	}
 
 	Package struct {
-		Spec         *semver.Version `json:"spec,omitempty"`
-		Type         PackageType     `json:"type" validate:"required oneof=build addon"`
-		Name         string          `json:"name,omitempty"`
-		Version      *semver.Version `json:"version,omitempty"`
-		Sources      []*Source       `json:"sources" validate:"required"`
-		Dependencies *Dependencies   `json:"dependencies,omitempty" validate:"omitempty,dive,required"`
+		Spec    *semver.Version `json:"spec,omitempty"`
+		Type    PackageType     `json:"type" validate:"required oneof=build addon"`
+		Name    string          `json:"name,omitempty"`
+		Version *semver.Version `json:"version,omitempty"`
+		Sources []*Source       `json:"sources" validate:"required"`
 	}
 
 	GetPackagesOpts struct {
 		References []reference.Reference `json:"references" validate:"required"`
 		Update     bool                  `json:"update"`
-		Depth      int                   `json:"depth" validate:"gte=0,lte=10"`
 	}
 
 	GetPackagesResult struct {

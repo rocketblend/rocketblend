@@ -184,24 +184,6 @@ func (d *driver) InstallDependencies(ctx context.Context) error {
 	})
 }
 
-func (d *driver) Tidy(ctx context.Context) error {
-	d.mutex.Lock()
-	defer d.mutex.Unlock()
-
-	tasks := make([]taskrunner.Task, len(d.projects))
-	for i, project := range d.projects {
-		tasks[i] = func(ctx context.Context) error {
-			return d.tidy(ctx, project)
-		}
-	}
-
-	return taskrunner.Run(ctx, &taskrunner.RunOpts{
-		Tasks:          tasks,
-		Mode:           d.executionMode,
-		MaxConcurrency: d.maxConcurrency,
-	})
-}
-
 func (d *driver) Resolve(ctx context.Context) (*types.BlendFile, error) {
 	d.mutex.Lock()
 	defer d.mutex.Unlock()
@@ -237,21 +219,22 @@ func (d *driver) addDependencies(ctx context.Context, project *types.Project, re
 		return err
 	}
 
-	dependencies := project.Config.Dependencies.Direct
-	for _, ref := range references {
-		dependencies = append(dependencies, &types.Dependency{
-			Reference: ref,
-		})
-	}
-
-	result, err := d.repository.ResolveDependencies(ctx, &types.ResolveDependenciesOpts{
-		Dependencies: project.Config.Dependencies.Direct,
+	result, err := d.repository.GetPackages(ctx, &types.GetPackagesOpts{
+		References: references,
 	})
 	if err != nil {
 		return err
 	}
 
-	project.Config.Dependencies = result.Dependencies
+	dependencies := project.Config.Dependencies
+	for ref, pack := range result.Packs {
+		dependencies = append(dependencies, &types.Dependency{
+			Reference: ref,
+			Type:      pack.Type,
+		})
+	}
+
+	project.Config.Dependencies = dependencies
 
 	return nil
 }
@@ -261,7 +244,7 @@ func (d *driver) removeDependencies(ctx context.Context, project *types.Project,
 		return err
 	}
 
-	dependencies := project.Config.Dependencies.Direct
+	dependencies := project.Config.Dependencies
 	for _, ref := range references {
 		for index, dep := range dependencies {
 			if dep.Reference == ref {
@@ -271,27 +254,7 @@ func (d *driver) removeDependencies(ctx context.Context, project *types.Project,
 		}
 	}
 
-	result, err := d.repository.ResolveDependencies(ctx, &types.ResolveDependenciesOpts{
-		Dependencies: project.Config.Dependencies.Direct,
-	})
-	if err != nil {
-		return err
-	}
-
-	project.Config.Dependencies = result.Dependencies
-
-	return nil
-}
-
-func (d *driver) tidy(ctx context.Context, project *types.Project) error {
-	result, err := d.repository.ResolveDependencies(ctx, &types.ResolveDependenciesOpts{
-		Dependencies: project.Config.Dependencies.Direct,
-	})
-	if err != nil {
-		return err
-	}
-
-	project.Config.Dependencies = result.Dependencies
+	project.Config.Dependencies = dependencies
 
 	return nil
 }

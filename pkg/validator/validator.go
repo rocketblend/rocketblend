@@ -19,7 +19,6 @@ func New() *Validator {
 	validate.RegisterValidation("blendfile", ValidateBlendFile)
 	validate.RegisterValidation("onebuild", ValidateOneBuild)
 
-	validate.RegisterStructValidation(DependenciesValidation, types.Dependencies{})
 	validate.RegisterStructValidation(ValidateUniquePlatforms, types.Package{})
 
 	return &Validator{

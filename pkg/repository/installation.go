@@ -64,7 +64,7 @@ func (r *repository) getInstallations(ctx context.Context, dependencies []*types
 		references = append(references, dep.Reference)
 	}
 
-	rocketPacks, err := r.getPackages(ctx, references, 1, false)
+	rocketPacks, err := r.getPackages(ctx, references, false)
 	if err != nil {
 		return nil, err
 	}
@@ -172,7 +172,7 @@ func (r *repository) removeInstallations(ctx context.Context, references []refer
 		return err
 	}
 
-	rocketPacks, err := r.getPackages(ctx, references, 0, false)
+	rocketPacks, err := r.getPackages(ctx, references, false)
 	if err != nil {
 		return err
 	}

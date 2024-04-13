@@ -4,16 +4,22 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/rocketblend/rocketblend/pkg/driver/reference"
 	"github.com/rocketblend/rocketblend/pkg/semver"
 )
 
-const ProjectConfigFileName = "rocketblend.json"
+const ProjectConfigFileName = "rocketblend.yaml"
 
 type (
+	Dependency struct {
+		Reference reference.Reference `json:"reference" validate:"required"`
+		Type      PackageType         `json:"type,omitempty" validate:"omitempty oneof=build addon"`
+	}
+
 	ProjectConfig struct {
 		Spec         semver.Version `json:"spec,omitempty"`
 		ARGS         []string       `json:"args,omitempty"`
-		Dependencies *Dependencies  `json:"dependencies,omitempty" validate:"omitempty,dive,required"`
+		Dependencies []*Dependency  `json:"dependencies,omitempty" validate:"omitempty,dive,required"`
 	}
 
 	Project struct {
@@ -28,21 +34,13 @@ func (r *ProjectConfig) FindAll(packageType PackageType) []*Dependency {
 	}
 
 	var dependencies []*Dependency
-	for _, d := range r.Requires() {
+	for _, d := range r.Dependencies {
 		if d.Type == packageType {
 			dependencies = append(dependencies, d)
 		}
 	}
 
 	return dependencies
-}
-
-func (r *ProjectConfig) Requires() []*Dependency {
-	if r.Dependencies == nil {
-		return nil
-	}
-
-	return append(r.Dependencies.Direct, r.Dependencies.Indirect...)
 }
 
 func (p *Project) Dir() string {
@@ -59,5 +57,5 @@ func (p *Project) Requires() []*Dependency {
 		return nil
 	}
 
-	return p.Config.Requires()
+	return p.Config.Dependencies
 }
