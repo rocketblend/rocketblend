@@ -13,12 +13,12 @@ import (
 )
 
 const (
-	PackageFileName = "rocketpack.json"
+	PackageFileName = "jetpack.json"
 )
 
 type (
 	getPackageResult struct {
-		packs map[reference.Reference]*types.RocketPack
+		packs map[reference.Reference]*types.Package
 		error error
 	}
 )
@@ -62,7 +62,7 @@ func (r *repository) InsertPackages(ctx context.Context, opts *types.InsertPacka
 	return nil
 }
 
-func (r *repository) getPackages(ctx context.Context, references []reference.Reference, depth int, update bool) (map[reference.Reference]*types.RocketPack, error) {
+func (r *repository) getPackages(ctx context.Context, references []reference.Reference, depth int, update bool) (map[reference.Reference]*types.Package, error) {
 	if err := ctx.Err(); err != nil {
 		return nil, err
 	}
@@ -94,7 +94,7 @@ func (r *repository) getPackages(ctx context.Context, references []reference.Ref
 		close(results)
 	}()
 
-	packages := make(map[reference.Reference]*types.RocketPack)
+	packages := make(map[reference.Reference]*types.Package)
 	for res := range results {
 		if res.error != nil {
 			return nil, res.error
@@ -149,7 +149,7 @@ func (r *repository) removePackages(ctx context.Context, references []reference.
 	return nil
 }
 
-func (r *repository) insertPackages(ctx context.Context, packs map[reference.Reference]*types.RocketPack) error {
+func (r *repository) insertPackages(ctx context.Context, packs map[reference.Reference]*types.Package) error {
 	if err := ctx.Err(); err != nil {
 		return err
 	}
@@ -162,7 +162,7 @@ func (r *repository) insertPackages(ctx context.Context, packs map[reference.Ref
 	wg.Add(len(packs))
 
 	for ref, pack := range packs {
-		go func(ref reference.Reference, pack *types.RocketPack) {
+		go func(ref reference.Reference, pack *types.Package) {
 			defer wg.Done()
 
 			err := r.insertPackage(ctx, ref, pack)
@@ -191,7 +191,7 @@ func (r *repository) insertPackages(ctx context.Context, packs map[reference.Ref
 	return firstErr
 }
 
-func (r *repository) insertPackage(ctx context.Context, ref reference.Reference, pack *types.RocketPack) error {
+func (r *repository) insertPackage(ctx context.Context, ref reference.Reference, pack *types.Package) error {
 	if err := ctx.Err(); err != nil {
 		return err
 	}
@@ -217,14 +217,14 @@ func (r *repository) insertPackage(ctx context.Context, ref reference.Reference,
 	return nil
 }
 
-func (s *repository) getPackage(ctx context.Context, ref reference.Reference, depth int, update bool) (map[reference.Reference]*types.RocketPack, error) {
+func (s *repository) getPackage(ctx context.Context, ref reference.Reference, depth int, update bool) (map[reference.Reference]*types.Package, error) {
 	if err := ctx.Err(); err != nil {
 		return nil, err
 	}
 
 	s.logger.Info("processing reference", map[string]interface{}{"reference": ref.String()})
 
-	packages := make(map[reference.Reference]*types.RocketPack)
+	packages := make(map[reference.Reference]*types.Package)
 	repo, err := ref.GetRepo()
 	if err != nil {
 		s.logger.Error("error getting repository", map[string]interface{}{"error": err, "reference": ref.String()})
@@ -257,7 +257,7 @@ func (s *repository) getPackage(ctx context.Context, ref reference.Reference, de
 		}
 	}
 
-	pack, err := helpers.Load[types.RocketPack](s.validator, packagePath)
+	pack, err := helpers.Load[types.Package](s.validator, packagePath)
 	if err != nil {
 		s.logger.Error("error loading package", map[string]interface{}{
 			"error":     err,

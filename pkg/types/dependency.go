@@ -12,6 +12,11 @@ type (
 		Type      PackageType         `json:"type,omitempty" validate:"omitempty oneof=build addon"`
 	}
 
+	Dependencies struct {
+		Direct   []*Dependency `json:"direct,omitempty" validate:"omitempty,dive,required"`
+		Indirect []*Dependency `json:"indirect,omitempty" validate:"omitempty,dive,required"`
+	}
+
 	ResolveDependenciesOpts struct {
 		Dependencies []*Dependency `json:"dependencies" validate:"required,dive,required"`
 	}

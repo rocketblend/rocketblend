@@ -21,7 +21,7 @@ type (
 		Platform Platform `json:"platform,omitempty" validate:"omitempty,oneof=any windows linux macos/intel macos/apple"`
 	}
 
-	RocketPack struct {
+	Package struct {
 		Spec         *semver.Version `json:"spec,omitempty"`
 		Type         PackageType     `json:"type" validate:"required oneof=build addon"`
 		Name         string          `json:"name,omitempty"`
@@ -37,7 +37,7 @@ type (
 	}
 
 	GetPackagesResult struct {
-		Packs map[reference.Reference]*RocketPack `json:"packs"`
+		Packs map[reference.Reference]*Package `json:"packs"`
 	}
 
 	RemovePackagesOpts struct {
@@ -45,7 +45,7 @@ type (
 	}
 
 	InsertPackagesOpts struct {
-		Packs map[reference.Reference]*RocketPack `json:"packs" validate:"required"`
+		Packs map[reference.Reference]*Package `json:"packs" validate:"required"`
 	}
 
 	PackageRepository interface {
@@ -55,7 +55,7 @@ type (
 	}
 )
 
-func (r *RocketPack) Source(platform Platform) *Source {
+func (r *Package) Source(platform Platform) *Source {
 	var defaultSource *Source
 
 	for _, source := range r.Sources {
@@ -70,7 +70,7 @@ func (r *RocketPack) Source(platform Platform) *Source {
 	return defaultSource
 }
 
-func (r *RocketPack) Bundled() bool {
+func (r *Package) Bundled() bool {
 	for _, s := range r.Sources {
 		if s.URI != nil {
 			return false

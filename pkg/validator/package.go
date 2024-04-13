@@ -7,8 +7,8 @@ import (
 	"github.com/rocketblend/rocketblend/pkg/types"
 )
 
-func RocketPackDependenciesValidator(sl validator.StructLevel) {
-	rocketPack, ok := sl.Current().Interface().(types.RocketPack)
+func PackageDependenciesValidator(sl validator.StructLevel) {
+	rocketPack, ok := sl.Current().Interface().(types.Package)
 	if !ok {
 		return
 	}
@@ -22,7 +22,7 @@ func RocketPackDependenciesValidator(sl validator.StructLevel) {
 }
 
 func ValidateUniquePlatforms(sl validator.StructLevel) {
-	rp := sl.Current().Interface().(types.RocketPack)
+	rp := sl.Current().Interface().(types.Package)
 
 	platformCount := make(map[types.Platform]int)
 	for _, source := range rp.Sources {

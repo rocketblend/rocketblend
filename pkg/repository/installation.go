@@ -87,7 +87,7 @@ func (r *repository) getInstallations(ctx context.Context, dependencies []*types
 	wg.Add(len(rocketPacks))
 
 	for ref, pack := range rocketPacks {
-		go func(ref reference.Reference, pack *types.RocketPack) {
+		go func(ref reference.Reference, pack *types.Package) {
 			defer wg.Done()
 
 			installation, err := r.getInstallation(ctx, ref, pack, fetch)
@@ -124,23 +124,23 @@ func (r *repository) getInstallations(ctx context.Context, dependencies []*types
 	return installations, retErr
 }
 
-func (r *repository) getInstallation(ctx context.Context, reference reference.Reference, rocketPack *types.RocketPack, fetch bool) (*types.Installation, error) {
+func (r *repository) getInstallation(ctx context.Context, reference reference.Reference, pack *types.Package, fetch bool) (*types.Installation, error) {
 	if err := ctx.Err(); err != nil {
 		return nil, err
 	}
 
 	r.logger.Info("checking installation", map[string]interface{}{
-		"bundled":   rocketPack.Bundled(),
+		"bundled":   pack.Bundled(),
 		"reference": reference.String(),
 		"fetch":     fetch,
 	})
 
 	var resourcePath string
 
-	// Bundled rocketpacks are not downloaded as they are already available within the build.
-	if !rocketPack.Bundled() {
+	// Bundled packages are not downloaded as they are already available within the build.
+	if !pack.Bundled() {
 		// TODO: Clean up this platform stuff.
-		source := rocketPack.Source(types.Platform(r.platform.String()))
+		source := pack.Source(types.Platform(r.platform.String()))
 
 		installationPath := filepath.Join(r.installationPath, reference.String())
 		resourcePath = filepath.Join(installationPath, source.Resource)
@@ -159,10 +159,10 @@ func (r *repository) getInstallation(ctx context.Context, reference reference.Re
 	}
 
 	return &types.Installation{
-		Type:    rocketPack.Type,
+		Type:    pack.Type,
 		Path:    resourcePath,
-		Name:    rocketPack.Name,
-		Version: rocketPack.Version,
+		Name:    pack.Name,
+		Version: pack.Version,
 	}, nil
 }
 

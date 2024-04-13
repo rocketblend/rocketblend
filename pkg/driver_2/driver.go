@@ -237,7 +237,7 @@ func (d *driver) addDependencies(ctx context.Context, project *types.Project, re
 		return err
 	}
 
-	dependencies := project.RocketFile.Dependencies.Direct
+	dependencies := project.Config.Dependencies.Direct
 	for _, ref := range references {
 		dependencies = append(dependencies, &types.Dependency{
 			Reference: ref,
@@ -245,13 +245,13 @@ func (d *driver) addDependencies(ctx context.Context, project *types.Project, re
 	}
 
 	result, err := d.repository.ResolveDependencies(ctx, &types.ResolveDependenciesOpts{
-		Dependencies: project.RocketFile.Dependencies.Direct,
+		Dependencies: project.Config.Dependencies.Direct,
 	})
 	if err != nil {
 		return err
 	}
 
-	project.RocketFile.Dependencies = result.Dependencies
+	project.Config.Dependencies = result.Dependencies
 
 	return nil
 }
@@ -261,7 +261,7 @@ func (d *driver) removeDependencies(ctx context.Context, project *types.Project,
 		return err
 	}
 
-	dependencies := project.RocketFile.Dependencies.Direct
+	dependencies := project.Config.Dependencies.Direct
 	for _, ref := range references {
 		for index, dep := range dependencies {
 			if dep.Reference == ref {
@@ -272,26 +272,26 @@ func (d *driver) removeDependencies(ctx context.Context, project *types.Project,
 	}
 
 	result, err := d.repository.ResolveDependencies(ctx, &types.ResolveDependenciesOpts{
-		Dependencies: project.RocketFile.Dependencies.Direct,
+		Dependencies: project.Config.Dependencies.Direct,
 	})
 	if err != nil {
 		return err
 	}
 
-	project.RocketFile.Dependencies = result.Dependencies
+	project.Config.Dependencies = result.Dependencies
 
 	return nil
 }
 
 func (d *driver) tidy(ctx context.Context, project *types.Project) error {
 	result, err := d.repository.ResolveDependencies(ctx, &types.ResolveDependenciesOpts{
-		Dependencies: project.RocketFile.Dependencies.Direct,
+		Dependencies: project.Config.Dependencies.Direct,
 	})
 	if err != nil {
 		return err
 	}
 
-	project.RocketFile.Dependencies = result.Dependencies
+	project.Config.Dependencies = result.Dependencies
 
 	return nil
 }
@@ -327,7 +327,7 @@ func (d *driver) resolve(ctx context.Context, project *types.Project) (*types.Bl
 	return &types.BlendFile{
 		Name:         project.Name(),
 		Path:         project.BlendFilePath,
-		ARGS:         project.RocketFile.ARGS,
+		ARGS:         project.Config.ARGS,
 		Dependencies: dependencies,
 	}, nil
 }
@@ -353,7 +353,7 @@ func (d *driver) save(ctx context.Context, project *types.Project) error {
 		return err
 	}
 
-	if err := helpers.Save(d.validator, filepath.Join(project.Dir(), types.RocketFileName), project); err != nil {
+	if err := helpers.Save(d.validator, filepath.Join(project.Dir(), types.ProjectConfigFileName), project); err != nil {
 		return err
 	}
 
