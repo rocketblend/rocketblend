@@ -47,7 +47,6 @@ func Run(ctx context.Context, opts *RunOpts) error {
 		if opts.MaxConcurrency > 0 {
 			return runWithControlledConcurrency(ctx, opts.Tasks, opts.MaxConcurrency)
 		}
-
 		return runConcurrently(ctx, opts.Tasks)
 	case WorkerPool:
 		return runWithWorkerPool(ctx, opts.Tasks, opts.MaxConcurrency)
