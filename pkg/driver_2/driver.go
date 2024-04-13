@@ -130,18 +130,23 @@ func (d *driver) AddDependencies(ctx context.Context, opts *types.AddDependencie
 	d.mutex.Lock()
 	defer d.mutex.Unlock()
 
-	tasks := make([]taskrunner.Task, len(d.projects))
+	tasks := make([]taskrunner.Task[struct{}], len(d.projects))
 	for i, project := range d.projects {
-		tasks[i] = func(ctx context.Context) error {
-			return d.addDependencies(ctx, project, opts.References)
+		tasks[i] = func(ctx context.Context) (struct{}, error) {
+			return struct{}{}, d.addDependencies(ctx, project, opts.References)
 		}
 	}
 
-	return taskrunner.Run(ctx, &taskrunner.RunOpts{
+	_, err := taskrunner.Run(ctx, &taskrunner.RunOpts[struct{}]{
 		Tasks:          tasks,
 		Mode:           d.executionMode,
 		MaxConcurrency: d.maxConcurrency,
 	})
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (d *driver) RemoveDependencies(ctx context.Context, opts *types.RemoveDependenciesOpts) error {
@@ -152,36 +157,46 @@ func (d *driver) RemoveDependencies(ctx context.Context, opts *types.RemoveDepen
 	d.mutex.Lock()
 	defer d.mutex.Unlock()
 
-	tasks := make([]taskrunner.Task, len(d.projects))
+	tasks := make([]taskrunner.Task[struct{}], len(d.projects))
 	for i, project := range d.projects {
-		tasks[i] = func(ctx context.Context) error {
-			return d.removeDependencies(ctx, project, opts.References)
+		tasks[i] = func(ctx context.Context) (struct{}, error) {
+			return struct{}{}, d.removeDependencies(ctx, project, opts.References)
 		}
 	}
 
-	return taskrunner.Run(ctx, &taskrunner.RunOpts{
+	_, err := taskrunner.Run(ctx, &taskrunner.RunOpts[struct{}]{
 		Tasks:          tasks,
 		Mode:           d.executionMode,
 		MaxConcurrency: d.maxConcurrency,
 	})
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (d *driver) InstallDependencies(ctx context.Context) error {
 	d.mutex.Lock()
 	defer d.mutex.Unlock()
 
-	tasks := make([]taskrunner.Task, len(d.projects))
+	tasks := make([]taskrunner.Task[struct{}], len(d.projects))
 	for i, project := range d.projects {
-		tasks[i] = func(ctx context.Context) error {
-			return d.installDependencies(ctx, project)
+		tasks[i] = func(ctx context.Context) (struct{}, error) {
+			return struct{}{}, d.installDependencies(ctx, project)
 		}
 	}
 
-	return taskrunner.Run(ctx, &taskrunner.RunOpts{
+	_, err := taskrunner.Run(ctx, &taskrunner.RunOpts[struct{}]{
 		Tasks:          tasks,
 		Mode:           d.executionMode,
 		MaxConcurrency: d.maxConcurrency,
 	})
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (d *driver) Resolve(ctx context.Context) (*types.BlendFile, error) {
@@ -200,18 +215,23 @@ func (d *driver) Save(ctx context.Context) error {
 	d.mutex.Lock()
 	defer d.mutex.Unlock()
 
-	tasks := make([]taskrunner.Task, len(d.projects))
+	tasks := make([]taskrunner.Task[struct{}], len(d.projects))
 	for i, project := range d.projects {
-		tasks[i] = func(ctx context.Context) error {
-			return d.save(ctx, project)
+		tasks[i] = func(ctx context.Context) (struct{}, error) {
+			return struct{}{}, d.save(ctx, project)
 		}
 	}
 
-	return taskrunner.Run(ctx, &taskrunner.RunOpts{
+	_, err := taskrunner.Run(ctx, &taskrunner.RunOpts[struct{}]{
 		Tasks:          tasks,
 		Mode:           d.executionMode,
 		MaxConcurrency: d.maxConcurrency,
 	})
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (d *driver) addDependencies(ctx context.Context, project *types.Project, references []reference.Reference) error {

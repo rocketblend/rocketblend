@@ -15,13 +15,13 @@ const (
 type (
 	ExecutionMode int
 
-	RunOpts struct {
-		Tasks          []Task
+	RunOpts[T any] struct {
+		Tasks          []Task[T]
 		Mode           ExecutionMode
 		MaxConcurrency int
 	}
 
-	Task func(ctx context.Context) error
+	Task[T any] func(ctx context.Context) (T, error)
 )
 
 var (
@@ -31,13 +31,9 @@ var (
 )
 
 // Run executes the tasks based on the provided options.
-func Run(ctx context.Context, opts *RunOpts) error {
+func Run[T any](ctx context.Context, opts *RunOpts[T]) ([]T, error) {
 	if err := validateOpts(opts); err != nil {
-		return err
-	}
-
-	if len(opts.Tasks) == 1 {
-		return opts.Tasks[0](ctx)
+		return nil, err
 	}
 
 	switch opts.Mode {
@@ -51,12 +47,12 @@ func Run(ctx context.Context, opts *RunOpts) error {
 	case WorkerPool:
 		return runWithWorkerPool(ctx, opts.Tasks, opts.MaxConcurrency)
 	default:
-		return ErrInvalidMode
+		return nil, ErrInvalidMode
 	}
 }
 
 // validateOpts checks the options for any configuration errors before execution.
-func validateOpts(opts *RunOpts) error {
+func validateOpts[T any](opts *RunOpts[T]) error {
 	if opts.MaxConcurrency < 0 {
 		return ErrNegativeConcurrency
 	}
@@ -69,87 +65,93 @@ func validateOpts(opts *RunOpts) error {
 }
 
 // runSequentially executes the tasks sequentially.
-func runSequentially(ctx context.Context, tasks []Task) error {
+func runSequentially[T any](ctx context.Context, tasks []Task[T]) ([]T, error) {
+	results := make([]T, 0, len(tasks))
 	for _, task := range tasks {
-		if err := task(ctx); err != nil {
-			return err
+		result, err := task(ctx)
+		if err != nil {
+			return nil, err
 		}
+		results = append(results, result)
 	}
 
-	return nil
+	return results, nil
 }
 
 // runConcurrently executes the tasks concurrently.
-func runConcurrently(ctx context.Context, tasks []Task) error {
+func runConcurrently[T any](ctx context.Context, tasks []Task[T]) ([]T, error) {
 	var wg sync.WaitGroup
 	errChan := make(chan error, len(tasks))
+	resultChan := make(chan T, len(tasks))
 
 	for _, task := range tasks {
 		wg.Add(1)
-		go func(t Task) {
+		go func(t Task[T]) {
 			defer wg.Done()
-			if err := t(ctx); err != nil {
+			result, err := t(ctx)
+			if err != nil {
 				errChan <- err
+			} else {
+				resultChan <- result
 			}
 		}(task)
 	}
 
 	wg.Wait()
 	close(errChan)
+	close(resultChan)
 
-	return collectErrors(errChan)
+	if err := collectErrors(errChan); err != nil {
+		return nil, err
+	}
+
+	return collectResults(resultChan), nil
 }
 
 // runWithControlledConcurrency executes the tasks concurrently with controlled concurrency.
-func runWithControlledConcurrency(ctx context.Context, tasks []Task, maxConcurrency int) error {
+func runWithControlledConcurrency[T any](ctx context.Context, tasks []Task[T], maxConcurrency int) ([]T, error) {
 	sem := make(chan struct{}, maxConcurrency)
 	var wg sync.WaitGroup
 	errChan := make(chan error, len(tasks))
+	resultChan := make(chan T, len(tasks))
 
 	for _, task := range tasks {
 		sem <- struct{}{} // Acquire a token
 		wg.Add(1)
-		go func(t Task) {
+		go func(t Task[T]) {
 			defer wg.Done()
 			defer func() { <-sem }() // Release the token
-			if err := t(ctx); err != nil {
+			result, err := t(ctx)
+			if err != nil {
 				errChan <- err
+			} else {
+				resultChan <- result
 			}
 		}(task)
 	}
 
 	wg.Wait()
 	close(errChan)
+	close(resultChan)
 
-	return collectErrors(errChan)
-}
-
-// worker is a helper function that executes tasks from a channel.
-func worker(ctx context.Context, tasks <-chan Task, wg *sync.WaitGroup, errChan chan<- error) {
-	defer wg.Done()
-	for task := range tasks {
-		select {
-		case <-ctx.Done():
-			errChan <- ctx.Err()
-			return
-		default:
-			if err := task(ctx); err != nil {
-				errChan <- err
-			}
-		}
+	if err := collectErrors(errChan); err != nil {
+		return nil, err
 	}
+
+	return collectResults(resultChan), nil
 }
 
 // runWithWorkerPool executes the tasks using a worker pool.
-func runWithWorkerPool(ctx context.Context, tasks []Task, numWorkers int) error {
-	tasksChan := make(chan Task, len(tasks))
+func runWithWorkerPool[T any](ctx context.Context, tasks []Task[T], numWorkers int) ([]T, error) {
+	tasksChan := make(chan Task[T], len(tasks))
 	errChan := make(chan error, len(tasks))
+	resultChan := make(chan T, len(tasks))
 	var wg sync.WaitGroup
 
 	// Start workers
 	for i := 0; i < numWorkers; i++ {
 		wg.Add(1)
-		go worker(ctx, tasksChan, &wg, errChan)
+		go worker(ctx, tasksChan, &wg, errChan, resultChan)
 	}
 
 	// Send tasks to the channel
@@ -161,8 +163,32 @@ func runWithWorkerPool(ctx context.Context, tasks []Task, numWorkers int) error 
 	// Wait for all workers to finish
 	wg.Wait()
 	close(errChan)
+	close(resultChan)
 
-	return collectErrors(errChan)
+	if err := collectErrors(errChan); err != nil {
+		return nil, err
+	}
+
+	return collectResults(resultChan), nil
+}
+
+// worker processes tasks from the tasks channel.
+func worker[T any](ctx context.Context, tasks <-chan Task[T], wg *sync.WaitGroup, errChan chan<- error, resultChan chan<- T) {
+	defer wg.Done()
+	for task := range tasks {
+		select {
+		case <-ctx.Done():
+			errChan <- ctx.Err()
+			return
+		default:
+			result, err := task(ctx)
+			if err != nil {
+				errChan <- err
+			} else {
+				resultChan <- result
+			}
+		}
+	}
 }
 
 // collectErrors aggregates all errors from the error channel.
@@ -175,4 +201,14 @@ func collectErrors(errChan chan error) error {
 	}
 
 	return err
+}
+
+// collectResults aggregates results from a channel into a slice.
+func collectResults[T any](resultChan <-chan T) []T {
+	var results []T
+	for result := range resultChan {
+		results = append(results, result)
+	}
+
+	return results
 }

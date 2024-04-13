@@ -108,31 +108,41 @@ func (r *repository) getPackages(ctx context.Context, references []reference.Ref
 }
 
 func (r *repository) removePackages(ctx context.Context, references []reference.Reference) error {
-	tasks := make([]taskrunner.Task, len(references))
+	tasks := make([]taskrunner.Task[struct{}], len(references))
 	for _, ref := range references {
-		tasks = append(tasks, func(ctx context.Context) error {
-			return r.removePackage(ctx, ref)
+		tasks = append(tasks, func(ctx context.Context) (struct{}, error) {
+			return struct{}{}, r.removePackage(ctx, ref)
 		})
 	}
 
-	return taskrunner.Run(ctx, &taskrunner.RunOpts{
+	_, err := taskrunner.Run(ctx, &taskrunner.RunOpts[struct{}]{
 		Tasks: tasks,
 		Mode:  taskrunner.Concurrent,
 	})
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (r *repository) insertPackages(ctx context.Context, packs map[reference.Reference]*types.Package) error {
-	tasks := make([]taskrunner.Task, len(packs))
+	tasks := make([]taskrunner.Task[struct{}], len(packs))
 	for ref, pack := range packs {
-		tasks = append(tasks, func(ctx context.Context) error {
-			return r.insertPackage(ctx, ref, pack)
+		tasks = append(tasks, func(ctx context.Context) (struct{}, error) {
+			return struct{}{}, r.insertPackage(ctx, ref, pack)
 		})
 	}
 
-	return taskrunner.Run(ctx, &taskrunner.RunOpts{
+	_, err := taskrunner.Run(ctx, &taskrunner.RunOpts[struct{}]{
 		Tasks: tasks,
 		Mode:  taskrunner.Concurrent,
 	})
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (r *repository) insertPackage(ctx context.Context, ref reference.Reference, pack *types.Package) error {

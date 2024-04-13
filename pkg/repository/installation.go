@@ -6,7 +6,6 @@ import (
 	"os"
 	"path"
 	"path/filepath"
-	"sync"
 
 	"github.com/rocketblend/rocketblend/pkg/driver/reference"
 	"github.com/rocketblend/rocketblend/pkg/helpers"
@@ -21,9 +20,8 @@ const (
 
 type (
 	getInstallationResult struct {
-		ref   reference.Reference
-		inst  *types.Installation
-		error error
+		reference    reference.Reference
+		installation *types.Installation
 	}
 )
 
@@ -65,13 +63,13 @@ func (r *repository) getInstallations(ctx context.Context, dependencies []*types
 		references = append(references, dep.Reference)
 	}
 
-	rocketPacks, err := r.getPackages(ctx, references, false)
+	packs, err := r.getPackages(ctx, references, false)
 	if err != nil {
 		return nil, err
 	}
 
 	for _, dep := range dependencies {
-		if pack, ok := rocketPacks[dep.Reference]; ok {
+		if pack, ok := packs[dep.Reference]; ok {
 			if pack.Type != dep.Type {
 				return nil, fmt.Errorf("dependency type mismatch: %s", dep.Reference.String())
 			}
@@ -80,49 +78,31 @@ func (r *repository) getInstallations(ctx context.Context, dependencies []*types
 		}
 	}
 
-	ctx, cancel := context.WithCancel(ctx)
-	defer cancel()
-
-	results := make(chan getInstallationResult, len(rocketPacks))
-	var wg sync.WaitGroup
-	wg.Add(len(rocketPacks))
-
-	for ref, pack := range rocketPacks {
-		go func(ref reference.Reference, pack *types.Package) {
-			defer wg.Done()
-
+	tasks := make([]taskrunner.Task[*getInstallationResult], 0, len(packs))
+	for ref, pack := range packs {
+		tasks = append(tasks, func(ctx context.Context) (*getInstallationResult, error) {
 			installation, err := r.getInstallation(ctx, ref, pack, fetch)
 			if err != nil {
-				cancel() // Cancel all operations as soon as an error is encountered
-				results <- getInstallationResult{ref: ref, error: err}
-				return
+				return nil, err
 			}
-			results <- getInstallationResult{ref: ref, inst: installation}
-		}(ref, pack)
+
+			return &getInstallationResult{reference: ref, installation: installation}, nil
+		})
+	}
+	results, err := taskrunner.Run(ctx, &taskrunner.RunOpts[*getInstallationResult]{
+		Tasks: tasks,
+		Mode:  taskrunner.Concurrent,
+	})
+	if err != nil {
+		return nil, err
 	}
 
-	go func() {
-		wg.Wait()
-		close(results)
-	}()
-
-	installations := make(map[reference.Reference]*types.Installation, len(rocketPacks))
-	var retErr error
-
-	for res := range results {
-		if res.error != nil {
-			if retErr == nil { // Store the first error encountered
-				retErr = res.error
-			}
-			// Continue to drain the channel
-		}
-
-		if res.inst != nil {
-			installations[res.ref] = res.inst
-		}
+	installations := make(map[reference.Reference]*types.Installation, len(results))
+	for _, res := range results {
+		installations[res.reference] = res.installation
 	}
 
-	return installations, retErr
+	return installations, nil
 }
 
 func (r *repository) getInstallation(ctx context.Context, reference reference.Reference, pack *types.Package, fetch bool) (*types.Installation, error) {
@@ -177,17 +157,21 @@ func (r *repository) removeInstallations(ctx context.Context, references []refer
 		return err
 	}
 
-	tasks := make([]taskrunner.Task, len(packs))
+	tasks := make([]taskrunner.Task[struct{}], 0, len(packs))
 	for ref := range packs {
-		tasks = append(tasks, func(ctx context.Context) error {
-			return r.removeInstallation(ctx, ref)
+		tasks = append(tasks, func(ctx context.Context) (struct{}, error) {
+			return struct{}{}, r.removeInstallation(ctx, ref)
 		})
 	}
-
-	return taskrunner.Run(ctx, &taskrunner.RunOpts{
+	_, err = taskrunner.Run(ctx, &taskrunner.RunOpts[struct{}]{
 		Tasks: tasks,
 		Mode:  taskrunner.Concurrent,
 	})
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (r *repository) downloadInstallation(ctx context.Context, downloadURI *types.URI, installationPath string) error {
