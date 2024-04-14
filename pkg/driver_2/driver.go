@@ -13,10 +13,6 @@ import (
 	"github.com/rocketblend/rocketblend/pkg/types"
 )
 
-const (
-	MaxDependencyDepth = 10
-)
-
 type (
 	Options struct {
 		Logger    logger.Logger

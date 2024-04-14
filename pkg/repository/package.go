@@ -4,7 +4,6 @@ import (
 	"context"
 	"os"
 	"path/filepath"
-	"sync"
 
 	"github.com/go-git/go-git/v5"
 	"github.com/rocketblend/rocketblend/pkg/driver/reference"
@@ -15,8 +14,8 @@ import (
 
 type (
 	getPackageResult struct {
-		packs map[reference.Reference]*types.Package
-		error error
+		Reference reference.Reference
+		Package   *types.Package
 	}
 )
 
@@ -60,48 +59,29 @@ func (r *repository) InsertPackages(ctx context.Context, opts *types.InsertPacka
 }
 
 func (r *repository) getPackages(ctx context.Context, references []reference.Reference, update bool) (map[reference.Reference]*types.Package, error) {
-	if err := ctx.Err(); err != nil {
+	tasks := make([]taskrunner.Task[*getPackageResult], len(references))
+	for _, ref := range references {
+		tasks = append(tasks, func(ctx context.Context) (*getPackageResult, error) {
+			pack, err := r.getPackage(ctx, ref, update)
+			if err != nil {
+				return nil, err
+			}
+
+			return &getPackageResult{Reference: ref, Package: pack}, nil
+		})
+	}
+
+	results, err := taskrunner.Run(ctx, &taskrunner.RunOpts[*getPackageResult]{
+		Tasks: tasks,
+		Mode:  taskrunner.Concurrent,
+	})
+	if err != nil {
 		return nil, err
 	}
 
-	ctx, cancel := context.WithCancel(ctx)
-	defer cancel()
-
-	results := make(chan getPackageResult)
-	var wg sync.WaitGroup
-	wg.Add(len(references))
-
-	for _, ref := range references {
-		go func(ref reference.Reference) {
-			defer wg.Done()
-
-			packs, err := r.getPackage(ctx, ref, update)
-			if err != nil {
-				cancel()
-				results <- getPackageResult{packs: nil, error: err}
-				return
-			}
-
-			results <- getPackageResult{packs: packs, error: nil}
-		}(ref)
-	}
-
-	go func() {
-		wg.Wait()
-		close(results)
-	}()
-
 	packages := make(map[reference.Reference]*types.Package)
-	for res := range results {
-		if res.error != nil {
-			return nil, res.error
-		}
-
-		if res.packs != nil {
-			for ref, pack := range res.packs {
-				packages[ref] = pack
-			}
-		}
+	for _, res := range results {
+		packages[res.Reference] = res.Package
 	}
 
 	return packages, nil
@@ -171,14 +151,13 @@ func (r *repository) insertPackage(ctx context.Context, ref reference.Reference,
 	return nil
 }
 
-func (s *repository) getPackage(ctx context.Context, ref reference.Reference, update bool) (map[reference.Reference]*types.Package, error) {
+func (s *repository) getPackage(ctx context.Context, ref reference.Reference, update bool) (*types.Package, error) {
 	if err := ctx.Err(); err != nil {
 		return nil, err
 	}
 
 	s.logger.Info("processing reference", map[string]interface{}{"reference": ref.String()})
 
-	packages := make(map[reference.Reference]*types.Package)
 	repo, err := ref.GetRepo()
 	if err != nil {
 		s.logger.Error("error getting repository", map[string]interface{}{"error": err, "reference": ref.String()})
@@ -222,9 +201,7 @@ func (s *repository) getPackage(ctx context.Context, ref reference.Reference, up
 		return nil, err
 	}
 
-	packages[ref] = pack
-
-	return packages, nil
+	return pack, nil
 }
 
 func (s *repository) removePackage(ctx context.Context, reference reference.Reference) error {

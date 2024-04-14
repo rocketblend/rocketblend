@@ -14,9 +14,7 @@ import (
 	"github.com/rocketblend/rocketblend/pkg/types"
 )
 
-const (
-	LockFileName = "reference.lock"
-)
+const LockFileName = "reference.lock"
 
 type (
 	getInstallationResult struct {
@@ -52,7 +50,6 @@ func (r *repository) RemoveInstallations(ctx context.Context, opts *types.Remove
 	return nil
 }
 
-// TODO: Return a map of reference to error instead of returning the first error encountered.
 func (r *repository) getInstallations(ctx context.Context, dependencies []*types.Dependency, fetch bool) (map[reference.Reference]*types.Installation, error) {
 	if err := ctx.Err(); err != nil {
 		return nil, err
