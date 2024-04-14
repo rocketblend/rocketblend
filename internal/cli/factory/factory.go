@@ -7,11 +7,11 @@ import (
 	"sync"
 
 	"github.com/flowshot-io/x/pkg/logger"
+	"github.com/rocketblend/rocketblend/internal/cli/build"
+	"github.com/rocketblend/rocketblend/internal/cli/config"
 	"github.com/rocketblend/rocketblend/pkg/driver/blendfile"
 	"github.com/rocketblend/rocketblend/pkg/driver/installation"
 	"github.com/rocketblend/rocketblend/pkg/driver/rocketpack"
-	"github.com/rocketblend/rocketblend/pkg/rocketblend/build"
-	"github.com/rocketblend/rocketblend/pkg/rocketblend/config"
 )
 
 type (

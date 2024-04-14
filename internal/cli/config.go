@@ -1,4 +1,4 @@
-package command
+package cli
 
 import (
 	"fmt"
@@ -8,10 +8,10 @@ import (
 
 // newConfigCommand creates a new cobra command that manages the configuration for RocketBlend.
 // It either sets a new configuration value if the 'set' flag is used, or retrieves a value for the provided key.
-func (srv *Service) newConfigCommand() *cobra.Command {
+func (c *cli) newConfigCommand() *cobra.Command {
 	var value string
 
-	c := &cobra.Command{
+	cc := &cobra.Command{
 		Use:   "config [key]",
 		Short: "Manage the configuration for RocketBlend",
 		Long:  `Fetches or sets a configuration value for RocketBlend. Provide a key to retrieve its value, or use the 'set' flag to set a new value for the key.`,
@@ -19,7 +19,7 @@ func (srv *Service) newConfigCommand() *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			key := args[0]
 
-			config, err := srv.factory.GetConfigService()
+			config, err := c.factory.GetConfigService()
 			if err != nil {
 				return fmt.Errorf("failed to create config service: %w", err)
 			}
@@ -41,7 +41,7 @@ func (srv *Service) newConfigCommand() *cobra.Command {
 		},
 	}
 
-	c.Flags().StringVarP(&value, "set", "s", "", "set a value in the config file")
+	cc.Flags().StringVarP(&value, "set", "s", "", "set a value in the config file")
 
-	return c
+	return cc
 }

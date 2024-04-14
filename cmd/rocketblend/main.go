@@ -7,7 +7,7 @@ import (
 	"os/signal"
 	"syscall"
 
-	cli "github.com/rocketblend/rocketblend/pkg/rocketblend"
+	"github.com/rocketblend/rocketblend/internal/cli"
 )
 
 func main() {

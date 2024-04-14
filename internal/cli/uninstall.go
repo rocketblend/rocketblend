@@ -1,22 +1,21 @@
-package command
+package cli
 
 import (
 	"context"
 
 	"github.com/rocketblend/rocketblend/pkg/driver/reference"
-	"github.com/rocketblend/rocketblend/pkg/rocketblend/helpers"
 	"github.com/spf13/cobra"
 )
 
 // newUninstallCommand creates a new cobra.Command that uninstalls dependencies from the current project.
-func (srv *Service) newUninstallCommand() *cobra.Command {
-	c := &cobra.Command{
+func (c *cli) newUninstallCommand() *cobra.Command {
+	cc := &cobra.Command{
 		Use:   "uninstall [reference]",
 		Short: "Remove project dependencies",
 		Long:  "Removes dependencies from the current project.",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			rocketblend, err := srv.getDriver()
+			rocketblend, err := c.getDriver()
 			if err != nil {
 				return err
 			}
@@ -26,11 +25,11 @@ func (srv *Service) newUninstallCommand() *cobra.Command {
 				return err
 			}
 
-			return srv.runWithSpinner(cmd.Context(), func(ctx context.Context) error {
+			return c.runWithSpinner(cmd.Context(), func(ctx context.Context) error {
 				return rocketblend.RemoveDependencies(ctx, ref)
-			}, &helpers.SpinnerOptions{Suffix: "Removing package..."})
+			}, &spinnerOptions{Suffix: "Removing package..."})
 		},
 	}
 
-	return c
+	return cc
 }

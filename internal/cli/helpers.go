@@ -1,34 +1,33 @@
-package helpers
+package cli
 
 import (
 	"context"
 	"fmt"
 	"path/filepath"
-	"sort"
 	"time"
 
 	"github.com/briandowns/spinner"
 )
 
-type SpinnerOptions struct {
+type spinnerOptions struct {
 	Spinner          []string
 	Suffix           string
 	CompletedMessage string
 	CanceledMessage  string
 }
 
-func RemoveDuplicateStr(strs []string) []string {
-	sort.Strings(strs)
-	for i := len(strs) - 1; i > 0; i-- {
-		if strs[i] == strs[i-1] {
-			strs = append(strs[:i], strs[i+1:]...)
-		}
-	}
+// func removeDuplicateStr(strs []string) []string {
+// 	sort.Strings(strs)
+// 	for i := len(strs) - 1; i > 0; i-- {
+// 		if strs[i] == strs[i-1] {
+// 			strs = append(strs[:i], strs[i+1:]...)
+// 		}
+// 	}
 
-	return strs
-}
+// 	return strs
+// }
 
-func FindFilePathForExt(dir string, ext string) (string, error) {
+func findFilePathForExt(dir string, ext string) (string, error) {
 	// Get a list of all files in the current directory.
 
 	files, err := filepath.Glob(filepath.Join(dir, "*"+ext))
@@ -43,9 +42,9 @@ func FindFilePathForExt(dir string, ext string) (string, error) {
 	return files[0], nil
 }
 
-func RunWithSpinner(ctx context.Context, f func(context.Context) error, options *SpinnerOptions) error {
+func runWithSpinner(ctx context.Context, f func(context.Context) error, options *spinnerOptions) error {
 	if options == nil {
-		options = &SpinnerOptions{}
+		options = &spinnerOptions{}
 	}
 
 	if options.Spinner == nil {

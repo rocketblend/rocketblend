@@ -1,24 +1,23 @@
-package command
+package cli
 
 import (
 	"context"
 
 	"github.com/rocketblend/rocketblend/pkg/driver/reference"
-	"github.com/rocketblend/rocketblend/pkg/rocketblend/helpers"
 	"github.com/spf13/cobra"
 )
 
 // newInstallCommand creates a new cobra command for installing project dependencies.
-func (srv *Service) newInstallCommand() *cobra.Command {
+func (c *cli) newInstallCommand() *cobra.Command {
 	var forceUpdate bool
 
-	c := &cobra.Command{
+	cc := &cobra.Command{
 		Use:   "install [reference]",
 		Short: "Installs project dependencies",
 		Long:  `Adds the specified dependencies to the current project and installs them. If no reference is provided, all dependencies in the project are installed instead.`,
 		Args:  cobra.MaximumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			rocketblend, err := srv.getDriver()
+			rocketblend, err := c.getDriver()
 			if err != nil {
 				return err
 			}
@@ -30,19 +29,19 @@ func (srv *Service) newInstallCommand() *cobra.Command {
 				}
 
 				// Add and installs the dependency to the project.
-				return srv.runWithSpinner(cmd.Context(), func(ctx context.Context) error {
+				return c.runWithSpinner(cmd.Context(), func(ctx context.Context) error {
 					return rocketblend.AddDependencies(ctx, forceUpdate, ref)
-				}, &helpers.SpinnerOptions{Suffix: "Installing package..."})
+				}, &spinnerOptions{Suffix: "Installing package..."})
 			}
 
 			// Installs all dependencies in the project.
-			return srv.runWithSpinner(cmd.Context(), func(ctx context.Context) error {
+			return c.runWithSpinner(cmd.Context(), func(ctx context.Context) error {
 				return rocketblend.InstallDependencies(ctx)
-			}, &helpers.SpinnerOptions{Suffix: "Installing dependencies..."})
+			}, &spinnerOptions{Suffix: "Installing dependencies..."})
 		},
 	}
 
-	c.Flags().BoolVarP(&forceUpdate, "update", "u", false, "refreshes the package definition before installing it")
+	cc.Flags().BoolVarP(&forceUpdate, "update", "u", false, "refreshes the package definition before installing it")
 
-	return c
+	return cc
 }
