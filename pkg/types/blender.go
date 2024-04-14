@@ -13,7 +13,8 @@ type (
 	}
 
 	BlenderOpts struct {
-		Background bool `json:"background"`
+		Background   bool `json:"background"`
+		ModifyAddons bool `json:"modifyAddons"`
 	}
 
 	RenderOpts struct {
@@ -27,7 +28,7 @@ type (
 	}
 
 	RunOpts struct {
-		BlendFile *BlendFile `json:"blendFile" validate:"required"`
+		BlendFile *BlendFile `json:"blendFile,omitempty" validate:"omitempty,dive,required"`
 		BlenderOpts
 	}
 
