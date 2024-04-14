@@ -8,6 +8,14 @@ import (
 	"github.com/rocketblend/rocketblend/pkg/types"
 )
 
+type (
+	runArguments struct {
+		background    bool
+		blendFilePath string
+		script        string
+	}
+)
+
 func (b *blender) Run(ctx context.Context, opts *types.RunOpts) error {
 	if err := b.validator.Validate(opts); err != nil {
 		return err

@@ -19,27 +19,27 @@ type (
 	}
 
 	BlenderOpts struct {
-		Background   bool `json:"background"`
-		ModifyAddons bool `json:"modifyAddons"`
+		Background bool       `json:"background"`
+		BlendFile  *BlendFile `json:"blendFile,omitempty" validate:"omitempty,dive,required"`
 	}
 
 	RenderOpts struct {
-		BlendFile  *BlendFile `json:"blendFile" validate:"required"`
-		FrameStart int        `json:"frameStart" validate:"gte=0"`
-		FrameEnd   int        `json:"frameEnd" validate:"gtfield=FrameStart"`
-		FrameStep  int        `json:"frameStep" validate:"gte=1"`
-		Output     string     `json:"output"`
-		Format     string     `json:"format"`
+		Start         int
+		End           int
+		Step          int
+		Output        string
+		Format        RenderFormat
+		CyclesDevices []CyclesDevice
+		Threads       int
 		BlenderOpts
 	}
 
 	RunOpts struct {
-		BlendFile *BlendFile `json:"blendFile,omitempty" validate:"omitempty,dive,required"`
 		BlenderOpts
 	}
 
 	CreateOpts struct {
-		BlendFile *BlendFile `json:"blendFile" validate:"required"`
+		BlenderOpts
 	}
 
 	Blender interface {

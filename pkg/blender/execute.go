@@ -16,11 +16,13 @@ type (
 	}
 
 	postArguments struct {
+		render *renderArguments
 		addons []*types.Installation
 		script string
 	}
 
 	arguments struct {
+		// TOOD: Do I need these separate structs?
 		preArguments  *preArguments
 		postArguments *postArguments
 	}
