@@ -302,7 +302,6 @@ func (d *driver) resolve(ctx context.Context, project *types.Project) (*types.Bl
 	return &types.BlendFile{
 		Name:         project.Name(),
 		Path:         project.BlendFilePath,
-		ARGS:         project.Profile.ARGS,
 		Dependencies: dependencies,
 	}, nil
 }

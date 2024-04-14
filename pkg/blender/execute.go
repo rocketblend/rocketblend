@@ -3,88 +3,18 @@ package blender
 import (
 	"bufio"
 	"context"
-	"encoding/json"
 	"os/exec"
 
 	"github.com/rocketblend/rocketblend/pkg/types"
 )
 
 type (
-	preArguments struct {
-		background    bool
-		blendFilePath string
-	}
-
-	postArguments struct {
-		render *renderArguments
-		addons []*types.Installation
-		script string
-	}
-
-	arguments struct {
-		// TOOD: Do I need these separate structs?
-		preArguments  *preArguments
-		postArguments *postArguments
-	}
-
 	executable struct {
 		executable string
 		arguments  *arguments
 		output     chan string
 	}
 )
-
-func (a *preArguments) ARGS() []string {
-	args := []string{}
-	if a.background {
-		args = append(args, "-b")
-	}
-
-	if a.blendFilePath != "" {
-		args = append(args, a.blendFilePath)
-	}
-
-	return args
-}
-
-func (a *postArguments) ARGS() []string {
-	if a.script == "" {
-		return nil
-	}
-
-	args := []string{
-		"--python-expr",
-		a.script,
-	}
-
-	if a.addons != nil {
-		json, err := json.Marshal(a.addons)
-		if err != nil {
-			return nil
-		}
-
-		args = append(args, []string{
-			"--",
-			"-a",
-			string(json),
-		}...)
-	}
-
-	return args
-}
-
-func (a *arguments) ARGS() []string {
-	args := []string{}
-	if a.preArguments != nil {
-		args = append(args, a.preArguments.ARGS()...)
-	}
-
-	if a.postArguments != nil {
-		args = append(args, a.postArguments.ARGS()...)
-	}
-
-	return args
-}
 
 func (e *executable) ARGS() []string {
 	args := []string{}

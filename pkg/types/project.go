@@ -18,8 +18,8 @@ type (
 
 	Profile struct {
 		Spec         semver.Version `json:"spec,omitempty"`
-		ARGS         []string       `json:"args,omitempty"`
 		Dependencies []*Dependency  `json:"dependencies,omitempty" validate:"omitempty,dive,required"`
+		// ARGS         []string       `json:"args,omitempty"`
 	}
 
 	Project struct {

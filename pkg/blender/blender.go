@@ -1,8 +1,6 @@
 package blender
 
 import (
-	"context"
-
 	"github.com/flowshot-io/x/pkg/logger"
 	"github.com/rocketblend/rocketblend/pkg/types"
 	"github.com/rocketblend/rocketblend/pkg/validator"
@@ -36,8 +34,4 @@ func New(opts ...Option) (*blender, error) {
 		logger:    options.Logger,
 		validator: options.Validator,
 	}, nil
-}
-
-func (b *blender) Render(ctx context.Context, opts *types.RenderOpts) error {
-	return nil
 }

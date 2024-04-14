@@ -15,7 +15,7 @@ type (
 		Name         string          `json:"name" validate:"required"`
 		Path         string          `json:"path" validate:"required,filepath,blendfile"`
 		Dependencies []*Installation `json:"dependencies" validate:"required,onebuild,dive,required"`
-		ARGS         []string        `json:"args"`
+		// ARGS         []string        `json:"args"`
 	}
 
 	BlenderOpts struct {
