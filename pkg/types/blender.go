@@ -5,6 +5,12 @@ import (
 )
 
 type (
+	Executable interface {
+		Name() string
+		ARGS() []string
+		OutputChannel() chan string
+	}
+
 	BlendFile struct {
 		Name         string          `json:"name" validate:"required"`
 		Path         string          `json:"path" validate:"required,filepath,blendfile"`
