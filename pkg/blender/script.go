@@ -6,12 +6,12 @@ import (
 )
 
 type (
-	createScriptData struct {
+	createBlendFileData struct {
 		Path string `json:"path"`
 	}
 )
 
-func getCreateScript(data *createScriptData) (string, error) {
+func createBlendFileScript(data *createBlendFileData) (string, error) {
 	result, err := helpers.ParseTemplateWithData(python.CreateScript, data)
 	if err != nil {
 		return "", err
@@ -20,6 +20,6 @@ func getCreateScript(data *createScriptData) (string, error) {
 	return result, nil
 }
 
-func getStartupScript() string {
+func startupScript() string {
 	return python.StartupScript
 }

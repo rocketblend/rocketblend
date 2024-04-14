@@ -13,9 +13,14 @@ func (b *blender) Run(ctx context.Context, opts *types.RunOpts) error {
 		return err
 	}
 
-	builds := opts.BlendFile.FindAll(types.PackageBuild)
-	if len(builds) == 0 {
-		return errors.New("no builds found")
+	build := opts.BlendFile.Build()
+	if build == nil {
+		return errors.New("missing build")
+	}
+
+	addons := opts.BlendFile.Addons()
+	if !opts.ModifyAddons {
+		addons = nil
 	}
 
 	outputChannel := make(chan string, 100)
@@ -23,7 +28,16 @@ func (b *blender) Run(ctx context.Context, opts *types.RunOpts) error {
 
 	go ProcessChannel(outputChannel, b.processOuput)
 
-	if err := b.execute(ctx, builds[0].Path, &arguments{}, outputChannel); err != nil {
+	if err := b.execute(ctx, build.Path, &arguments{
+		preArguments: &preArguments{
+			background:    opts.Background,
+			blendFilePath: opts.BlendFile.Path,
+		},
+		postArguments: &postArguments{
+			addons: addons,
+			script: startupScript(),
+		},
+	}, outputChannel); err != nil {
 		return err
 	}
 

@@ -49,7 +49,20 @@ type (
 	}
 )
 
-func (b *BlendFile) FindAll(packageType PackageType) []*Installation {
+func (b *BlendFile) Build() *Installation {
+	builds := b.find(PackageBuild)
+	if len(builds) > 0 {
+		return builds[0]
+	}
+
+	return nil
+}
+
+func (b *BlendFile) Addons() []*Installation {
+	return b.find(PackageAddon)
+}
+
+func (b *BlendFile) find(packageType PackageType) []*Installation {
 	if b.Dependencies == nil {
 		return nil
 	}

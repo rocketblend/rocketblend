@@ -21,9 +21,8 @@ type (
 	}
 
 	arguments struct {
-		preArguments       *preArguments
-		postArguments      *postArguments
-		ignoreDependencies bool
+		preArguments  *preArguments
+		postArguments *postArguments
 	}
 
 	executable struct {
@@ -47,7 +46,15 @@ func (a *preArguments) ARGS() []string {
 }
 
 func (a *postArguments) ARGS() []string {
-	args := []string{}
+	if a.script == "" {
+		return nil
+	}
+
+	args := []string{
+		"--python-expr",
+		a.script,
+	}
+
 	if a.addons != nil {
 		json, err := json.Marshal(a.addons)
 		if err != nil {
@@ -55,8 +62,6 @@ func (a *postArguments) ARGS() []string {
 		}
 
 		args = append(args, []string{
-			"--python-expr",
-			a.script,
 			"--",
 			"-a",
 			string(json),
