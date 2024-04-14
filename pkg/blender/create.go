@@ -36,8 +36,8 @@ func (b *blender) Create(ctx context.Context, opts *types.CreateOpts) error {
 	})
 
 	if err := b.execute(ctx, build.Path, &arguments{
-		script:     script,
-		background: opts.Background,
+		Script:     script,
+		Background: opts.Background,
 	}, nil); err != nil {
 		b.logger.Error("blender", map[string]interface{}{
 			"message": "error creating blend file",

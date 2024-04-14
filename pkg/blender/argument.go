@@ -11,73 +11,73 @@ import (
 
 type (
 	renderArguments struct {
-		start   int
-		end     int
-		step    int
-		output  string
-		format  types.RenderFormat
-		devices []types.CyclesDevice
-		threads int
+		Start   int
+		End     int
+		Step    int
+		Output  string
+		Format  types.RenderFormat
+		Devices []types.CyclesDevice
+		Threads int
 	}
 
 	rocketblendArguments struct {
-		addons []*types.Installation
+		Addons []*types.Installation
 	}
 
 	arguments struct {
-		background    bool
-		blendFilePath string
-		script        string
-		render        *renderArguments
-		rockeblend    *rocketblendArguments
+		Background    bool
+		BlendFilePath string
+		Script        string
+		Render        *renderArguments
+		Rockeblend    *rocketblendArguments
 	}
 )
 
 func (a *renderArguments) ARGS() []string {
-	if a.start == 0 && a.end == 0 {
+	if a.Start == 0 && a.End == 0 {
 		return nil
 	}
 
 	args := []string{}
-	if a.start != 0 {
-		args = append(args, "--frame-start", fmt.Sprint(a.start))
+	if a.Start != 0 {
+		args = append(args, "--frame-start", fmt.Sprint(a.Start))
 	}
 
-	if a.end != 0 {
-		args = append(args, "--frame-end", fmt.Sprint(a.end))
+	if a.End != 0 {
+		args = append(args, "--frame-end", fmt.Sprint(a.End))
 	}
 
-	if a.step != 0 {
-		args = append(args, "--frame-jump", fmt.Sprint(a.step))
+	if a.Step != 0 {
+		args = append(args, "--frame-jump", fmt.Sprint(a.Step))
 	}
 
-	if a.output != "" {
-		args = append(args, "--render-output", a.output)
+	if a.Output != "" {
+		args = append(args, "--render-output", a.Output)
 	}
 
-	if a.format != "" {
-		args = append(args, "--render-format", string(a.format), "-x", "1")
+	if a.Format != "" {
+		args = append(args, "--render-format", string(a.Format), "-x", "1")
 	}
 
-	if len(a.devices) > 0 {
+	if len(a.Devices) > 0 {
 		devices := []string{"--cycles-device"}
-		for _, device := range a.devices {
+		for _, device := range a.Devices {
 			devices = append(devices, string(device))
 		}
 
 		args = append(args, strings.Join(devices, "+"))
 	}
 
-	if a.threads > 0 {
-		args = append(args, "-t", strconv.Itoa(a.threads))
+	if a.Threads > 0 {
+		args = append(args, "-t", strconv.Itoa(a.Threads))
 	}
 
 	return append(args, "-a")
 }
 
 func (a *rocketblendArguments) ARGS() []string {
-	if a.addons != nil {
-		json, err := json.Marshal(a.addons)
+	if a.Addons != nil {
+		json, err := json.Marshal(a.Addons)
 		if err != nil {
 			return nil
 		}
@@ -94,27 +94,27 @@ func (a *rocketblendArguments) ARGS() []string {
 
 func (a *arguments) ARGS() []string {
 	args := []string{}
-	if a.background {
+	if a.Background {
 		args = append(args, "-b")
 	}
 
-	if a.blendFilePath != "" {
-		args = append(args, a.blendFilePath)
+	if a.BlendFilePath != "" {
+		args = append(args, a.BlendFilePath)
 	}
 
-	if a.script != "" {
+	if a.Script != "" {
 		args = append(args, []string{
 			"--python-expr",
-			a.script,
+			a.Script,
 		}...)
 	}
 
-	if a.render != nil {
-		args = append(args, a.render.ARGS()...)
+	if a.Render != nil {
+		args = append(args, a.Render.ARGS()...)
 	}
 
-	if a.script != "" && a.rockeblend != nil {
-		args = append(args, a.rockeblend.ARGS()...)
+	if a.Script != "" && a.Rockeblend != nil {
+		args = append(args, a.Rockeblend.ARGS()...)
 	}
 
 	return args

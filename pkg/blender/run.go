@@ -19,14 +19,14 @@ func (b *blender) Run(ctx context.Context, opts *types.RunOpts) error {
 	}
 
 	arguments := arguments{
-		background:    opts.Background,
-		blendFilePath: opts.BlendFile.Path,
+		Background:    opts.Background,
+		BlendFilePath: opts.BlendFile.Path,
 	}
 
 	if opts.BlendFile.Addons() != nil {
-		arguments.script = startupScript()
-		arguments.rockeblend = &rocketblendArguments{
-			addons: opts.BlendFile.Addons(),
+		arguments.Script = startupScript()
+		arguments.Rockeblend = &rocketblendArguments{
+			Addons: opts.BlendFile.Addons(),
 		}
 	}
 

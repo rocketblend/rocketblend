@@ -32,23 +32,23 @@ func (b *blender) Render(ctx context.Context, opts *types.RenderOpts) error {
 	}
 
 	arguments := arguments{
-		background:    opts.Background,
-		blendFilePath: opts.BlendFile.Path,
-		render: &renderArguments{
-			start:   opts.Start,
-			end:     opts.End,
-			step:    opts.Step,
-			output:  outputPath,
-			format:  opts.Format,
-			devices: opts.CyclesDevices,
-			threads: opts.Threads,
+		Background:    opts.Background,
+		BlendFilePath: opts.BlendFile.Path,
+		Render: &renderArguments{
+			Start:   opts.Start,
+			End:     opts.End,
+			Step:    opts.Step,
+			Output:  outputPath,
+			Format:  opts.Format,
+			Devices: opts.CyclesDevices,
+			Threads: opts.Threads,
 		},
 	}
 
 	if opts.BlendFile.Addons() != nil {
-		arguments.script = startupScript()
-		arguments.rockeblend = &rocketblendArguments{
-			addons: opts.BlendFile.Addons(),
+		arguments.Script = startupScript()
+		arguments.Rockeblend = &rocketblendArguments{
+			Addons: opts.BlendFile.Addons(),
 		}
 	}
 
