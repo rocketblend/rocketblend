@@ -41,7 +41,3 @@ func New(opts ...Option) (*blender, error) {
 func (b *blender) Render(ctx context.Context, opts *types.RenderOpts) error {
 	return nil
 }
-
-func (b *blender) Create(ctx context.Context, opts *types.CreateOpts) error {
-	return nil
-}

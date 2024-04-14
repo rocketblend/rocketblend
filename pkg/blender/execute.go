@@ -123,22 +123,25 @@ func (b *blender) execute(ctx context.Context, name string, arguments *arguments
 // Execute runs the given executable with output sent to the executable's output channel.
 func Execute(ctx context.Context, executable types.Executable) error {
 	cmd := exec.CommandContext(ctx, executable.Name(), executable.ARGS()...)
-	cmdReader, err := cmd.StdoutPipe()
-	if err != nil {
-		return err
-	}
-	defer cmdReader.Close()
-
-	cmd.Stderr = cmd.Stdout
 
 	outputChannel := executable.OutputChannel()
-	scanner := bufio.NewScanner(cmdReader)
-	go func() {
-		for scanner.Scan() {
-			outputChannel <- scanner.Text()
+	if outputChannel != nil {
+		cmdReader, err := cmd.StdoutPipe()
+		if err != nil {
+			return err
 		}
-		close(outputChannel)
-	}()
+		defer cmdReader.Close()
+
+		cmd.Stderr = cmd.Stdout
+
+		scanner := bufio.NewScanner(cmdReader)
+		go func() {
+			for scanner.Scan() {
+				outputChannel <- scanner.Text()
+			}
+			close(outputChannel)
+		}()
+	}
 
 	if err := cmd.Start(); err != nil {
 		return err

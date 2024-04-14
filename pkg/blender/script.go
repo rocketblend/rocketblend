@@ -7,7 +7,7 @@ import (
 
 type (
 	createBlendFileData struct {
-		Path string `json:"path"`
+		FilePath string `json:"filePath"`
 	}
 )
 
