@@ -15,6 +15,11 @@ import (
 )
 
 type (
+	serviceHolder[T any] struct {
+		instance *T
+		once     sync.Once
+	}
+
 	Options struct {
 		Logger     logger.Logger
 		Validator  types.Validator
@@ -33,11 +38,9 @@ type (
 		downloader types.Downloader
 		extractor  types.Extractor
 
-		configurator *configurator.Configurator
-		repository   *repository.Repository
-		blender      *blender.Blender
-
-		rwMutex sync.RWMutex
+		configuratorHolder *serviceHolder[configurator.Configurator]
+		repositoryHolder   *serviceHolder[repository.Repository]
+		blenderHolder      *serviceHolder[blender.Blender]
 
 		applicationDir string
 	}
@@ -78,9 +81,12 @@ func New(opts ...Option) (*factory, error) {
 	}
 
 	return &factory{
-		logger:         options.Logger,
-		validator:      options.Validator,
-		applicationDir: applicationDir,
+		logger:             options.Logger,
+		validator:          options.Validator,
+		applicationDir:     applicationDir,
+		configuratorHolder: &serviceHolder[configurator.Configurator]{},
+		repositoryHolder:   &serviceHolder[repository.Repository]{},
+		blenderHolder:      &serviceHolder[blender.Blender]{},
 	}, nil
 }
 
@@ -101,87 +107,78 @@ func (f *factory) GetExtractor() (types.Extractor, error) {
 }
 
 func (f *factory) GetConfigurator() (types.Configurator, error) {
-	return initService(&f.rwMutex, &f.configurator, f.getConfigurator)
+	return f.getConfigurator()
 }
 
 func (f *factory) GetRepository() (types.Repository, error) {
-	return initService(&f.rwMutex, &f.repository, f.getRepository)
+	return f.getRepository()
 }
 
 func (f *factory) GetBlender() (types.Blender, error) {
-	return initService(&f.rwMutex, &f.blender, f.getBlender)
-}
-
-func (f *factory) getRepository() (*repository.Repository, error) {
-	configurator, err := f.getConfigurator()
-	if err != nil {
-		return nil, fmt.Errorf("failed to get configurator: %w", err)
-	}
-
-	config, err := configurator.Get()
-	if err != nil {
-		return nil, fmt.Errorf("failed to get config: %w", err)
-	}
-
-	repository, err := repository.New(
-		repository.WithLogger(f.logger),
-		repository.WithValidator(f.validator),
-		repository.WithDownloader(f.downloader),
-		repository.WithExtractor(f.extractor),
-		repository.WithPackagePath(config.PackagesPath),
-		repository.WithInstallationPath(config.InstallationsPath),
-		repository.WithPlatform(config.Platform),
-	)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create repository: %w", err)
-	}
-
-	return repository, nil
-}
-
-func (f *factory) getBlender() (*blender.Blender, error) {
-	blender, err := blender.New(
-		blender.WithLogger(f.logger),
-		blender.WithValidator(f.validator),
-	)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create blender: %w", err)
-	}
-
-	return blender, nil
+	return f.getBlender()
 }
 
 func (f *factory) getConfigurator() (*configurator.Configurator, error) {
-	configurator, err := configurator.New(
-		configurator.WithLogger(f.logger),
-		configurator.WithValidator(f.validator),
-		configurator.WithLocation(f.applicationDir),
-	)
+	var err error
+	f.configuratorHolder.once.Do(func() {
+		f.configuratorHolder.instance, err = configurator.New(
+			configurator.WithLogger(f.logger),
+			configurator.WithValidator(f.validator),
+			configurator.WithLocation(f.applicationDir),
+		)
+	})
 	if err != nil {
-		return nil, fmt.Errorf("failed to create configurator: %w", err)
+		return nil, fmt.Errorf("failed to get/create configurator: %w", err)
 	}
 
-	return configurator, nil
+	return f.configuratorHolder.instance, nil
 }
 
-func initService[T any](rwMutex *sync.RWMutex, service **T, initFunc func() (*T, error)) (*T, error) {
-	rwMutex.RLock()
-	if *service != nil {
-		defer rwMutex.RUnlock()
-		return *service, nil
-	}
-	rwMutex.RUnlock()
-
-	rwMutex.Lock()
-	defer rwMutex.Unlock()
-	if *service == nil {
-		var err error
-		*service, err = initFunc()
-		if err != nil {
-			return nil, err
+func (f *factory) getRepository() (*repository.Repository, error) {
+	var err error
+	f.repositoryHolder.once.Do(func() {
+		configurator, errConfig := f.getConfigurator()
+		if errConfig != nil {
+			err = errConfig
+			return
 		}
+
+		config, errConfig := configurator.Get()
+		if errConfig != nil {
+			err = errConfig
+			return
+		}
+
+		f.repositoryHolder.instance, err = repository.New(
+			repository.WithLogger(f.logger),
+			repository.WithValidator(f.validator),
+			repository.WithDownloader(f.downloader),
+			repository.WithExtractor(f.extractor),
+			repository.WithPackagePath(config.PackagesPath),
+			repository.WithInstallationPath(config.InstallationsPath),
+			repository.WithPlatform(config.Platform),
+		)
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to get/create repository: %w", err)
 	}
-	return *service, nil
+
+	return f.repositoryHolder.instance, nil
+}
+
+func (f *factory) getBlender() (*blender.Blender, error) {
+	var err error
+	f.blenderHolder.once.Do(func() {
+		f.blenderHolder.instance, err = blender.New(
+			blender.WithLogger(f.logger),
+			blender.WithValidator(f.validator),
+		)
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to get/create blender: %w", err)
+	}
+
+	return f.blenderHolder.instance, nil
 }
 
 func setupApplicationDir(name string, version string) (string, error) {
