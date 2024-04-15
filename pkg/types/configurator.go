@@ -5,7 +5,9 @@ import (
 	"github.com/rocketblend/rocketblend/pkg/driver/runtime"
 )
 
-var DefaultBuild = "github.com/rocketblend/official-library/packages/blender/builds/stable/3.3.8"
+var (
+	DefaultBuild = "github.com/rocketblend/official-library/packages/blender/builds/stable/3.3.8"
+)
 
 type (
 	Features struct {
