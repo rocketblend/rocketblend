@@ -1,4 +1,4 @@
-package factory
+package container
 
 import (
 	"fmt"
@@ -15,7 +15,7 @@ import (
 )
 
 type (
-	serviceHolder[T any] struct {
+	holder[T any] struct {
 		instance *T
 		once     sync.Once
 	}
@@ -32,15 +32,15 @@ type (
 
 	Option func(*Options)
 
-	factory struct {
+	Container struct {
 		logger     types.Logger
 		validator  types.Validator
 		downloader types.Downloader
 		extractor  types.Extractor
 
-		configuratorHolder *serviceHolder[configurator.Configurator]
-		repositoryHolder   *serviceHolder[repository.Repository]
-		blenderHolder      *serviceHolder[blender.Blender]
+		configuratorHolder *holder[configurator.Configurator]
+		repositoryHolder   *holder[repository.Repository]
+		blenderHolder      *holder[blender.Blender]
 
 		applicationDir string
 	}
@@ -65,7 +65,7 @@ func WithApplication(name string, version string) Option {
 	}
 }
 
-func New(opts ...Option) (*factory, error) {
+func New(opts ...Option) (*Container, error) {
 	options := &Options{
 		Logger:    logger.NoOp(),
 		Validator: validator.New(),
@@ -80,45 +80,45 @@ func New(opts ...Option) (*factory, error) {
 		return nil, fmt.Errorf("failed to setup application directory: %w", err)
 	}
 
-	return &factory{
+	return &Container{
 		logger:             options.Logger,
 		validator:          options.Validator,
 		applicationDir:     applicationDir,
-		configuratorHolder: &serviceHolder[configurator.Configurator]{},
-		repositoryHolder:   &serviceHolder[repository.Repository]{},
-		blenderHolder:      &serviceHolder[blender.Blender]{},
+		configuratorHolder: &holder[configurator.Configurator]{},
+		repositoryHolder:   &holder[repository.Repository]{},
+		blenderHolder:      &holder[blender.Blender]{},
 	}, nil
 }
 
-func (f *factory) GetLogger() (types.Logger, error) {
+func (f *Container) GetLogger() (types.Logger, error) {
 	return f.logger, nil
 }
 
-func (f *factory) GetValidator() (types.Validator, error) {
+func (f *Container) GetValidator() (types.Validator, error) {
 	return f.validator, nil
 }
 
-func (f *factory) GetDownloader() (types.Downloader, error) {
+func (f *Container) GetDownloader() (types.Downloader, error) {
 	return f.downloader, nil
 }
 
-func (f *factory) GetExtractor() (types.Extractor, error) {
+func (f *Container) GetExtractor() (types.Extractor, error) {
 	return f.extractor, nil
 }
 
-func (f *factory) GetConfigurator() (types.Configurator, error) {
+func (f *Container) GetConfigurator() (types.Configurator, error) {
 	return f.getConfigurator()
 }
 
-func (f *factory) GetRepository() (types.Repository, error) {
+func (f *Container) GetRepository() (types.Repository, error) {
 	return f.getRepository()
 }
 
-func (f *factory) GetBlender() (types.Blender, error) {
+func (f *Container) GetBlender() (types.Blender, error) {
 	return f.getBlender()
 }
 
-func (f *factory) getConfigurator() (*configurator.Configurator, error) {
+func (f *Container) getConfigurator() (*configurator.Configurator, error) {
 	var err error
 	f.configuratorHolder.once.Do(func() {
 		f.configuratorHolder.instance, err = configurator.New(
@@ -134,7 +134,7 @@ func (f *factory) getConfigurator() (*configurator.Configurator, error) {
 	return f.configuratorHolder.instance, nil
 }
 
-func (f *factory) getRepository() (*repository.Repository, error) {
+func (f *Container) getRepository() (*repository.Repository, error) {
 	var err error
 	f.repositoryHolder.once.Do(func() {
 		configurator, errConfig := f.getConfigurator()
@@ -166,7 +166,7 @@ func (f *factory) getRepository() (*repository.Repository, error) {
 	return f.repositoryHolder.instance, nil
 }
 
-func (f *factory) getBlender() (*blender.Blender, error) {
+func (f *Container) getBlender() (*blender.Blender, error) {
 	var err error
 	f.blenderHolder.once.Do(func() {
 		f.blenderHolder.instance, err = blender.New(
