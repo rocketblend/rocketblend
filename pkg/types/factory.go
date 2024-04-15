@@ -1,10 +1,10 @@
 package types
 
-import "github.com/flowshot-io/x/pkg/logger"
-
 type (
 	Factory interface {
-		GetLogger() (logger.Logger, error)
+		GetLogger() (Logger, error)
+		GetValidator() (Validator, error)
+		GetConfigurator() (Configurator, error)
 		GetRepository() (Repository, error)
 		GetBlender() (Blender, error)
 	}

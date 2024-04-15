@@ -33,7 +33,7 @@ func (e *executable) OutputChannel() chan string {
 	return e.output
 }
 
-func (b *blender) execute(ctx context.Context, name string, arguments *arguments, outputChannel chan string) error {
+func (b *Blender) execute(ctx context.Context, name string, arguments *arguments, outputChannel chan string) error {
 	b.logger.Info("executing", map[string]interface{}{
 		"executable": name,
 		"arguments":  arguments,

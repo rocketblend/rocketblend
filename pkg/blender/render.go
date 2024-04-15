@@ -14,7 +14,7 @@ type (
 	}
 )
 
-func (b *blender) Render(ctx context.Context, opts *types.RenderOpts) error {
+func (b *Blender) Render(ctx context.Context, opts *types.RenderOpts) error {
 	if err := b.validator.Validate(opts); err != nil {
 		return err
 	}

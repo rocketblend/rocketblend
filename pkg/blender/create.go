@@ -9,7 +9,7 @@ import (
 	"github.com/rocketblend/rocketblend/pkg/types"
 )
 
-func (b *blender) Create(ctx context.Context, opts *types.CreateOpts) error {
+func (b *Blender) Create(ctx context.Context, opts *types.CreateOpts) error {
 	if err := b.validator.Validate(opts); err != nil {
 		return err
 	}

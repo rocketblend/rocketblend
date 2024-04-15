@@ -23,7 +23,7 @@ type (
 	}
 )
 
-func (r *repository) GetInstallations(ctx context.Context, opts *types.GetInstallationsOpts) (*types.GetInstallationsResult, error) {
+func (r *Repository) GetInstallations(ctx context.Context, opts *types.GetInstallationsOpts) (*types.GetInstallationsResult, error) {
 	if err := r.validator.Validate(opts); err != nil {
 		return nil, err
 	}
@@ -38,7 +38,7 @@ func (r *repository) GetInstallations(ctx context.Context, opts *types.GetInstal
 	}, nil
 }
 
-func (r *repository) RemoveInstallations(ctx context.Context, opts *types.RemoveInstallationsOpts) error {
+func (r *Repository) RemoveInstallations(ctx context.Context, opts *types.RemoveInstallationsOpts) error {
 	if err := r.validator.Validate(opts); err != nil {
 		return err
 	}
@@ -50,7 +50,7 @@ func (r *repository) RemoveInstallations(ctx context.Context, opts *types.Remove
 	return nil
 }
 
-func (r *repository) getInstallations(ctx context.Context, dependencies []*types.Dependency, fetch bool) (map[reference.Reference]*types.Installation, error) {
+func (r *Repository) getInstallations(ctx context.Context, dependencies []*types.Dependency, fetch bool) (map[reference.Reference]*types.Installation, error) {
 	if err := ctx.Err(); err != nil {
 		return nil, err
 	}
@@ -102,7 +102,7 @@ func (r *repository) getInstallations(ctx context.Context, dependencies []*types
 	return installations, nil
 }
 
-func (r *repository) getInstallation(ctx context.Context, reference reference.Reference, pack *types.Package, fetch bool) (*types.Installation, error) {
+func (r *Repository) getInstallation(ctx context.Context, reference reference.Reference, pack *types.Package, fetch bool) (*types.Installation, error) {
 	if err := ctx.Err(); err != nil {
 		return nil, err
 	}
@@ -144,7 +144,7 @@ func (r *repository) getInstallation(ctx context.Context, reference reference.Re
 	}, nil
 }
 
-func (r *repository) removeInstallations(ctx context.Context, references []reference.Reference) error {
+func (r *Repository) removeInstallations(ctx context.Context, references []reference.Reference) error {
 	if err := ctx.Err(); err != nil {
 		return err
 	}
@@ -171,7 +171,7 @@ func (r *repository) removeInstallations(ctx context.Context, references []refer
 	return nil
 }
 
-func (r *repository) downloadInstallation(ctx context.Context, downloadURI *types.URI, installationPath string) error {
+func (r *Repository) downloadInstallation(ctx context.Context, downloadURI *types.URI, installationPath string) error {
 	if err := ctx.Err(); err != nil {
 		return err
 	}
@@ -220,7 +220,7 @@ func (r *repository) downloadInstallation(ctx context.Context, downloadURI *type
 	return nil
 }
 
-func (r *repository) removeInstallation(ctx context.Context, reference reference.Reference) error {
+func (r *Repository) removeInstallation(ctx context.Context, reference reference.Reference) error {
 	if err := ctx.Err(); err != nil {
 		return err
 	}
@@ -240,7 +240,7 @@ func (r *repository) removeInstallation(ctx context.Context, reference reference
 	return nil
 }
 
-func (r *repository) lock(ctx context.Context, dir string) (cancelFunc func(), err error) {
+func (r *Repository) lock(ctx context.Context, dir string) (cancelFunc func(), err error) {
 	r.logger.Debug("creating new file lock", map[string]interface{}{"path": dir, "lockFile": LockFileName})
 	return lockfile.New(ctx, lockfile.WithPath(filepath.Join(dir, LockFileName)), lockfile.WithLogger(r.logger))
 }

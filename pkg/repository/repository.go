@@ -12,7 +12,7 @@ import (
 
 type (
 	Options struct {
-		Logger    logger.Logger
+		Logger    types.Logger
 		Validator types.Validator
 
 		Platform         runtime.Platform
@@ -25,8 +25,8 @@ type (
 
 	Option func(*Options)
 
-	repository struct {
-		logger           logger.Logger
+	Repository struct {
+		logger           types.Logger
 		validator        types.Validator
 		downloader       types.Downloader
 		extractor        types.Extractor
@@ -36,7 +36,7 @@ type (
 	}
 )
 
-func WithLogger(logger logger.Logger) Option {
+func WithLogger(logger types.Logger) Option {
 	return func(o *Options) {
 		o.Logger = logger
 	}
@@ -60,7 +60,7 @@ func WithInstallationPath(installationPath string) Option {
 	}
 }
 
-func NewService(opts ...Option) (*repository, error) {
+func NewService(opts ...Option) (*Repository, error) {
 	options := &Options{
 		Logger:    logger.NoOp(),
 		Validator: validator.New(),
@@ -98,7 +98,7 @@ func NewService(opts ...Option) (*repository, error) {
 		"storagePath": options.StoragePath,
 	})
 
-	return &repository{
+	return &Repository{
 		logger:           options.Logger,
 		validator:        options.Validator,
 		downloader:       options.Downloader,

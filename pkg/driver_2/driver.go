@@ -15,7 +15,7 @@ import (
 
 type (
 	Options struct {
-		Logger    logger.Logger
+		Logger    types.Logger
 		Validator types.Validator
 
 		MaxConcurrency int
@@ -30,7 +30,7 @@ type (
 	Option func(*Options)
 
 	driver struct {
-		logger    logger.Logger
+		logger    types.Logger
 		validator types.Validator
 
 		maxConcurrency int
@@ -45,7 +45,7 @@ type (
 	}
 )
 
-func WithLogger(logger logger.Logger) Option {
+func WithLogger(logger types.Logger) Option {
 	return func(o *Options) {
 		o.Logger = logger
 	}

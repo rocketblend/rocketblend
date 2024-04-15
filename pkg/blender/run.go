@@ -8,7 +8,7 @@ import (
 	"github.com/rocketblend/rocketblend/pkg/types"
 )
 
-func (b *blender) Run(ctx context.Context, opts *types.RunOpts) error {
+func (b *Blender) Run(ctx context.Context, opts *types.RunOpts) error {
 	if err := b.validator.Validate(opts); err != nil {
 		return err
 	}
@@ -43,7 +43,7 @@ func (b *blender) Run(ctx context.Context, opts *types.RunOpts) error {
 }
 
 // processOuput parses the output from the blender process and logs the relevant information.
-func (b *blender) processOuput(output string) {
+func (b *Blender) processOuput(output string) {
 	if output == "" {
 		return
 	}

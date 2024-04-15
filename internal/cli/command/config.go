@@ -1,4 +1,4 @@
-package cli
+package command
 
 import (
 	"fmt"
@@ -8,7 +8,7 @@ import (
 
 // newConfigCommand creates a new cobra command that manages the configuration for RocketBlend.
 // It either sets a new configuration value if the 'set' flag is used, or retrieves a value for the provided key.
-func (c *cli) newConfigCommand() *cobra.Command {
+func newConfigCommand() *cobra.Command {
 	var value string
 
 	cc := &cobra.Command{

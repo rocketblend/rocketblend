@@ -19,7 +19,7 @@ type (
 	}
 )
 
-func (r *repository) GetPackages(ctx context.Context, opts *types.GetPackagesOpts) (*types.GetPackagesResult, error) {
+func (r *Repository) GetPackages(ctx context.Context, opts *types.GetPackagesOpts) (*types.GetPackagesResult, error) {
 	if err := r.validator.Validate(opts); err != nil {
 		return nil, err
 	}
@@ -34,7 +34,7 @@ func (r *repository) GetPackages(ctx context.Context, opts *types.GetPackagesOpt
 	}, nil
 }
 
-func (r *repository) RemovePackages(ctx context.Context, opts *types.RemovePackagesOpts) error {
+func (r *Repository) RemovePackages(ctx context.Context, opts *types.RemovePackagesOpts) error {
 	if err := r.validator.Validate(opts); err != nil {
 		return err
 	}
@@ -46,7 +46,7 @@ func (r *repository) RemovePackages(ctx context.Context, opts *types.RemovePacka
 	return nil
 }
 
-func (r *repository) InsertPackages(ctx context.Context, opts *types.InsertPackagesOpts) error {
+func (r *Repository) InsertPackages(ctx context.Context, opts *types.InsertPackagesOpts) error {
 	if err := r.validator.Validate(opts); err != nil {
 		return err
 	}
@@ -58,7 +58,7 @@ func (r *repository) InsertPackages(ctx context.Context, opts *types.InsertPacka
 	return nil
 }
 
-func (r *repository) getPackages(ctx context.Context, references []reference.Reference, update bool) (map[reference.Reference]*types.Package, error) {
+func (r *Repository) getPackages(ctx context.Context, references []reference.Reference, update bool) (map[reference.Reference]*types.Package, error) {
 	tasks := make([]taskrunner.Task[*getPackageResult], len(references))
 	for _, ref := range references {
 		tasks = append(tasks, func(ctx context.Context) (*getPackageResult, error) {
@@ -87,7 +87,7 @@ func (r *repository) getPackages(ctx context.Context, references []reference.Ref
 	return packages, nil
 }
 
-func (r *repository) removePackages(ctx context.Context, references []reference.Reference) error {
+func (r *Repository) removePackages(ctx context.Context, references []reference.Reference) error {
 	tasks := make([]taskrunner.Task[struct{}], len(references))
 	for _, ref := range references {
 		tasks = append(tasks, func(ctx context.Context) (struct{}, error) {
@@ -106,7 +106,7 @@ func (r *repository) removePackages(ctx context.Context, references []reference.
 	return nil
 }
 
-func (r *repository) insertPackages(ctx context.Context, packs map[reference.Reference]*types.Package) error {
+func (r *Repository) insertPackages(ctx context.Context, packs map[reference.Reference]*types.Package) error {
 	tasks := make([]taskrunner.Task[struct{}], len(packs))
 	for ref, pack := range packs {
 		tasks = append(tasks, func(ctx context.Context) (struct{}, error) {
@@ -125,7 +125,7 @@ func (r *repository) insertPackages(ctx context.Context, packs map[reference.Ref
 	return nil
 }
 
-func (r *repository) insertPackage(ctx context.Context, ref reference.Reference, pack *types.Package) error {
+func (r *Repository) insertPackage(ctx context.Context, ref reference.Reference, pack *types.Package) error {
 	if err := ctx.Err(); err != nil {
 		return err
 	}
@@ -151,7 +151,7 @@ func (r *repository) insertPackage(ctx context.Context, ref reference.Reference,
 	return nil
 }
 
-func (s *repository) getPackage(ctx context.Context, ref reference.Reference, update bool) (*types.Package, error) {
+func (s *Repository) getPackage(ctx context.Context, ref reference.Reference, update bool) (*types.Package, error) {
 	if err := ctx.Err(); err != nil {
 		return nil, err
 	}
@@ -204,7 +204,7 @@ func (s *repository) getPackage(ctx context.Context, ref reference.Reference, up
 	return pack, nil
 }
 
-func (s *repository) removePackage(ctx context.Context, reference reference.Reference) error {
+func (s *Repository) removePackage(ctx context.Context, reference reference.Reference) error {
 	if err := ctx.Err(); err != nil {
 		return err
 	}
@@ -241,7 +241,7 @@ func (s *repository) removePackage(ctx context.Context, reference reference.Refe
 	return nil
 }
 
-func (s *repository) cloneRepo(ctx context.Context, repoPath string, repoURL string) error {
+func (s *Repository) cloneRepo(ctx context.Context, repoPath string, repoURL string) error {
 	_, err := git.PlainCloneContext(ctx, repoPath, false, &git.CloneOptions{
 		URL: repoURL,
 		// TODO: Fix this
@@ -250,7 +250,7 @@ func (s *repository) cloneRepo(ctx context.Context, repoPath string, repoURL str
 	return err
 }
 
-func (s *repository) pullChanges(ctx context.Context, repoPath string) error {
+func (s *Repository) pullChanges(ctx context.Context, repoPath string) error {
 	r, err := git.PlainOpen(repoPath)
 	if err != nil {
 		return err

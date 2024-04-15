@@ -16,7 +16,7 @@ import (
 
 type (
 	Options struct {
-		Logger    logger.Logger
+		Logger    types.Logger
 		Validator types.Validator
 		Path      string
 		Name      string
@@ -25,8 +25,8 @@ type (
 
 	Option func(*Options)
 
-	configurator struct {
-		logger    logger.Logger
+	Configurator struct {
+		logger    types.Logger
 		validator types.Validator
 		viper     *viper.Viper
 		path      string
@@ -35,7 +35,7 @@ type (
 	}
 )
 
-func WithLogger(logger logger.Logger) Option {
+func WithLogger(logger types.Logger) Option {
 	return func(o *Options) {
 		o.Logger = logger
 	}
@@ -55,7 +55,7 @@ func WithLocation(path string, name string, extenstion string) Option {
 	}
 }
 
-func New(opts ...Option) (*configurator, error) {
+func New(opts ...Option) (*Configurator, error) {
 	options := &Options{
 		Logger:    logger.NoOp(),
 		Validator: validator.New(),
@@ -76,7 +76,7 @@ func New(opts ...Option) (*configurator, error) {
 		return nil, err
 	}
 
-	return &configurator{
+	return &Configurator{
 		logger:    options.Logger,
 		validator: options.Validator,
 		path:      options.Path,
@@ -86,7 +86,7 @@ func New(opts ...Option) (*configurator, error) {
 	}, nil
 }
 
-func (c *configurator) Get() (*types.Config, error) {
+func (c *Configurator) Get() (*types.Config, error) {
 	var config types.Config
 	err := c.viper.Unmarshal(&config, viper.DecodeHook(platformHookFunc()))
 	if err != nil {
@@ -100,15 +100,15 @@ func (c *configurator) Get() (*types.Config, error) {
 	return &config, err
 }
 
-func (c *configurator) GetAllValues() map[string]interface{} {
+func (c *Configurator) GetAllValues() map[string]interface{} {
 	return c.viper.AllSettings()
 }
 
-func (c *configurator) GetValueByString(key string) string {
+func (c *Configurator) GetValueByString(key string) string {
 	return fmt.Sprint(c.viper.Get(key))
 }
 
-func (c *configurator) SetValueByString(key string, value string) error {
+func (c *Configurator) SetValueByString(key string, value string) error {
 	c.viper.Set(key, value)
 
 	_, err := c.Get()
@@ -121,7 +121,7 @@ func (c *configurator) SetValueByString(key string, value string) error {
 	return nil
 }
 
-func (c *configurator) Save(config *types.Config) error {
+func (c *Configurator) Save(config *types.Config) error {
 	if err := c.validator.Validate(config); err != nil {
 		return err
 	}
@@ -133,7 +133,7 @@ func (c *configurator) Save(config *types.Config) error {
 	return c.viper.WriteConfig()
 }
 
-func (c *configurator) Path() string {
+func (c *Configurator) Path() string {
 	return fmt.Sprintf("%s.%s", filepath.Join(c.path, c.name), c.extension)
 }
 

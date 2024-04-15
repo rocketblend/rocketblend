@@ -8,19 +8,19 @@ import (
 
 type (
 	Options struct {
-		Logger    logger.Logger
+		Logger    types.Logger
 		Validator types.Validator
 	}
 
 	Option func(*Options)
 
-	blender struct {
-		logger    logger.Logger
+	Blender struct {
+		logger    types.Logger
 		validator types.Validator
 	}
 )
 
-func WithLogger(logger logger.Logger) Option {
+func WithLogger(logger types.Logger) Option {
 	return func(o *Options) {
 		o.Logger = logger
 	}
@@ -32,7 +32,7 @@ func WithValidator(validator types.Validator) Option {
 	}
 }
 
-func New(opts ...Option) (*blender, error) {
+func New(opts ...Option) (*Blender, error) {
 	options := &Options{
 		Logger:    logger.NoOp(),
 		Validator: validator.New(),
@@ -42,7 +42,7 @@ func New(opts ...Option) (*blender, error) {
 		opt(options)
 	}
 
-	return &blender{
+	return &Blender{
 		logger:    options.Logger,
 		validator: options.Validator,
 	}, nil
