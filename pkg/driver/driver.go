@@ -1,355 +1,335 @@
-package driver
+package driver2
 
 import (
 	"context"
-	"fmt"
+	"errors"
 	"path/filepath"
-	"strings"
+	"sync"
 
 	"github.com/flowshot-io/x/pkg/logger"
-	"github.com/rocketblend/rocketblend/pkg/driver/blendconfig"
-	"github.com/rocketblend/rocketblend/pkg/driver/blendfile"
-	"github.com/rocketblend/rocketblend/pkg/driver/blendfile/renderoptions"
-	"github.com/rocketblend/rocketblend/pkg/driver/blendfile/runoptions"
-	"github.com/rocketblend/rocketblend/pkg/driver/installation"
-	"github.com/rocketblend/rocketblend/pkg/driver/reference"
-	"github.com/rocketblend/rocketblend/pkg/driver/rocketfile"
-	"github.com/rocketblend/rocketblend/pkg/driver/rocketpack"
+	"github.com/rocketblend/rocketblend/pkg/helpers"
+	"github.com/rocketblend/rocketblend/pkg/reference"
+	"github.com/rocketblend/rocketblend/pkg/taskrunner"
+	"github.com/rocketblend/rocketblend/pkg/types"
 )
 
 type (
-	Driver interface {
-		Render(ctx context.Context, opts ...renderoptions.Option) error
-		Run(ctx context.Context, opts ...runoptions.Option) error
-		Create(ctx context.Context) error
-
-		InstallDependencies(ctx context.Context) error
-
-		AddDependencies(ctx context.Context, forceUpdate bool, references ...reference.Reference) error
-		RemoveDependencies(ctx context.Context, references ...reference.Reference) error
-
-		ResolveBlendFile(ctx context.Context) (*blendfile.BlendFile, error)
-	}
-
 	Options struct {
-		Logger      logger.Logger
-		BlendConfig *blendconfig.BlendConfig
+		Logger    types.Logger
+		Validator types.Validator
 
-		InstallationService installation.Service
-		RocketPackService   rocketpack.Service
-		BlendFileService    blendfile.Service
+		MaxConcurrency int
+		ExecutionMode  taskrunner.ExecutionMode
+
+		Projects []*types.Project
+
+		Repository types.Repository
+		Blender    types.Blender
 	}
 
 	Option func(*Options)
 
 	driver struct {
-		logger logger.Logger
+		logger    types.Logger
+		validator types.Validator
 
-		installationService installation.Service
-		rocketPackService   rocketpack.Service
-		blendFileService    blendfile.Service
+		maxConcurrency int
+		executionMode  taskrunner.ExecutionMode
 
-		blendConfig *blendconfig.BlendConfig
+		projects []*types.Project
+
+		repository types.Repository
+		blender    types.Blender
+
+		mutex sync.Mutex
 	}
 )
 
-func WithLogger(logger logger.Logger) Option {
+func WithLogger(logger types.Logger) Option {
 	return func(o *Options) {
 		o.Logger = logger
 	}
 }
 
-func WithBlendConfig(blendConfig *blendconfig.BlendConfig) Option {
+func WithValidator(validator types.Validator) Option {
 	return func(o *Options) {
-		o.BlendConfig = blendConfig
+		o.Validator = validator
 	}
 }
 
-func WithInstallationService(installationService installation.Service) Option {
+func WithExecutionMode(mode taskrunner.ExecutionMode, maxConcurrency int) Option {
 	return func(o *Options) {
-		o.InstallationService = installationService
+		o.ExecutionMode = mode
+		o.MaxConcurrency = maxConcurrency
 	}
 }
 
-func WithRocketPackService(rocketPackService rocketpack.Service) Option {
+func WithProject(projects ...*types.Project) Option {
 	return func(o *Options) {
-		o.RocketPackService = rocketPackService
+		o.Projects = projects
 	}
 }
 
-func WithBlendFileService(blendFileService blendfile.Service) Option {
+func WithRepository(repository types.Repository) Option {
 	return func(o *Options) {
-		o.BlendFileService = blendFileService
+		o.Repository = repository
 	}
 }
 
-func New(opts ...Option) (Driver, error) {
+func WithBlender(blender types.Blender) Option {
+	return func(o *Options) {
+		o.Blender = blender
+	}
+}
+
+func New(opts ...Option) (*driver, error) {
 	options := &Options{
-		Logger: logger.NoOp(),
+		Logger:         logger.NoOp(),
+		ExecutionMode:  taskrunner.Concurrent,
+		MaxConcurrency: 5,
 	}
 
 	for _, opt := range opts {
 		opt(options)
 	}
 
-	if options.InstallationService == nil {
-		isrv, err := installation.NewService(
-			installation.WithLogger(options.Logger),
-		)
-		if err != nil {
-			return nil, fmt.Errorf("failed to create default installation service: %w", err)
-		}
-
-		options.InstallationService = isrv
+	if options.Validator == nil {
+		return nil, errors.New("validator is required")
 	}
 
-	if options.RocketPackService == nil {
-		rpsrv, err := rocketpack.NewService(
-			rocketpack.WithLogger(options.Logger),
-		)
-		if err != nil {
-			return nil, fmt.Errorf("failed to create default rocket pack service: %w", err)
-		}
-
-		options.RocketPackService = rpsrv
+	if options.Repository == nil {
+		return nil, errors.New("repository is required")
 	}
 
-	if options.BlendFileService == nil {
-		bfsrv, err := blendfile.NewService(
-			blendfile.WithLogger(options.Logger),
-		)
-		if err != nil {
-			return nil, fmt.Errorf("failed to create default blend file service: %w", err)
-		}
-
-		options.BlendFileService = bfsrv
+	if options.Blender == nil {
+		return nil, errors.New("blender is required")
 	}
 
-	if options.BlendConfig == nil {
-		return nil, fmt.Errorf("blend config is required")
+	if len(options.Projects) == 0 {
+		return nil, errors.New("projects are required")
 	}
-
-	if err := blendconfig.Validate(options.BlendConfig); err != nil {
-		return nil, fmt.Errorf("invalid blend config: %w", err)
-	}
-
-	options.Logger.Debug("initializing rocketblend driver", map[string]interface{}{
-		"ProjectPath":   options.BlendConfig.ProjectPath,
-		"BlendFileName": options.BlendConfig.BlendFileName,
-	})
 
 	return &driver{
-		logger:              options.Logger,
-		installationService: options.InstallationService,
-		rocketPackService:   options.RocketPackService,
-		blendFileService:    options.BlendFileService,
-		blendConfig:         options.BlendConfig,
+		logger:     options.Logger,
+		validator:  options.Validator,
+		projects:   options.Projects,
+		repository: options.Repository,
+		blender:    options.Blender,
 	}, nil
 }
 
-func (d *driver) Render(ctx context.Context, opts ...renderoptions.Option) error {
-	if err := ctx.Err(); err != nil {
+func (d *driver) AddDependencies(ctx context.Context, opts *types.AddDependenciesOpts) error {
+	if err := d.validator.Validate(opts); err != nil {
 		return err
 	}
 
-	d.logger.Debug("rendering blend file")
+	d.mutex.Lock()
+	defer d.mutex.Unlock()
 
-	blendFile, err := d.ResolveBlendFile(ctx)
+	tasks := make([]taskrunner.Task[struct{}], len(d.projects))
+	for i, project := range d.projects {
+		tasks[i] = func(ctx context.Context) (struct{}, error) {
+			return struct{}{}, d.addDependencies(ctx, project, opts.References)
+		}
+	}
+
+	_, err := taskrunner.Run(ctx, &taskrunner.RunOpts[struct{}]{
+		Tasks:          tasks,
+		Mode:           d.executionMode,
+		MaxConcurrency: d.maxConcurrency,
+	})
 	if err != nil {
-		return err
-	}
-
-	if err := d.blendFileService.Render(ctx, blendFile, opts...); err != nil {
 		return err
 	}
 
 	return nil
 }
 
-func (d *driver) Run(ctx context.Context, opts ...runoptions.Option) error {
-	if err := ctx.Err(); err != nil {
+func (d *driver) RemoveDependencies(ctx context.Context, opts *types.RemoveDependenciesOpts) error {
+	if err := d.validator.Validate(opts); err != nil {
 		return err
 	}
 
-	d.logger.Debug("running blend file")
+	d.mutex.Lock()
+	defer d.mutex.Unlock()
 
-	blendFile, err := d.ResolveBlendFile(ctx)
-	if err != nil {
-		return err
-	}
-
-	if err := d.blendFileService.Run(ctx, blendFile, opts...); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func (d *driver) Create(ctx context.Context) error {
-	if err := ctx.Err(); err != nil {
-		return err
-	}
-
-	d.logger.Debug("creating blend file")
-
-	installations, err := d.Get(ctx, false)
-	if err != nil {
-		return err
-	}
-
-	blendFile := d.resolveBlendFile(installations)
-	if err := d.blendFileService.Create(ctx, blendFile); err != nil {
-		return err
-	}
-
-	if err := d.save(ctx); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func (d *driver) AddDependencies(ctx context.Context, forceUpdate bool, references ...reference.Reference) error {
-	if err := ctx.Err(); err != nil {
-		return err
-	}
-
-	d.logger.Debug("adding dependencies", map[string]interface{}{"References": references})
-
-	// This will also include the dependencies of the dependencies
-	packs, err := d.rocketPackService.Get(ctx, forceUpdate, references...)
-	if err != nil {
-		return err
-	}
-
-	// Add dependencies to blend config using passed in references
-	for _, ref := range references {
-		pack := packs[ref]
-		if pack.IsBuild() {
-			d.blendConfig.RocketFile.SetBuild(ref)
-		}
-
-		if pack.IsAddon() {
-			d.blendConfig.RocketFile.AddAddons(ref)
+	tasks := make([]taskrunner.Task[struct{}], len(d.projects))
+	for i, project := range d.projects {
+		tasks[i] = func(ctx context.Context) (struct{}, error) {
+			return struct{}{}, d.removeDependencies(ctx, project, opts.References)
 		}
 	}
 
-	// Install new dependencies
-	_, err = d.installationService.Get(ctx, packs, false)
+	_, err := taskrunner.Run(ctx, &taskrunner.RunOpts[struct{}]{
+		Tasks:          tasks,
+		Mode:           d.executionMode,
+		MaxConcurrency: d.maxConcurrency,
+	})
 	if err != nil {
 		return err
-	}
-
-	// Save blend config
-	if err = d.save(ctx); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func (d *driver) RemoveDependencies(ctx context.Context, references ...reference.Reference) error {
-	if err := ctx.Err(); err != nil {
-		return err
-	}
-
-	d.logger.Debug("removing dependencies", map[string]interface{}{"References": references})
-
-	packs, err := d.rocketPackService.Get(ctx, false, references...)
-	if err != nil {
-		return fmt.Errorf("failed to get rocket packs: %w", err)
-	}
-
-	for index, pack := range packs {
-		if pack.IsBuild() {
-			d.blendConfig.RocketFile.SetBuild("")
-		}
-
-		if pack.IsAddon() {
-			d.blendConfig.RocketFile.RemoveAddons(index)
-		}
-	}
-
-	if err = d.save(ctx); err != nil {
-		return fmt.Errorf("failed to save blend config: %w", err)
 	}
 
 	return nil
 }
 
 func (d *driver) InstallDependencies(ctx context.Context) error {
-	if err := ctx.Err(); err != nil {
-		return err
+	d.mutex.Lock()
+	defer d.mutex.Unlock()
+
+	tasks := make([]taskrunner.Task[struct{}], len(d.projects))
+	for i, project := range d.projects {
+		tasks[i] = func(ctx context.Context) (struct{}, error) {
+			return struct{}{}, d.installDependencies(ctx, project)
+		}
 	}
 
-	d.logger.Debug("installing dependencies")
-
-	_, err := d.Get(ctx, false)
+	_, err := taskrunner.Run(ctx, &taskrunner.RunOpts[struct{}]{
+		Tasks:          tasks,
+		Mode:           d.executionMode,
+		MaxConcurrency: d.maxConcurrency,
+	})
 	if err != nil {
-		return fmt.Errorf("failed to install dependencies: %w", err)
+		return err
 	}
 
 	return nil
 }
 
-func (d *driver) ResolveBlendFile(ctx context.Context) (*blendfile.BlendFile, error) {
-	if err := ctx.Err(); err != nil {
-		return nil, err
-	}
+func (d *driver) Resolve(ctx context.Context) (*types.BlendFile, error) {
+	d.mutex.Lock()
+	defer d.mutex.Unlock()
 
-	d.logger.Debug("resolving blend file")
-
-	installations, err := d.Get(ctx, true)
+	blendFile, err := d.resolve(ctx, d.projects[0]) // TOOD: Handle multiple projects
 	if err != nil {
 		return nil, err
-	}
-
-	blendFile := d.resolveBlendFile(installations)
-	if err := blendfile.Validate(blendFile); err != nil {
-		return nil, fmt.Errorf("invalid blend file: %w", err)
 	}
 
 	return blendFile, nil
 }
 
-func (d *driver) Get(ctx context.Context, readOnly bool) (map[reference.Reference]*installation.Installation, error) {
-	if err := ctx.Err(); err != nil {
-		return nil, err
+func (d *driver) Save(ctx context.Context) error {
+	d.mutex.Lock()
+	defer d.mutex.Unlock()
+
+	tasks := make([]taskrunner.Task[struct{}], len(d.projects))
+	for i, project := range d.projects {
+		tasks[i] = func(ctx context.Context) (struct{}, error) {
+			return struct{}{}, d.save(ctx, project)
+		}
 	}
 
-	packs, err := d.getDependencies(ctx)
+	_, err := taskrunner.Run(ctx, &taskrunner.RunOpts[struct{}]{
+		Tasks:          tasks,
+		Mode:           d.executionMode,
+		MaxConcurrency: d.maxConcurrency,
+	})
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (d *driver) addDependencies(ctx context.Context, project *types.Project, references []reference.Reference) error {
+	if err := ctx.Err(); err != nil {
+		return err
+	}
+
+	result, err := d.repository.GetPackages(ctx, &types.GetPackagesOpts{
+		References: references,
+	})
+	if err != nil {
+		return err
+	}
+
+	dependencies := project.Profile.Dependencies
+	for ref, pack := range result.Packs {
+		dependencies = append(dependencies, &types.Dependency{
+			Reference: ref,
+			Type:      pack.Type,
+		})
+	}
+
+	project.Profile.Dependencies = dependencies
+
+	return nil
+}
+
+func (d *driver) removeDependencies(ctx context.Context, project *types.Project, references []reference.Reference) error {
+	if err := ctx.Err(); err != nil {
+		return err
+	}
+
+	dependencies := project.Profile.Dependencies
+	for _, ref := range references {
+		for index, dep := range dependencies {
+			if dep.Reference == ref {
+				dependencies = append(dependencies[:index], dependencies[index+1:]...)
+				break
+			}
+		}
+	}
+
+	project.Profile.Dependencies = dependencies
+
+	return nil
+}
+
+func (d *driver) installDependencies(ctx context.Context, project *types.Project) error {
+	if err := ctx.Err(); err != nil {
+		return err
+	}
+
+	_, err := d.getInstallations(ctx, project.Requires(), true)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (d *driver) resolve(ctx context.Context, project *types.Project) (*types.BlendFile, error) {
+	installations, err := d.getInstallations(ctx, project.Requires(), false)
 	if err != nil {
 		return nil, err
 	}
 
-	return d.installationService.Get(ctx, packs, readOnly)
-}
-
-func (d *driver) resolveBlendFile(installations map[reference.Reference]*installation.Installation) *blendfile.BlendFile {
-	name := filepath.Base(d.blendConfig.BlendFilePath())
-	blendFile := &blendfile.BlendFile{
-		ProjectName: strings.TrimSuffix(name, filepath.Ext(name)),
-		FilePath:    d.blendConfig.BlendFilePath(),
-		ARGS:        d.blendConfig.RocketFile.GetArgs(),
-	}
-
+	dependencies := make([]*types.Installation, 0, len(installations))
 	for _, installation := range installations {
-		if installation.IsBuild() {
-			blendFile.Build = installation.Build
-		}
-
-		if installation.IsAddon() {
-			blendFile.Addons = append(blendFile.Addons, installation.Addon)
-		}
+		dependencies = append(dependencies, installation)
 	}
 
-	return blendFile
+	return &types.BlendFile{
+		Name:         project.Name(),
+		Path:         project.BlendFilePath,
+		Dependencies: dependencies,
+	}, nil
 }
 
-func (d *driver) getDependencies(ctx context.Context) (map[reference.Reference]*rocketpack.RocketPack, error) {
-	return d.rocketPackService.Get(ctx, false, d.blendConfig.RocketFile.GetDependencies()...)
+func (d *driver) getInstallations(ctx context.Context, dependencies []*types.Dependency, fetch bool) (map[reference.Reference]*types.Installation, error) {
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
+
+	result, err := d.repository.GetInstallations(ctx, &types.GetInstallationsOpts{
+		Dependencies: dependencies,
+		Fetch:        fetch,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return result.Installations, nil
 }
 
-func (d *driver) save(ctx context.Context) error {
-	return rocketfile.Save(filepath.Join(d.blendConfig.ProjectPath, rocketfile.FileName), d.blendConfig.RocketFile)
+func (d *driver) save(ctx context.Context, project *types.Project) error {
+	if err := ctx.Err(); err != nil {
+		return err
+	}
+
+	if err := helpers.Save(d.validator, filepath.Join(project.Dir(), types.ProjectConfigFileName), project); err != nil {
+		return err
+	}
+
+	return nil
 }

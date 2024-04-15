@@ -6,7 +6,7 @@ package command
 // 	"path/filepath"
 // 	"strings"
 
-// 	"github.com/rocketblend/rocketblend/pkg/driver/reference"
+// 	"github.com/rocketblend/rocketblend/pkg/reference"
 // 	"github.com/rocketblend/rocketblend/pkg/driver/rocketpack"
 // 	"github.com/spf13/cobra"
 // )

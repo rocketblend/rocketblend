@@ -3,7 +3,7 @@ package types
 import (
 	"context"
 
-	"github.com/rocketblend/rocketblend/pkg/driver/reference"
+	"github.com/rocketblend/rocketblend/pkg/reference"
 )
 
 type (

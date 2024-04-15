@@ -4,7 +4,7 @@ package command
 // 	"encoding/json"
 // 	"fmt"
 
-// 	"github.com/rocketblend/rocketblend/pkg/driver/reference"
+// 	"github.com/rocketblend/rocketblend/pkg/reference"
 // 	"github.com/spf13/cobra"
 // )
 

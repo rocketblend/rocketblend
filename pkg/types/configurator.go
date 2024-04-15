@@ -1,8 +1,8 @@
 package types
 
 import (
-	"github.com/rocketblend/rocketblend/pkg/driver/reference"
-	"github.com/rocketblend/rocketblend/pkg/driver/runtime"
+	"github.com/rocketblend/rocketblend/pkg/reference"
+	"github.com/rocketblend/rocketblend/pkg/runtime"
 )
 
 var (
