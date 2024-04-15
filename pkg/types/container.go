@@ -1,7 +1,7 @@
 package types
 
 type (
-	Factory interface {
+	Container interface {
 		GetLogger() (Logger, error)
 		GetValidator() (Validator, error)
 		GetDownloader() (Downloader, error)

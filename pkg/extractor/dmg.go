@@ -10,7 +10,7 @@ import (
 )
 
 // TODO: Better cleanup on context cancel
-func (e *extractor) extractDMG(ctx context.Context, filePath string, destination string) error {
+func (e *Extractor) extractDMG(ctx context.Context, filePath string, destination string) error {
 	logContext := map[string]interface{}{
 		"filePath":    filePath,
 		"destination": destination,

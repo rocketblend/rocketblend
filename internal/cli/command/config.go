@@ -8,7 +8,7 @@ import (
 
 // newConfigCommand creates a new cobra command that manages the configuration for RocketBlend.
 // It either sets a new configuration value if the 'set' flag is used, or retrieves a value for the provided key.
-func newConfigCommand() *cobra.Command {
+func newConfigCommand(opts commandOpts) *cobra.Command {
 	var value string
 
 	cc := &cobra.Command{
@@ -19,14 +19,19 @@ func newConfigCommand() *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			key := args[0]
 
-			config, err := c.factory.GetConfigService()
+			container, err := getContainer(opts.Name, opts.Development, opts.Global.Verbose)
 			if err != nil {
-				return fmt.Errorf("failed to create config service: %w", err)
+				fmt.Println(err)
+			}
+
+			configurator, err := container.GetConfigurator()
+			if err != nil {
+				return err
 			}
 
 			// If the 'set' flag is used, update the configuration value for the key.
 			if value != "" {
-				err := config.SetValueByString(key, value)
+				err := configurator.SetValueByString(key, value)
 				if err != nil {
 					return fmt.Errorf("failed to set value: %w", err)
 				}
@@ -35,7 +40,7 @@ func newConfigCommand() *cobra.Command {
 			}
 
 			// If the 'set' flag is not used, print the current value for the key.
-			cmd.Println(config.GetValueByString(key))
+			cmd.Println(configurator.GetValueByString(key))
 
 			return nil
 		},

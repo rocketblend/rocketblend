@@ -9,6 +9,8 @@ import (
 	"github.com/flowshot-io/x/pkg/logger"
 	"github.com/rocketblend/rocketblend/pkg/blender"
 	"github.com/rocketblend/rocketblend/pkg/configurator"
+	"github.com/rocketblend/rocketblend/pkg/downloader"
+	"github.com/rocketblend/rocketblend/pkg/extractor"
 	"github.com/rocketblend/rocketblend/pkg/repository"
 	"github.com/rocketblend/rocketblend/pkg/types"
 	"github.com/rocketblend/rocketblend/pkg/validator"
@@ -21,24 +23,23 @@ type (
 	}
 
 	Options struct {
-		Logger     logger.Logger
-		Validator  types.Validator
-		Downloader types.Downloader
-		Extractor  types.Extractor
+		Logger    logger.Logger
+		Validator types.Validator
 
-		ApplicationName    string
-		ApplicationVersion string
+		ApplicationName string
+
+		Development bool
 	}
 
 	Option func(*Options)
 
 	Container struct {
-		logger     types.Logger
-		validator  types.Validator
-		downloader types.Downloader
-		extractor  types.Extractor
+		logger    types.Logger
+		validator types.Validator
 
 		configuratorHolder *holder[configurator.Configurator]
+		downloaderHolder   *holder[downloader.Downloader]
+		extractorHolder    *holder[extractor.Extractor]
 		repositoryHolder   *holder[repository.Repository]
 		blenderHolder      *holder[blender.Blender]
 
@@ -58,24 +59,30 @@ func WithValidator(validator types.Validator) Option {
 	}
 }
 
-func WithApplication(name string, version string) Option {
+func WithApplicationName(name string) Option {
 	return func(o *Options) {
 		o.ApplicationName = name
-		o.ApplicationVersion = version
+	}
+}
+
+func WithDevelopmentMode(development bool) Option {
+	return func(o *Options) {
+		o.Development = development
 	}
 }
 
 func New(opts ...Option) (*Container, error) {
 	options := &Options{
-		Logger:    logger.NoOp(),
-		Validator: validator.New(),
+		Logger:          logger.NoOp(),
+		Validator:       validator.New(),
+		ApplicationName: "rocketblend",
 	}
 
 	for _, opt := range opts {
 		opt(options)
 	}
 
-	applicationDir, err := setupApplicationDir(options.ApplicationName, options.ApplicationVersion)
+	applicationDir, err := setupApplicationDir(options.ApplicationName, options.Development)
 	if err != nil {
 		return nil, fmt.Errorf("failed to setup application directory: %w", err)
 	}
@@ -99,11 +106,11 @@ func (f *Container) GetValidator() (types.Validator, error) {
 }
 
 func (f *Container) GetDownloader() (types.Downloader, error) {
-	return f.downloader, nil
+	return f.getDownloader()
 }
 
 func (f *Container) GetExtractor() (types.Extractor, error) {
-	return f.extractor, nil
+	return f.getExtractor()
 }
 
 func (f *Container) GetConfigurator() (types.Configurator, error) {
@@ -134,6 +141,34 @@ func (f *Container) getConfigurator() (*configurator.Configurator, error) {
 	return f.configuratorHolder.instance, nil
 }
 
+func (f *Container) getDownloader() (*downloader.Downloader, error) {
+	var err error
+	f.downloaderHolder.once.Do(func() {
+		f.downloaderHolder.instance = downloader.New(
+			downloader.WithLogger(f.logger),
+		)
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to get/create downloader: %w", err)
+	}
+
+	return f.downloaderHolder.instance, nil
+}
+
+func (f *Container) getExtractor() (*extractor.Extractor, error) {
+	var err error
+	f.extractorHolder.once.Do(func() {
+		f.extractorHolder.instance = extractor.New(
+			extractor.WithLogger(f.logger),
+		)
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to get/create extractor: %w", err)
+	}
+
+	return f.extractorHolder.instance, nil
+}
+
 func (f *Container) getRepository() (*repository.Repository, error) {
 	var err error
 	f.repositoryHolder.once.Do(func() {
@@ -149,11 +184,23 @@ func (f *Container) getRepository() (*repository.Repository, error) {
 			return
 		}
 
+		downloader, errDownloader := f.getDownloader()
+		if err != nil {
+			err = errDownloader
+			return
+		}
+
+		extractor, errExtractor := f.getExtractor()
+		if err != nil {
+			err = errExtractor
+			return
+		}
+
 		f.repositoryHolder.instance, err = repository.New(
 			repository.WithLogger(f.logger),
 			repository.WithValidator(f.validator),
-			repository.WithDownloader(f.downloader),
-			repository.WithExtractor(f.extractor),
+			repository.WithDownloader(downloader),
+			repository.WithExtractor(extractor),
 			repository.WithPackagePath(config.PackagesPath),
 			repository.WithInstallationPath(config.InstallationsPath),
 			repository.WithPlatform(config.Platform),
@@ -181,14 +228,14 @@ func (f *Container) getBlender() (*blender.Blender, error) {
 	return f.blenderHolder.instance, nil
 }
 
-func setupApplicationDir(name string, version string) (string, error) {
+func setupApplicationDir(name string, development bool) (string, error) {
 	userConfigDir, err := os.UserConfigDir()
 	if err != nil {
 		return "", fmt.Errorf("cannot find config directory: %v", err)
 	}
 
 	appDir := filepath.Join(userConfigDir, name)
-	if version == "dev" {
+	if development {
 		appDir = filepath.Join(appDir, "dev")
 	}
 

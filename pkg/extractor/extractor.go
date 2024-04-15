@@ -8,13 +8,10 @@ import (
 
 	"github.com/flowshot-io/x/pkg/logger"
 	"github.com/mholt/archiver/v3"
+	"github.com/rocketblend/rocketblend/pkg/types"
 )
 
 type (
-	Extractor interface {
-		Extract(ctx context.Context, path string, extractPath string) error
-	}
-
 	Options struct {
 		Cleanup bool
 		Logger  logger.Logger
@@ -22,7 +19,7 @@ type (
 
 	Option func(*Options)
 
-	extractor struct {
+	Extractor struct {
 		cleanup bool
 		logger  logger.Logger
 	}
@@ -40,7 +37,7 @@ func WithCleanup() Option {
 	}
 }
 
-func New(opts ...Option) Extractor {
+func New(opts ...Option) *Extractor {
 	options := &Options{
 		Cleanup: false,
 		Logger:  logger.NoOp(),
@@ -50,22 +47,22 @@ func New(opts ...Option) Extractor {
 		opt(options)
 	}
 
-	options.Logger.Debug("initializing extractor", map[string]interface{}{"cleanup": options.Cleanup})
+	options.Logger.Debug("initializing Extractor", map[string]interface{}{"cleanup": options.Cleanup})
 
-	return &extractor{
+	return &Extractor{
 		cleanup: options.Cleanup,
 		logger:  options.Logger,
 	}
 }
 
-func (e *extractor) Extract(ctx context.Context, path string, extractPath string) error {
+func (e *Extractor) Extract(ctx context.Context, opts *types.ExtractOpts) error {
 	if err := ctx.Err(); err != nil {
 		return err
 	}
 
 	logContext := map[string]interface{}{
-		"path":        path,
-		"extractPath": extractPath,
+		"path":       opts.Path,
+		"outputPath": opts.OutputPath,
 	}
 
 	e.logger.Info("extracting", logContext)
@@ -73,13 +70,13 @@ func (e *extractor) Extract(ctx context.Context, path string, extractPath string
 	// mholt/archiver doesn't support .dmg files, so we need to handle them separately.
 	// This isn't a 100% golang solution, but it works for now.
 	var err error
-	switch strings.ToLower(filepath.Ext(path)) {
+	switch strings.ToLower(filepath.Ext(opts.Path)) {
 	case ".dmg":
 		e.logger.Debug("extracting DMG file", logContext)
-		err = e.extractDMG(ctx, path, extractPath)
+		err = e.extractDMG(ctx, opts.Path, opts.OutputPath)
 	default:
 		e.logger.Debug("extracting archive", logContext)
-		err = archiver.Unarchive(path, extractPath)
+		err = archiver.Unarchive(opts.Path, opts.OutputPath)
 	}
 	if err != nil {
 		logContext["error"] = err.Error()
@@ -89,7 +86,7 @@ func (e *extractor) Extract(ctx context.Context, path string, extractPath string
 
 	if e.cleanup {
 		e.logger.Debug("cleaning up source file", logContext)
-		err = os.Remove(path)
+		err = os.Remove(opts.Path)
 		if err != nil {
 			logContext["error"] = err.Error()
 			e.logger.Error("cleanup error", logContext)

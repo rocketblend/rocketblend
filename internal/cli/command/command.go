@@ -1,25 +1,40 @@
 package command
 
 import (
+	"fmt"
 	"path/filepath"
 
+	"github.com/flowshot-io/x/pkg/logger"
+	"github.com/rocketblend/rocketblend/pkg/container"
+	"github.com/rocketblend/rocketblend/pkg/types"
 	"github.com/spf13/cobra"
 )
 
 type (
+	global struct {
+		WorkingDirectory string
+		Verbose          bool
+	}
+
+	commandOpts struct {
+		Name        string
+		Development bool
+		Global      *global
+	}
+
 	RootCommandOpts struct {
 		Name    string
 		Version string
 	}
-
-	persistentFlags struct {
-		workingDirectory string
-		verbose          bool
-	}
 )
 
 func NewRootCommand(opts *RootCommandOpts) *cobra.Command {
-	persistentFlags := persistentFlags{}
+	global := global{}
+	commandOpts := commandOpts{
+		Name:        opts.Name,
+		Development: false,
+		Global:      &global,
+	}
 
 	cc := &cobra.Command{
 		Version: opts.Name,
@@ -30,12 +45,12 @@ builds and addons for Blender projects.
 
 Documentation is available at https://docs.rocketblend.io/`,
 		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
-			path, err := validatePath(persistentFlags.workingDirectory)
+			path, err := validatePath(global.WorkingDirectory)
 			if err != nil {
 				return err
 			}
 
-			persistentFlags.workingDirectory = path
+			global.WorkingDirectory = path
 
 			return nil
 		},
@@ -46,7 +61,7 @@ Documentation is available at https://docs.rocketblend.io/`,
 	cc.SetVersionTemplate("{{.Version}}\n")
 
 	cc.AddCommand(
-		newConfigCommand(),
+		newConfigCommand(commandOpts),
 		// c.newNewCommand(),
 		// c.newInstallCommand(),
 		// c.newUninstallCommand(),
@@ -57,10 +72,33 @@ Documentation is available at https://docs.rocketblend.io/`,
 		// c.newInsertCommand(),
 	)
 
-	cc.PersistentFlags().StringVarP(&persistentFlags.workingDirectory, "directory", "d", ".", "working directory for the command")
-	cc.PersistentFlags().BoolVarP(&persistentFlags.verbose, "verbose", "v", false, "enable verbose logging")
+	cc.PersistentFlags().StringVarP(&global.WorkingDirectory, "directory", "d", ".", "working directory for the command")
+	cc.PersistentFlags().BoolVarP(&global.Verbose, "verbose", "v", false, "enable verbose logging")
 
 	return cc
+}
+
+func getContainer(name string, development bool, verbose bool) (types.Container, error) {
+	logLevel := "info"
+	if verbose {
+		logLevel = "debug"
+	}
+
+	logger := logger.New(
+		logger.WithLogLevel(logLevel),
+		logger.WithWriters(logger.PrettyWriter()),
+	)
+
+	container, err := container.New(
+		container.WithLogger(logger),
+		container.WithApplicationName(name),
+		container.WithDevelopmentMode(development),
+	)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create container: %w", err)
+	}
+
+	return container, nil
 }
 
 // func createDriver(blendConfig *blendconfig.BlendConfig) (driver.Driver, error) {
