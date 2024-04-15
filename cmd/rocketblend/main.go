@@ -11,12 +11,6 @@ import (
 )
 
 func main() {
-	app, err := cli.New()
-	if err != nil {
-		fmt.Println("Error creating cli app: ", err)
-		return
-	}
-
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
@@ -34,6 +28,7 @@ func main() {
 		cancel()
 	}()
 
+	app := cli.New()
 	if err := app.ExecuteContext(ctx); err != nil {
 		if ctx.Err() == context.Canceled {
 			return

@@ -17,7 +17,6 @@ type (
 	Config struct {
 		Platform          runtime.Platform    `mapstructure:"platform"`
 		DefaultBuild      reference.Reference `mapstructure:"defaultBuild"`
-		LogLevel          string              `mapstructure:"logLevel"`
 		InstallationsPath string              `mapstructure:"installationsPath"`
 		PackagesPath      string              `mapstructure:"packagesPath"`
 		Features          Features            `mapstructure:"features"`

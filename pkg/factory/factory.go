@@ -1,7 +1,6 @@
 package factory
 
 import (
-	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -17,8 +16,10 @@ import (
 
 type (
 	Options struct {
-		Logger    logger.Logger
-		Validator types.Validator
+		Logger     logger.Logger
+		Validator  types.Validator
+		Downloader types.Downloader
+		Extractor  types.Extractor
 
 		ApplicationName    string
 		ApplicationVersion string
@@ -27,8 +28,10 @@ type (
 	Option func(*Options)
 
 	factory struct {
-		logger    types.Logger
-		validator types.Validator
+		logger     types.Logger
+		validator  types.Validator
+		downloader types.Downloader
+		extractor  types.Extractor
 
 		configurator *configurator.Configurator
 		repository   *repository.Repository
@@ -89,28 +92,71 @@ func (f *factory) GetValidator() (types.Validator, error) {
 	return f.validator, nil
 }
 
+func (f *factory) GetDownloader() (types.Downloader, error) {
+	return f.downloader, nil
+}
+
+func (f *factory) GetExtractor() (types.Extractor, error) {
+	return f.extractor, nil
+}
+
 func (f *factory) GetConfigurator() (types.Configurator, error) {
-	return initService(&f.rwMutex, f.configurator, f.getConfigurator)
+	return initService(&f.rwMutex, &f.configurator, f.getConfigurator)
 }
 
 func (f *factory) GetRepository() (types.Repository, error) {
-	return initService(&f.rwMutex, f.repository, f.getRepository)
+	return initService(&f.rwMutex, &f.repository, f.getRepository)
 }
 
 func (f *factory) GetBlender() (types.Blender, error) {
-	return initService(&f.rwMutex, f.blender, f.getBlender)
+	return initService(&f.rwMutex, &f.blender, f.getBlender)
 }
 
 func (f *factory) getRepository() (*repository.Repository, error) {
-	return nil, errors.New("not implemented")
+	configurator, err := f.getConfigurator()
+	if err != nil {
+		return nil, fmt.Errorf("failed to get configurator: %w", err)
+	}
+
+	config, err := configurator.Get()
+	if err != nil {
+		return nil, fmt.Errorf("failed to get config: %w", err)
+	}
+
+	repository, err := repository.New(
+		repository.WithLogger(f.logger),
+		repository.WithValidator(f.validator),
+		repository.WithDownloader(f.downloader),
+		repository.WithExtractor(f.extractor),
+		repository.WithPackagePath(config.PackagesPath),
+		repository.WithInstallationPath(config.InstallationsPath),
+		repository.WithPlatform(config.Platform),
+	)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create repository: %w", err)
+	}
+
+	return repository, nil
 }
 
 func (f *factory) getBlender() (*blender.Blender, error) {
-	return nil, errors.New("not implemented")
+	blender, err := blender.New(
+		blender.WithLogger(f.logger),
+		blender.WithValidator(f.validator),
+	)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create blender: %w", err)
+	}
+
+	return blender, nil
 }
 
 func (f *factory) getConfigurator() (*configurator.Configurator, error) {
-	configurator, err := configurator.New()
+	configurator, err := configurator.New(
+		configurator.WithLogger(f.logger),
+		configurator.WithValidator(f.validator),
+		configurator.WithLocation(f.applicationDir),
+	)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create configurator: %w", err)
 	}
@@ -118,24 +164,24 @@ func (f *factory) getConfigurator() (*configurator.Configurator, error) {
 	return configurator, nil
 }
 
-func initService[T any](rwMutex *sync.RWMutex, service *T, initFunc func() (*T, error)) (*T, error) {
+func initService[T any](rwMutex *sync.RWMutex, service **T, initFunc func() (*T, error)) (*T, error) {
 	rwMutex.RLock()
-	if service != nil {
-		rwMutex.RUnlock()
-		return service, nil
+	if *service != nil {
+		defer rwMutex.RUnlock()
+		return *service, nil
 	}
 	rwMutex.RUnlock()
 
 	rwMutex.Lock()
 	defer rwMutex.Unlock()
-
-	var err error
-	service, err = initFunc()
-	if err != nil {
-		return nil, err
+	if *service == nil {
+		var err error
+		*service, err = initFunc()
+		if err != nil {
+			return nil, err
+		}
 	}
-
-	return service, nil
+	return *service, nil
 }
 
 func setupApplicationDir(name string, version string) (string, error) {

@@ -16,7 +16,7 @@ type (
 		Validator types.Validator
 
 		Platform         runtime.Platform
-		StoragePath      string
+		PackagePath      string
 		InstallationPath string
 
 		Downloader types.Downloader
@@ -31,7 +31,7 @@ type (
 		downloader       types.Downloader
 		extractor        types.Extractor
 		platform         runtime.Platform
-		storagePath      string
+		packagePath      string
 		installationPath string
 	}
 )
@@ -48,9 +48,21 @@ func WithValidator(validator types.Validator) Option {
 	}
 }
 
-func WithStoragePath(storagePath string) Option {
+func WithDownloader(downloader types.Downloader) Option {
 	return func(o *Options) {
-		o.StoragePath = storagePath
+		o.Downloader = downloader
+	}
+}
+
+func WithExtractor(extractor types.Extractor) Option {
+	return func(o *Options) {
+		o.Extractor = extractor
+	}
+}
+
+func WithPackagePath(packagePath string) Option {
+	return func(o *Options) {
+		o.PackagePath = packagePath
 	}
 }
 
@@ -60,7 +72,13 @@ func WithInstallationPath(installationPath string) Option {
 	}
 }
 
-func NewService(opts ...Option) (*Repository, error) {
+func WithPlatform(platform runtime.Platform) Option {
+	return func(o *Options) {
+		o.Platform = platform
+	}
+}
+
+func New(opts ...Option) (*Repository, error) {
 	options := &Options{
 		Logger:    logger.NoOp(),
 		Validator: validator.New(),
@@ -78,7 +96,7 @@ func NewService(opts ...Option) (*Repository, error) {
 		return nil, errors.New("extractor is nil")
 	}
 
-	if options.StoragePath == "" {
+	if options.PackagePath == "" {
 		return nil, errors.New("storage path is empty")
 	}
 
@@ -86,7 +104,7 @@ func NewService(opts ...Option) (*Repository, error) {
 		return nil, errors.New("installation path is empty")
 	}
 
-	if err := os.MkdirAll(options.StoragePath, 0755); err != nil {
+	if err := os.MkdirAll(options.PackagePath, 0755); err != nil {
 		return nil, err
 	}
 
@@ -95,7 +113,7 @@ func NewService(opts ...Option) (*Repository, error) {
 	}
 
 	options.Logger.Debug("initializing rocketpack service", map[string]interface{}{
-		"storagePath": options.StoragePath,
+		"packagePath": options.PackagePath,
 	})
 
 	return &Repository{
@@ -104,7 +122,7 @@ func NewService(opts ...Option) (*Repository, error) {
 		downloader:       options.Downloader,
 		extractor:        options.Extractor,
 		platform:         options.Platform,
-		storagePath:      options.StoragePath,
+		packagePath:      options.PackagePath,
 		installationPath: options.InstallationPath,
 	}, nil
 }

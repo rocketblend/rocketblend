@@ -130,7 +130,7 @@ func (r *Repository) insertPackage(ctx context.Context, ref reference.Reference,
 		return err
 	}
 
-	packagePath := filepath.Join(r.storagePath, ref.String(), types.PackageFileName)
+	packagePath := filepath.Join(r.packagePath, ref.String(), types.PackageFileName)
 
 	err := os.MkdirAll(filepath.Dir(packagePath), 0755)
 	if err != nil {
@@ -164,8 +164,8 @@ func (s *Repository) getPackage(ctx context.Context, ref reference.Reference, up
 		return nil, err
 	}
 
-	repoPath := filepath.Join(s.storagePath, repo)
-	packagePath := filepath.Join(s.storagePath, ref.String(), types.PackageFileName)
+	repoPath := filepath.Join(s.packagePath, repo)
+	packagePath := filepath.Join(s.packagePath, ref.String(), types.PackageFileName)
 
 	// The repository does not exist locally, clone it
 	if _, err := os.Stat(repoPath); os.IsNotExist(err) || update && !ref.IsLocalOnly() {
@@ -217,7 +217,7 @@ func (s *Repository) removePackage(ctx context.Context, reference reference.Refe
 		return err
 	}
 
-	repoPath := filepath.Join(s.storagePath, repo)
+	repoPath := filepath.Join(s.packagePath, repo)
 
 	// Check if the file exists in the local storage
 	_, err = os.Stat(repoPath)

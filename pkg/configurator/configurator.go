@@ -47,9 +47,14 @@ func WithValidator(validator types.Validator) Option {
 	}
 }
 
-func WithLocation(path string, name string, extenstion string) Option {
+func WithLocation(path string) Option {
 	return func(o *Options) {
 		o.Path = path
+	}
+}
+
+func WithApplication(name string, extenstion string) Option {
+	return func(o *Options) {
 		o.Name = name
 		o.Extension = extenstion
 	}
