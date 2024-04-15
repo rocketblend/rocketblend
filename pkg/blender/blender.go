@@ -20,6 +20,18 @@ type (
 	}
 )
 
+func WithLogger(logger logger.Logger) Option {
+	return func(o *Options) {
+		o.Logger = logger
+	}
+}
+
+func WithValidator(validator types.Validator) Option {
+	return func(o *Options) {
+		o.Validator = validator
+	}
+}
+
 func New(opts ...Option) (*blender, error) {
 	options := &Options{
 		Logger:    logger.NoOp(),

@@ -35,6 +35,26 @@ type (
 	}
 )
 
+func WithLogger(logger logger.Logger) Option {
+	return func(o *Options) {
+		o.Logger = logger
+	}
+}
+
+func WithValidator(validator types.Validator) Option {
+	return func(o *Options) {
+		o.Validator = validator
+	}
+}
+
+func WithLocation(path string, name string, extenstion string) Option {
+	return func(o *Options) {
+		o.Path = path
+		o.Name = name
+		o.Extension = extenstion
+	}
+}
+
 func New(opts ...Option) (*configurator, error) {
 	options := &Options{
 		Logger:    logger.NoOp(),
