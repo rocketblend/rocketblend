@@ -6,58 +6,125 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/rocketblend/rocketblend/pkg/rocketblend/config"
+	"github.com/rocketblend/rocketblend/pkg/types"
 	"github.com/spf13/cobra"
+)
+
+type (
+	createProjectOpts struct {
+		commandOpts
+		Name string
+	}
 )
 
 // newNewCommand creates a new cobra.Command object initialized for creating a new project.
 // It expects a single argument which is the name of the project.
-// It uses the 'skip-install' flag to decide whether or not to install dependencies.
 func newNewCommand(opts commandOpts) *cobra.Command {
-	var skipInstall bool
-
 	cc := &cobra.Command{
 		Use:   "new [name]",
 		Short: "Create a new project",
-		Long:  `Creates a new project with a specified name. Use the 'skip-install' flag to skip installing dependencies.`,
+		Long:  `Creates a new project with a specified name.`,
 		Args:  cobra.MinimumNArgs(1),
 		PreRunE: func(cmd *cobra.Command, args []string) error {
 			return validateProjectName(args[0])
 		},
 		RunE: func(cmd *cobra.Command, args []string) error {
-			container, err := getContainer(opts.Name, opts.Development, opts.Global.Verbose)
-			if err != nil {
-				fmt.Println(err)
-			}
+			return runWithSpinner(cmd.Context(), func(ctx context.Context) error {
+				if err := createProject(ctx, createProjectOpts{
+					commandOpts: opts,
+					Name:        args[0],
+				}); err != nil {
+					return fmt.Errorf("failed to create project: %w", err)
+				}
 
-			configurator, err := container.GetConfigurator()
-			if err != nil {
-				return err
-			}
-
-			blendConfig, err := blendconfig.New(
-				c.flags.workingDirectory,
-				c.ensureBlendExtension(args[0]),
-				rocketfile.New(config.DefaultBuild),
-			)
-			if err != nil {
-				return err
-			}
-
-			driver, err := c.createDriver(blendConfig)
-			if err != nil {
-				return err
-			}
-
-			return c.runWithSpinner(cmd.Context(), func(ctx context.Context) error {
-				return driver.Create(ctx)
+				return nil
 			}, &spinnerOptions{Suffix: "Creating project..."})
 		},
 	}
 
-	cc.Flags().BoolVarP(&skipInstall, "skip-install", "s", false, "skip installing dependencies")
-
 	return cc
+}
+
+// createProject creates a new project with the specified name.
+func createProject(ctx context.Context, opts createProjectOpts) error {
+	container, err := getContainer(opts.AppName, opts.Development, opts.Global.Verbose)
+	if err != nil {
+		return err
+	}
+
+	configurator, err := container.GetConfigurator()
+	if err != nil {
+		return err
+	}
+
+	config, err := configurator.Get()
+	if err != nil {
+		return err
+	}
+
+	driver, err := container.GetDriver()
+	if err != nil {
+		return err
+	}
+
+	profiles := []*types.Profile{
+		{
+			Dependencies: []*types.Dependency{
+				{
+					Reference: config.DefaultBuild,
+					Type:      types.PackageBuild,
+				},
+			},
+		},
+	}
+
+	if err := driver.TidyProfiles(ctx, &types.TidyProfilesOpts{
+		Profiles: profiles,
+	}); err != nil {
+		return err
+	}
+
+	if err := driver.InstallProfiles(ctx, &types.InstallProfilesOpts{
+		Profiles: profiles,
+	}); err != nil {
+		return err
+	}
+
+	resolveResults, err := driver.ResolveProfiles(ctx, &types.ResolveProfilesOpts{
+		Profiles: profiles,
+	})
+	if err != nil {
+		return err
+	}
+
+	blender, err := container.GetBlender()
+	if err != nil {
+		return err
+	}
+
+	blendFilePath := filepath.Join(opts.Global.WorkingDirectory, ensureBlendExtension(opts.Name))
+
+	if err := blender.Create(ctx, &types.CreateOpts{
+		BlenderOpts: types.BlenderOpts{
+			BlendFile: &types.BlendFile{
+				Path:         blendFilePath,
+				Dependencies: resolveResults.Installations[0],
+			},
+			Background: true,
+		},
+	}); err != nil {
+		return err
+	}
+
+	if err := driver.SaveProfiles(ctx, &types.SaveProfilesOpts{
+		Profiles: map[string]*types.Profile{
+			filepath.Dir(blendFilePath): profiles[0],
+		},
+	}); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 // validateProjectName checks if the project name is valid.

@@ -1,4 +1,4 @@
-package driver2
+package driver
 
 import (
 	"context"
@@ -12,33 +12,25 @@ func (d *Driver) LoadProfiles(ctx context.Context, opts *types.LoadProfilesOpts)
 	d.mutex.Lock()
 	defer d.mutex.Unlock()
 
-	tasks := make([]taskrunner.Task[*getProfileResult], len(opts.Paths))
+	tasks := make([]taskrunner.Task[*types.Profile], len(opts.Paths))
 	for i, path := range opts.Paths {
-		tasks[i] = func(ctx context.Context) (*getProfileResult, error) {
+		tasks[i] = func(ctx context.Context) (*types.Profile, error) {
 			project, err := d.load(ctx, path)
 			if err != nil {
 				return nil, err
 			}
 
-			return &getProfileResult{
-				path:    path,
-				profile: project,
-			}, nil
+			return project, nil
 		}
 	}
 
-	results, err := taskrunner.Run(ctx, &taskrunner.RunOpts[*getProfileResult]{
+	profiles, err := taskrunner.Run(ctx, &taskrunner.RunOpts[*types.Profile]{
 		Tasks:          tasks,
 		Mode:           d.executionMode,
 		MaxConcurrency: d.maxConcurrency,
 	})
 	if err != nil {
 		return nil, err
-	}
-
-	profiles := make(map[string]*types.Profile, len(results))
-	for _, result := range results {
-		profiles[result.path] = result.profile
 	}
 
 	return &types.LoadProfilesResult{

@@ -17,7 +17,7 @@ type (
 	}
 
 	commandOpts struct {
-		Name        string
+		AppName     string
 		Development bool
 		Global      *global
 	}
@@ -31,7 +31,7 @@ type (
 func NewRootCommand(opts *RootCommandOpts) *cobra.Command {
 	global := global{}
 	commandOpts := commandOpts{
-		Name:        opts.Name,
+		AppName:     opts.Name,
 		Development: false,
 		Global:      &global,
 	}
@@ -62,7 +62,7 @@ Documentation is available at https://docs.rocketblend.io/`,
 
 	cc.AddCommand(
 		newConfigCommand(commandOpts),
-		// c.newNewCommand(),
+		newNewCommand(commandOpts),
 		// c.newInstallCommand(),
 		// c.newUninstallCommand(),
 		// c.newRunCommand(),

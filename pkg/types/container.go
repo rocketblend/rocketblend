@@ -8,6 +8,7 @@ type (
 		GetExtractor() (Extractor, error)
 		GetConfigurator() (Configurator, error)
 		GetRepository() (Repository, error)
+		GetDriver() (Driver, error)
 		GetBlender() (Blender, error)
 	}
 )

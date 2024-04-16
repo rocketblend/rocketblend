@@ -10,6 +10,7 @@ import (
 	"github.com/rocketblend/rocketblend/pkg/blender"
 	"github.com/rocketblend/rocketblend/pkg/configurator"
 	"github.com/rocketblend/rocketblend/pkg/downloader"
+	"github.com/rocketblend/rocketblend/pkg/driver"
 	"github.com/rocketblend/rocketblend/pkg/extractor"
 	"github.com/rocketblend/rocketblend/pkg/repository"
 	"github.com/rocketblend/rocketblend/pkg/types"
@@ -41,6 +42,7 @@ type (
 		downloaderHolder   *holder[downloader.Downloader]
 		extractorHolder    *holder[extractor.Extractor]
 		repositoryHolder   *holder[repository.Repository]
+		driverHolder       *holder[driver.Driver]
 		blenderHolder      *holder[blender.Blender]
 
 		applicationDir string
@@ -92,7 +94,10 @@ func New(opts ...Option) (*Container, error) {
 		validator:          options.Validator,
 		applicationDir:     applicationDir,
 		configuratorHolder: &holder[configurator.Configurator]{},
+		downloaderHolder:   &holder[downloader.Downloader]{},
+		extractorHolder:    &holder[extractor.Extractor]{},
 		repositoryHolder:   &holder[repository.Repository]{},
+		driverHolder:       &holder[driver.Driver]{},
 		blenderHolder:      &holder[blender.Blender]{},
 	}, nil
 }
@@ -121,6 +126,10 @@ func (f *Container) GetRepository() (types.Repository, error) {
 	return f.getRepository()
 }
 
+func (f *Container) GetDriver() (types.Driver, error) {
+	return f.getDriver()
+}
+
 func (f *Container) GetBlender() (types.Blender, error) {
 	return f.getBlender()
 }
@@ -144,7 +153,7 @@ func (f *Container) getConfigurator() (*configurator.Configurator, error) {
 func (f *Container) getDownloader() (*downloader.Downloader, error) {
 	var err error
 	f.downloaderHolder.once.Do(func() {
-		f.downloaderHolder.instance = downloader.New(
+		f.downloaderHolder.instance, err = downloader.New(
 			downloader.WithLogger(f.logger),
 		)
 	})
@@ -158,7 +167,7 @@ func (f *Container) getDownloader() (*downloader.Downloader, error) {
 func (f *Container) getExtractor() (*extractor.Extractor, error) {
 	var err error
 	f.extractorHolder.once.Do(func() {
-		f.extractorHolder.instance = extractor.New(
+		f.extractorHolder.instance, err = extractor.New(
 			extractor.WithLogger(f.logger),
 		)
 	})
@@ -211,6 +220,28 @@ func (f *Container) getRepository() (*repository.Repository, error) {
 	}
 
 	return f.repositoryHolder.instance, nil
+}
+
+func (f *Container) getDriver() (*driver.Driver, error) {
+	var err error
+	f.driverHolder.once.Do(func() {
+		repository, errRepository := f.getRepository()
+		if errRepository != nil {
+			err = errRepository
+			return
+		}
+
+		f.driverHolder.instance, err = driver.New(
+			driver.WithLogger(f.logger),
+			driver.WithValidator(f.validator),
+			driver.WithRepository(repository),
+		)
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to get/create driver: %w", err)
+	}
+
+	return f.driverHolder.instance, nil
 }
 
 func (f *Container) getBlender() (*blender.Blender, error) {

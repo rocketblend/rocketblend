@@ -4,6 +4,8 @@ import (
 	"context"
 )
 
+const BlendFileExtension = ".blend"
+
 type (
 	Executable interface {
 		Name() string

@@ -37,7 +37,7 @@ func WithCleanup() Option {
 	}
 }
 
-func New(opts ...Option) *Extractor {
+func New(opts ...Option) (*Extractor, error) {
 	options := &Options{
 		Cleanup: false,
 		Logger:  logger.NoOp(),
@@ -52,7 +52,7 @@ func New(opts ...Option) *Extractor {
 	return &Extractor{
 		cleanup: options.Cleanup,
 		logger:  options.Logger,
-	}
+	}, nil
 }
 
 func (e *Extractor) Extract(ctx context.Context, opts *types.ExtractOpts) error {

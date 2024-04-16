@@ -1,4 +1,4 @@
-package driver2
+package driver
 
 import (
 	"context"
@@ -7,7 +7,7 @@ import (
 	"github.com/rocketblend/rocketblend/pkg/types"
 )
 
-func (d *Driver) Resolve(ctx context.Context, opts *types.ResolveProfilesOpts) (*types.ResolveProfilesResult, error) {
+func (d *Driver) ResolveProfiles(ctx context.Context, opts *types.ResolveProfilesOpts) (*types.ResolveProfilesResult, error) {
 	d.mutex.Lock()
 	defer d.mutex.Unlock()
 

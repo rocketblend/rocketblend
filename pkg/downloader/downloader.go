@@ -54,7 +54,7 @@ func WithLogFrequency(logFreq int64) Option {
 }
 
 // New creates a new Downloader.
-func New(opts ...Option) *Downloader {
+func New(opts ...Option) (*Downloader, error) {
 	options := &Options{
 		Logger:  logger.NoOp(),
 		LogFreq: 1 << 20, // Default log frequency is 1MB
@@ -69,7 +69,7 @@ func New(opts ...Option) *Downloader {
 	return &Downloader{
 		logger:  options.Logger,
 		logFreq: options.LogFreq,
-	}
+	}, nil
 }
 
 // DownloadOpts contains the options for downloading a file

@@ -1,4 +1,4 @@
-package driver2
+package driver
 
 import (
 	"context"
@@ -55,16 +55,16 @@ func WithValidator(validator types.Validator) Option {
 	}
 }
 
+func WithRepository(repository types.Repository) Option {
+	return func(o *Options) {
+		o.Repository = repository
+	}
+}
+
 func WithExecutionMode(mode taskrunner.ExecutionMode, maxConcurrency int) Option {
 	return func(o *Options) {
 		o.ExecutionMode = mode
 		o.MaxConcurrency = maxConcurrency
-	}
-}
-
-func WithRepository(repository types.Repository) Option {
-	return func(o *Options) {
-		o.Repository = repository
 	}
 }
 

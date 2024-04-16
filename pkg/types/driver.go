@@ -6,15 +6,15 @@ import (
 
 type (
 	LoadProfilesOpts struct {
-		Paths []string `json:"paths"`
+		Paths []string `json:"paths" validate:"required,dive,dir"`
 	}
 
 	LoadProfilesResult struct {
-		Profiles map[string]*Profile `json:"profiles"`
+		Profiles []*Profile `json:"profiles"`
 	}
 
 	ResolveProfilesOpts struct {
-		Profiles []*Profile `json:"profiles"`
+		Profiles []*Profile `json:"profiles" validate:"required,dive,required"`
 	}
 
 	ResolveProfilesResult struct {
@@ -22,16 +22,16 @@ type (
 	}
 
 	TidyProfilesOpts struct {
-		Profiles []*Profile `json:"profiles"`
-		Fetch    bool       `json:"fetch"`
+		Profiles []*Profile `json:"profiles" validate:"required,dive,required"`
+		Fetch    bool       `json:"fetch" validate:"required"`
 	}
 
 	InstallProfilesOpts struct {
-		Profiles []*Profile `json:"profiles"`
+		Profiles []*Profile `json:"profiles" validate:"required,dive,required"`
 	}
 
 	SaveProfilesOpts struct {
-		Profiles map[string]*Profile `json:"profiles"`
+		Profiles map[string]*Profile `json:"profiles" validate:"required,dive,required"`
 	}
 
 	Driver interface {
