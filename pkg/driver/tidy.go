@@ -49,6 +49,11 @@ func (d *Driver) tidyDependencies(ctx context.Context, dependencies []*types.Dep
 		return nil, err
 	}
 
+	d.logger.Debug("tidying dependencies", map[string]interface{}{
+		"dependencies": dependencies,
+		"update":       update,
+	})
+
 	references := make([]reference.Reference, 0, len(dependencies))
 	for _, dep := range dependencies {
 		references = append(references, dep.Reference)

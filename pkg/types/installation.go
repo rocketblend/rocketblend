@@ -11,7 +11,7 @@ type (
 	Installation struct {
 		Path    string          `json:"path" validate:"required,filepath"`
 		Type    PackageType     `json:"type,omitempty" validate:"omitempty,oneof=build addon"`
-		Name    string          `json:"name" validate:"required"`
+		Name    string          `json:"name,omitempty"` // This is required for addons.
 		Version *semver.Version `json:"version,omitempty"`
 	}
 

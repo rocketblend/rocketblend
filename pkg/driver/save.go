@@ -13,7 +13,7 @@ func (d *Driver) SaveProfiles(ctx context.Context, opts *types.SaveProfilesOpts)
 	d.mutex.Lock()
 	defer d.mutex.Unlock()
 
-	tasks := make([]taskrunner.Task[struct{}], len(opts.Profiles))
+	tasks := make([]taskrunner.Task[struct{}], 0, len(opts.Profiles))
 	for path, profile := range opts.Profiles {
 		tasks = append(tasks, func(ctx context.Context) (struct{}, error) {
 			return struct{}{}, d.save(ctx, path, profile)
@@ -36,6 +36,11 @@ func (d *Driver) save(ctx context.Context, path string, profile *types.Profile) 
 	if err := ctx.Err(); err != nil {
 		return err
 	}
+
+	d.logger.Debug("saving profile", map[string]interface{}{
+		"path":    path,
+		"profile": profile,
+	})
 
 	if err := helpers.Save(d.validator, profileFilePath(path), profile); err != nil {
 		return err

@@ -14,6 +14,7 @@ type spinnerOptions struct {
 	Suffix           string
 	CompletedMessage string
 	CanceledMessage  string
+	Verbose          bool
 }
 
 // func removeDuplicateStr(strs []string) []string {
@@ -45,6 +46,10 @@ func findFilePathForExt(dir string, ext string) (string, error) {
 func runWithSpinner(ctx context.Context, f func(context.Context) error, options *spinnerOptions) error {
 	if options == nil {
 		options = &spinnerOptions{}
+	}
+
+	if options.Verbose {
+		return f(ctx)
 	}
 
 	if options.Spinner == nil {

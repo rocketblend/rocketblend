@@ -10,7 +10,7 @@ const ProfileFileName = "rocketblend.json"
 type (
 	Dependency struct {
 		Reference reference.Reference `json:"reference" validate:"required"`
-		Type      PackageType         `json:"type,omitempty" validate:"omitempty oneof=build addon"`
+		Type      PackageType         `json:"type,omitempty" validate:"omitempty,oneof=build addon"`
 	}
 
 	Profile struct {

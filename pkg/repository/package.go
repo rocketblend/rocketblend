@@ -59,7 +59,7 @@ func (r *Repository) InsertPackages(ctx context.Context, opts *types.InsertPacka
 }
 
 func (r *Repository) getPackages(ctx context.Context, references []reference.Reference, update bool) (map[reference.Reference]*types.Package, error) {
-	tasks := make([]taskrunner.Task[*getPackageResult], len(references))
+	tasks := make([]taskrunner.Task[*getPackageResult], 0, len(references))
 	for _, ref := range references {
 		tasks = append(tasks, func(ctx context.Context) (*getPackageResult, error) {
 			pack, err := r.getPackage(ctx, ref, update)
@@ -88,7 +88,7 @@ func (r *Repository) getPackages(ctx context.Context, references []reference.Ref
 }
 
 func (r *Repository) removePackages(ctx context.Context, references []reference.Reference) error {
-	tasks := make([]taskrunner.Task[struct{}], len(references))
+	tasks := make([]taskrunner.Task[struct{}], 0, len(references))
 	for _, ref := range references {
 		tasks = append(tasks, func(ctx context.Context) (struct{}, error) {
 			return struct{}{}, r.removePackage(ctx, ref)
@@ -107,7 +107,7 @@ func (r *Repository) removePackages(ctx context.Context, references []reference.
 }
 
 func (r *Repository) insertPackages(ctx context.Context, packs map[reference.Reference]*types.Package) error {
-	tasks := make([]taskrunner.Task[struct{}], len(packs))
+	tasks := make([]taskrunner.Task[struct{}], 0, len(packs))
 	for ref, pack := range packs {
 		tasks = append(tasks, func(ctx context.Context) (struct{}, error) {
 			return struct{}{}, r.insertPackage(ctx, ref, pack)
@@ -156,7 +156,9 @@ func (s *Repository) getPackage(ctx context.Context, ref reference.Reference, up
 		return nil, err
 	}
 
-	s.logger.Info("processing reference", map[string]interface{}{"reference": ref.String()})
+	s.logger.Info("processing reference", map[string]interface{}{
+		"reference": ref.String(),
+	})
 
 	repo, err := ref.GetRepo()
 	if err != nil {

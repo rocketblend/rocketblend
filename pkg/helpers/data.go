@@ -44,7 +44,7 @@ func Save[T any](validator types.Validator, filePath string, object *T) error {
 		return fmt.Errorf("failed to validate object: %w", err)
 	}
 
-	bytes, err := json.Marshal(&object)
+	bytes, err := json.MarshalIndent(object, "", "  ")
 	if err != nil {
 		return fmt.Errorf("failed to marshal object: %s", err)
 	}

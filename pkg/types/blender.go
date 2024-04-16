@@ -22,7 +22,7 @@ type (
 
 	BlenderOpts struct {
 		Background bool       `json:"background"`
-		BlendFile  *BlendFile `json:"blendFile,omitempty" validate:"omitempty,dive,required"`
+		BlendFile  *BlendFile `json:"blendFile,omitempty" validate:"omitempty"`
 	}
 
 	RenderOpts struct {

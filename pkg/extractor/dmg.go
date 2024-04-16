@@ -22,13 +22,7 @@ func (e *Extractor) extractDMG(ctx context.Context, filePath string, destination
 	cmd := exec.CommandContext(ctx, "hdiutil", "attach", "-nobrowse", filePath)
 	out, err := cmd.CombinedOutput()
 	if err != nil {
-		if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
-			return err
-		}
-
-		logContext["error"] = err.Error()
-		e.logger.Error("could not mount .dmg file", logContext)
-		return fmt.Errorf("could not mount .dmg file: %s", err)
+		return err
 	}
 
 	e.logger.Debug(".dmg mounted", logContext)

@@ -80,18 +80,25 @@ func (d *Downloader) Download(ctx context.Context, opts *types.DownloadOpts) err
 
 	downloadID := uuid.New().String()
 	tempPath := opts.Path + TempFileExtension
-	infoPath := filepath.Join(filepath.Dir(opts.Path), DownloadInfoFile)
 
-	if err := d.prepareDirectoryAndInfoFile(tempPath, infoPath, opts.URI); err != nil {
+	if err := os.MkdirAll(filepath.Dir(tempPath), 0755); err != nil {
 		return err
 	}
-	defer os.Remove(infoPath) // Ensures removal of the info file if the download fails
 
 	reader, contentLength, err := d.setupReader(ctx, opts.URI, 0) // fileSize is determined inside setupReader if needed
 	if err != nil {
 		return err
 	}
 	defer reader.Close()
+
+	infoPath := filepath.Join(filepath.Dir(opts.Path), DownloadInfoFile)
+	if err := d.writeInfoFile(infoPath, DownloadInfo{
+		URI:  opts.URI.String(),
+		Size: contentLength,
+	}); err != nil {
+		return err
+	}
+	defer os.Remove(infoPath)
 
 	if err := d.writeToFile(ctx, tempPath, contentLength, reader); err != nil {
 		return err
@@ -104,28 +111,14 @@ func (d *Downloader) Download(ctx context.Context, opts *types.DownloadOpts) err
 	return nil
 }
 
-// prepareDirectoryAndInfoFile creates the directory for the download and the info file
-func (d *Downloader) prepareDirectoryAndInfoFile(tempPath, infoPath string, uri *types.URI) error {
-	if err := os.MkdirAll(filepath.Dir(tempPath), 0755); err != nil {
-		return fmt.Errorf("error creating directory: %w", err)
-	}
-
-	fileSize, err := d.checkFileSize(tempPath)
-	if err != nil {
-		return err
-	}
-
-	infoFile, err := os.Create(infoPath)
+func (d *Downloader) writeInfoFile(path string, data DownloadInfo) error {
+	infoFile, err := os.Create(path)
 	if err != nil {
 		return fmt.Errorf("error creating download info JSON file: %w", err)
 	}
 	defer infoFile.Close()
 
-	info := DownloadInfo{
-		URI:  uri.String(),
-		Size: fileSize,
-	}
-	infoBytes, err := json.Marshal(info)
+	infoBytes, err := json.Marshal(data)
 	if err != nil {
 		return fmt.Errorf("error marshalling download info JSON: %w", err)
 	}
@@ -157,15 +150,15 @@ func (d *Downloader) finalizeDownload(tempPath, path, downloadID string, uri *ty
 	return nil
 }
 
-// checkFileSize checks if a file exists and returns its size if it does
-func (d *Downloader) checkFileSize(tempPath string) (int64, error) {
-	var fileSize int64 = 0
-	if fi, err := os.Stat(tempPath); err == nil {
-		fileSize = fi.Size()
-	}
+// // checkFileSize checks if a file exists and returns its size if it does
+// func (d *Downloader) checkFileSize(tempPath string) (int64, error) {
+// 	var fileSize int64 = 0
+// 	if fi, err := os.Stat(tempPath); err == nil {
+// 		fileSize = fi.Size()
+// 	}
 
-	return fileSize, nil
-}
+// 	return fileSize, nil
+// }
 
 // setupReader sets up an io.ReadCloser based on whether the file is local or remote
 func (d *Downloader) setupReader(ctx context.Context, uri *types.URI, fileSize int64) (io.ReadCloser, int64, error) {

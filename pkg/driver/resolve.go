@@ -43,6 +43,11 @@ func (d *Driver) resolve(ctx context.Context, profile *types.Profile) ([]*types.
 		return nil, err
 	}
 
+	d.logger.Debug("resolving profile", map[string]interface{}{
+		"profile":       profile,
+		"installations": installations,
+	})
+
 	dependencies := make([]*types.Installation, 0, len(installations))
 	for _, installation := range installations {
 		dependencies = append(dependencies, installation)

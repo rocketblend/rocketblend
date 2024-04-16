@@ -36,11 +36,6 @@ type (
 
 		mutex sync.Mutex
 	}
-
-	getProfileResult struct {
-		path    string
-		profile *types.Profile
-	}
 )
 
 func WithLogger(logger types.Logger) Option {

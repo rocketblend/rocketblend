@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/rocketblend/rocketblend/pkg/helpers"
 	"github.com/rocketblend/rocketblend/pkg/types"
 	"github.com/spf13/cobra"
 )
@@ -38,7 +39,10 @@ func newNewCommand(opts commandOpts) *cobra.Command {
 				}
 
 				return nil
-			}, &spinnerOptions{Suffix: "Creating project..."})
+			}, &spinnerOptions{
+				Suffix:  "Creating project...",
+				Verbose: opts.Global.Verbose,
+			})
 		},
 	}
 
@@ -107,6 +111,7 @@ func createProject(ctx context.Context, opts createProjectOpts) error {
 	if err := blender.Create(ctx, &types.CreateOpts{
 		BlenderOpts: types.BlenderOpts{
 			BlendFile: &types.BlendFile{
+				Name:         helpers.ExtractName(opts.Name),
 				Path:         blendFilePath,
 				Dependencies: resolveResults.Installations[0],
 			},

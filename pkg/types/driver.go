@@ -23,7 +23,7 @@ type (
 
 	TidyProfilesOpts struct {
 		Profiles []*Profile `json:"profiles" validate:"required,dive,required"`
-		Fetch    bool       `json:"fetch" validate:"required"`
+		Fetch    bool       `json:"fetch"`
 	}
 
 	InstallProfilesOpts struct {

@@ -86,6 +86,11 @@ func New(opts ...Option) (*Container, error) {
 		return nil, fmt.Errorf("failed to setup application directory: %w", err)
 	}
 
+	options.Logger.Debug("initializing container", map[string]interface{}{
+		"path":        applicationDir,
+		"development": options.Development,
+	})
+
 	return &Container{
 		logger:             options.Logger,
 		validator:          options.Validator,
@@ -152,6 +157,7 @@ func (f *Container) getDownloader() (*downloader.Downloader, error) {
 	f.downloaderHolder.once.Do(func() {
 		f.downloaderHolder.instance, err = downloader.New(
 			downloader.WithLogger(f.logger),
+			downloader.WithLogFrequency(10<<20), // 10MB
 		)
 	})
 	if err != nil {
@@ -166,6 +172,7 @@ func (f *Container) getExtractor() (*extractor.Extractor, error) {
 	f.extractorHolder.once.Do(func() {
 		f.extractorHolder.instance, err = extractor.New(
 			extractor.WithLogger(f.logger),
+			extractor.WithCleanup(),
 		)
 	})
 	if err != nil {

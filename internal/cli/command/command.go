@@ -36,6 +36,11 @@ func NewRootCommand(opts *RootCommandOpts) *cobra.Command {
 		Global:      &global,
 	}
 
+	if opts.Version == "dev" {
+		commandOpts.Development = true
+
+	}
+
 	cc := &cobra.Command{
 		Version: opts.Version,
 		Use:     opts.Name,
@@ -79,18 +84,8 @@ Documentation is available at https://docs.rocketblend.io/`,
 }
 
 func getContainer(name string, development bool, verbose bool) (types.Container, error) {
-	logLevel := "info"
-	if verbose {
-		logLevel = "debug"
-	}
-
-	logger := logger.New(
-		logger.WithLogLevel(logLevel),
-		logger.WithWriters(logger.PrettyWriter()),
-	)
-
 	container, err := container.New(
-		container.WithLogger(logger),
+		container.WithLogger(getLogger("debug", verbose)),
 		container.WithApplicationName(name),
 		container.WithDevelopmentMode(development),
 	)
@@ -101,35 +96,16 @@ func getContainer(name string, development bool, verbose bool) (types.Container,
 	return container, nil
 }
 
-// func createDriver(blendConfig *blendconfig.BlendConfig) (driver.Driver, error) {
-// 	logger, err := c.factory.GetLogger()
-// 	if err != nil {
-// 		return nil, err
-// 	}
+func getLogger(level string, verbose bool) types.Logger {
+	if verbose {
+		return logger.New(
+			logger.WithLogLevel(level),
+			logger.WithWriters(logger.PrettyWriter()),
+		)
+	}
 
-// 	rocketPackService, err := c.factory.GetRocketPackService()
-// 	if err != nil {
-// 		return nil, err
-// 	}
-
-// 	installationService, err := c.factory.GetInstallationService()
-// 	if err != nil {
-// 		return nil, err
-// 	}
-
-// 	blendFileService, err := c.factory.GetBlendFileService()
-// 	if err != nil {
-// 		return nil, err
-// 	}
-
-// 	return driver.New(
-// 		driver.WithLogger(logger),
-// 		driver.WithRocketPackService(rocketPackService),
-// 		driver.WithInstallationService(installationService),
-// 		driver.WithBlendFileService(blendFileService),
-// 		driver.WithBlendConfig(blendConfig),
-// 	)
-// }
+	return logger.NoOp()
+}
 
 // validatePath checks if the path is valid and returns the absolute path.
 func validatePath(path string) (string, error) {
@@ -145,30 +121,3 @@ func validatePath(path string) (string, error) {
 
 	return absPath, nil
 }
-
-// func getBlendConfig() (*blendconfig.BlendConfig, error) {
-// 	blendFilePath, err := findFilePathForExt(c.flags.workingDirectory, blendconfig.BlenderFileExtension)
-// 	if err != nil {
-// 		return nil, err
-// 	}
-
-// 	return blendconfig.Load(blendFilePath, filepath.Join(filepath.Dir(blendFilePath), rocketfile.FileName))
-// }
-
-// func getDriver() (driver.Driver, error) {
-// 	blendConfig, err := c.getBlendConfig()
-// 	if err != nil {
-// 		return nil, err
-// 	}
-
-// 	return c.createDriver(blendConfig)
-// }
-
-// func getConfig() (*config.Config, error) {
-// 	configSrv, err := c.factory.GetConfigService()
-// 	if err != nil {
-// 		return nil, err
-// 	}
-
-// 	return configSrv.Get()
-// }

@@ -39,6 +39,10 @@ func (d *Driver) installDependencies(ctx context.Context, profile *types.Profile
 		return err
 	}
 
+	d.logger.Debug("installing dependencies", map[string]interface{}{
+		"profile": profile,
+	})
+
 	_, err := d.getInstallations(ctx, profile.Dependencies, true)
 	if err != nil {
 		return err

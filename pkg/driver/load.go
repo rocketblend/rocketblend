@@ -43,6 +43,10 @@ func (d *Driver) load(ctx context.Context, path string) (*types.Profile, error) 
 		return nil, err
 	}
 
+	d.logger.Debug("loading profile", map[string]interface{}{
+		"path": path,
+	})
+
 	profile, err := helpers.Load[types.Profile](d.validator, profileFilePath(path))
 	if err != nil {
 		return nil, err

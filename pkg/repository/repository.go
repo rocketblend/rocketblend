@@ -88,6 +88,10 @@ func New(opts ...Option) (*Repository, error) {
 		opt(options)
 	}
 
+	if options.Validator == nil {
+		return nil, errors.New("validator is nil")
+	}
+
 	if options.Downloader == nil {
 		return nil, errors.New("downloader is nil")
 	}
@@ -112,7 +116,7 @@ func New(opts ...Option) (*Repository, error) {
 		return nil, err
 	}
 
-	options.Logger.Debug("initializing rocketpack service", map[string]interface{}{
+	options.Logger.Debug("initializing repository", map[string]interface{}{
 		"packagePath": options.PackagePath,
 	})
 
