@@ -47,8 +47,6 @@ func (b *Blender) execute(ctx context.Context, name string, arguments *arguments
 		return err
 	}
 
-	b.logger.Debug("execution completed")
-
 	return nil
 }
 
@@ -71,7 +69,7 @@ func Execute(ctx context.Context, executable types.Executable) error {
 			for scanner.Scan() {
 				outputChannel <- scanner.Text()
 			}
-			close(outputChannel)
+			//close(outputChannel)
 		}()
 	}
 

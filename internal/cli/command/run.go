@@ -3,7 +3,6 @@ package command
 import (
 	"context"
 	"fmt"
-	"path/filepath"
 
 	"github.com/rocketblend/rocketblend/pkg/helpers"
 	"github.com/rocketblend/rocketblend/pkg/types"
@@ -59,7 +58,7 @@ func runProject(ctx context.Context, opts runProjectOpts) error {
 	}
 
 	profiles, err := driver.LoadProfiles(ctx, &types.LoadProfilesOpts{
-		Paths: []string{filepath.Dir(opts.Global.WorkingDirectory)},
+		Paths: []string{opts.Global.WorkingDirectory},
 	})
 	if err != nil {
 		return err

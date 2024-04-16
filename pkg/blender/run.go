@@ -52,7 +52,7 @@ func (b *Blender) processOuput(output string) {
 	info, err := parseRenderOutput(output)
 	if err != nil {
 		b.logger.Debug("blender", map[string]interface{}{
-			"message": strings.TrimSpace(output),
+			"output": strings.ToLower(strings.TrimSpace(output)),
 		})
 
 		return
