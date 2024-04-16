@@ -24,19 +24,18 @@ type (
 	}
 
 	Options struct {
-		Logger    logger.Logger
-		Validator types.Validator
-
+		Logger          logger.Logger
+		Validator       types.Validator
 		ApplicationName string
-
-		Development bool
+		Development     bool
 	}
 
 	Option func(*Options)
 
 	Container struct {
-		logger    types.Logger
-		validator types.Validator
+		logger         types.Logger
+		validator      types.Validator
+		applicationDir string
 
 		configuratorHolder *holder[configurator.Configurator]
 		downloaderHolder   *holder[downloader.Downloader]
@@ -44,8 +43,6 @@ type (
 		repositoryHolder   *holder[repository.Repository]
 		driverHolder       *holder[driver.Driver]
 		blenderHolder      *holder[blender.Blender]
-
-		applicationDir string
 	}
 )
 
@@ -77,7 +74,7 @@ func New(opts ...Option) (*Container, error) {
 	options := &Options{
 		Logger:          logger.NoOp(),
 		Validator:       validator.New(),
-		ApplicationName: "rocketblend",
+		ApplicationName: types.ApplicationName,
 	}
 
 	for _, opt := range opts {

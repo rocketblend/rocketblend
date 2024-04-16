@@ -3,16 +3,15 @@ package cli
 import (
 	cc "github.com/ivanpirog/coloredcobra"
 	"github.com/rocketblend/rocketblend/internal/cli/command"
+	"github.com/rocketblend/rocketblend/pkg/types"
 	"github.com/spf13/cobra"
 )
-
-const Name = "rocketblend"
 
 var Version = "dev"
 
 func New() *cobra.Command {
 	rootCMD := command.NewRootCommand(&command.RootCommandOpts{
-		Name:    Name,
+		Name:    types.ApplicationName,
 		Version: Version,
 	})
 
