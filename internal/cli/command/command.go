@@ -37,8 +37,8 @@ func NewRootCommand(opts *RootCommandOpts) *cobra.Command {
 	}
 
 	cc := &cobra.Command{
-		Version: opts.Name,
-		Use:     opts.Version,
+		Version: opts.Version,
+		Use:     opts.Name,
 		Short:   "RocketBlend is a build and addon manager for Blender projects.",
 		Long: `RocketBlend is a CLI tool that streamlines the process of managing
 builds and addons for Blender projects.

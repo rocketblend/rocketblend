@@ -21,6 +21,9 @@ type (
 		MaxConcurrency int
 		ExecutionMode  taskrunner.ExecutionMode
 
+		DefaultProfile *types.Profile
+		BlendFiles     []string
+
 		Projects []*types.Project
 
 		Repository types.Repository
@@ -36,6 +39,9 @@ type (
 		maxConcurrency int
 		executionMode  taskrunner.ExecutionMode
 
+		// Add default profile for blend files without one.
+
+		// Change this to blend file path / dir.
 		projects []*types.Project
 
 		repository types.Repository
