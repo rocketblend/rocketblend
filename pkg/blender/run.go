@@ -58,11 +58,16 @@ func (b *Blender) processOuput(output string) {
 		return
 	}
 
-	b.logger.Info("rendering", map[string]interface{}{
+	data := map[string]interface{}{
 		"frame":      info.FrameNumber,
 		"memory":     info.Memory,
 		"peakMemory": info.PeakMemory,
 		"time":       info.Time,
-		"operation":  info.Operation,
-	})
+	}
+
+	for key, value := range info.Data {
+		data[key] = value
+	}
+
+	b.logger.Info(info.Operation, data)
 }

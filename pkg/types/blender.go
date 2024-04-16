@@ -17,7 +17,6 @@ type (
 		Name         string          `json:"name" validate:"required"`
 		Path         string          `json:"path" validate:"required,filepath,blendfile"`
 		Dependencies []*Installation `json:"dependencies" validate:"required,onebuild,dive,required"`
-		// ARGS         []string        `json:"args"`
 	}
 
 	BlenderOpts struct {
@@ -26,13 +25,13 @@ type (
 	}
 
 	RenderOpts struct {
-		Start         int
-		End           int
-		Step          int
-		Output        string
-		Format        RenderFormat
-		CyclesDevices []CyclesDevice
-		Threads       int
+		Start         int            `json:"start"`
+		End           int            `json:"end"`
+		Step          int            `json:"step"`
+		Output        string         `json:"output"`
+		Format        RenderFormat   `json:"format"`
+		CyclesDevices []CyclesDevice `json:"cyclesDevices"`
+		Threads       int            `json:"threads" validate:"omitempty,gte=0,lte=1024"`
 		BlenderOpts
 	}
 
