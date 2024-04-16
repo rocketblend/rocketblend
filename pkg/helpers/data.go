@@ -1,12 +1,12 @@
 package helpers
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"os"
 
 	"github.com/rocketblend/rocketblend/pkg/types"
-	"sigs.k8s.io/yaml"
 )
 
 func Load[T any](validator types.Validator, filePath string) (*T, error) {
@@ -24,7 +24,7 @@ func Load[T any](validator types.Validator, filePath string) (*T, error) {
 	}
 
 	var result T
-	if err := yaml.Unmarshal(f, &result); err != nil {
+	if err := json.Unmarshal(f, &result); err != nil {
 		return nil, fmt.Errorf("failed to unmarshal file: %s", err)
 	}
 
@@ -44,7 +44,7 @@ func Save[T any](validator types.Validator, filePath string, object *T) error {
 		return fmt.Errorf("failed to validate object: %w", err)
 	}
 
-	bytes, err := yaml.Marshal(&object)
+	bytes, err := json.Marshal(&object)
 	if err != nil {
 		return fmt.Errorf("failed to marshal object: %s", err)
 	}

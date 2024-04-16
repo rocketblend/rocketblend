@@ -5,7 +5,7 @@ import (
 	"github.com/rocketblend/rocketblend/pkg/semver"
 )
 
-const ProjectConfigFileName = "rocketblend.yaml"
+const ProfileFileName = "rocketblend.json"
 
 type (
 	Dependency struct {

@@ -8,7 +8,7 @@ import (
 )
 
 const (
-	PackageFileName = "jetpack.yaml"
+	PackageFileName = "rocketpack.json"
 
 	PackageBuild PackageType = "build"
 	PackageAddon PackageType = "addon"
