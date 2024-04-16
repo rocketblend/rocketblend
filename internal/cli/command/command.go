@@ -14,6 +14,7 @@ type (
 	global struct {
 		WorkingDirectory string
 		Verbose          bool
+		Level            string
 	}
 
 	commandOpts struct {
@@ -79,13 +80,14 @@ Documentation is available at https://docs.rocketblend.io/`,
 
 	cc.PersistentFlags().StringVarP(&global.WorkingDirectory, "directory", "d", ".", "working directory for the command")
 	cc.PersistentFlags().BoolVarP(&global.Verbose, "verbose", "v", false, "enable verbose logging")
+	cc.PersistentFlags().StringVarP(&global.Level, "log-level", "l", "info", "log level (debug, info, warn, error)")
 
 	return cc
 }
 
-func getContainer(name string, development bool, verbose bool) (types.Container, error) {
+func getContainer(name string, development bool, level string, verbose bool) (types.Container, error) {
 	container, err := container.New(
-		container.WithLogger(getLogger("debug", verbose)),
+		container.WithLogger(getLogger(level, verbose)),
 		container.WithApplicationName(name),
 		container.WithDevelopmentMode(development),
 	)

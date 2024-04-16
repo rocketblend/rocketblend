@@ -34,6 +34,6 @@ func main() {
 			return
 		}
 
-		fmt.Println("Error executing: ", err)
+		fmt.Println("error: ", err)
 	}
 }

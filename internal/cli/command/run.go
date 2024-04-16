@@ -48,7 +48,7 @@ func runProject(ctx context.Context, opts runProjectOpts) error {
 		return err
 	}
 
-	container, err := getContainer(opts.AppName, opts.Development, opts.Global.Verbose)
+	container, err := getContainer(opts.AppName, opts.Development, opts.Global.Level, opts.Global.Verbose)
 	if err != nil {
 		return err
 	}

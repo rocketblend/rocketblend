@@ -2,6 +2,7 @@ package command
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"path/filepath"
 	"strings"
@@ -14,13 +15,16 @@ import (
 type (
 	createProjectOpts struct {
 		commandOpts
-		Name string
+		Name      string
+		Overwrite bool
 	}
 )
 
 // newNewCommand creates a new cobra.Command object initialized for creating a new project.
 // It expects a single argument which is the name of the project.
 func newNewCommand(opts commandOpts) *cobra.Command {
+	var overwrite bool
+
 	cc := &cobra.Command{
 		Use:   "new [name]",
 		Short: "Create a new project",
@@ -34,6 +38,7 @@ func newNewCommand(opts commandOpts) *cobra.Command {
 				if err := createProject(ctx, createProjectOpts{
 					commandOpts: opts,
 					Name:        args[0],
+					Overwrite:   overwrite,
 				}); err != nil {
 					return fmt.Errorf("failed to create project: %w", err)
 				}
@@ -46,12 +51,18 @@ func newNewCommand(opts commandOpts) *cobra.Command {
 		},
 	}
 
+	cc.Flags().BoolVarP(&overwrite, "overwrite", "o", false, "overwrite the project if one already exists")
+
 	return cc
 }
 
 // createProject creates a new project with the specified name.
 func createProject(ctx context.Context, opts createProjectOpts) error {
-	container, err := getContainer(opts.AppName, opts.Development, opts.Global.Verbose)
+	if !opts.Overwrite && existingProject(opts.Global.WorkingDirectory) {
+		return errors.New("project already exists in directory")
+	}
+
+	container, err := getContainer(opts.AppName, opts.Development, opts.Global.Level, opts.Global.Verbose)
 	if err != nil {
 		return err
 	}
@@ -130,6 +141,12 @@ func createProject(ctx context.Context, opts createProjectOpts) error {
 	}
 
 	return nil
+}
+
+// existingProject checks if a project already exists at the specified path.
+func existingProject(path string) bool {
+	_, err := findFilePathForExt(path, types.BlendFileExtension)
+	return err == nil
 }
 
 // validateProjectName checks if the project name is valid.
