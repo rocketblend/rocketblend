@@ -2,27 +2,43 @@ package types
 
 import (
 	"context"
-
-	"github.com/rocketblend/rocketblend/pkg/reference"
 )
 
 type (
-	AddDependenciesOpts struct {
-		References []reference.Reference `json:"references"`
-		Fetch      bool                  `json:"fetch"`
+	LoadProfilesOpts struct {
+		Paths []string `json:"paths"`
 	}
 
-	RemoveDependenciesOpts struct {
-		References []reference.Reference `json:"references"`
+	LoadProfilesResult struct {
+		Profiles map[string]*Profile `json:"profiles"`
+	}
+
+	ResolveProfilesOpts struct {
+		Profiles []*Profile `json:"profiles"`
+	}
+
+	ResolveProfilesResult struct {
+		Installations [][]*Installation `json:"installations"`
+	}
+
+	TidyProfilesOpts struct {
+		Profiles []*Profile `json:"profiles"`
+		Fetch    bool       `json:"fetch"`
+	}
+
+	InstallProfilesOpts struct {
+		Profiles []*Profile `json:"profiles"`
+	}
+
+	SaveProfilesOpts struct {
+		Profiles map[string]*Profile `json:"profiles"`
 	}
 
 	Driver interface {
-		InstallDependencies(ctx context.Context) error
-
-		AddDependencies(ctx context.Context, opts *AddDependenciesOpts) error
-		RemoveDependencies(ctx context.Context, opts *RemoveDependenciesOpts) error
-
-		Resolve(ctx context.Context) (*BlendFile, error)
-		Save(ctx context.Context) error
+		LoadProfiles(ctx context.Context, opts *LoadProfilesOpts) (*LoadProfilesResult, error)
+		ResolveProfiles(ctx context.Context, opts *ResolveProfilesOpts) (*ResolveProfilesResult, error)
+		TidyProfiles(ctx context.Context, opts *TidyProfilesOpts) error
+		InstallProfiles(ctx context.Context, opts *InstallProfilesOpts) error
+		SaveProfiles(ctx context.Context, opts *SaveProfilesOpts) error
 	}
 )

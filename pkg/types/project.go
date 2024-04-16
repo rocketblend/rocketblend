@@ -1,9 +1,6 @@
 package types
 
 import (
-	"path/filepath"
-	"strings"
-
 	"github.com/rocketblend/rocketblend/pkg/reference"
 	"github.com/rocketblend/rocketblend/pkg/semver"
 )
@@ -22,10 +19,10 @@ type (
 		// ARGS         []string       `json:"args,omitempty"`
 	}
 
-	Project struct {
-		BlendFilePath string   `json:"blendFilePath" validate:"required,filepath,blendfile"`
-		Profile       *Profile `json:"config" validate:"required"`
-	}
+	// Project struct {
+	// 	BlendFilePath string   `json:"blendFilePath" validate:"required,filepath,blendfile"`
+	// 	Profile       *Profile `json:"config" validate:"required"`
+	// }
 )
 
 func (p *Profile) FindAll(packageType PackageType) []*Dependency {
@@ -43,19 +40,34 @@ func (p *Profile) FindAll(packageType PackageType) []*Dependency {
 	return dependencies
 }
 
-func (p *Project) Dir() string {
-	return filepath.Dir(p.BlendFilePath)
+func (p *Profile) AddDependencies(deps ...*Dependency) {
+	p.Dependencies = append(p.Dependencies, deps...)
 }
 
-func (p *Project) Name() string {
-	fileName := filepath.Base(p.BlendFilePath)
-	return strings.TrimSuffix(fileName, filepath.Ext(fileName))
-}
-
-func (p *Project) Requires() []*Dependency {
-	if p.Profile == nil {
-		return nil
+func (p *Profile) RemoveDependencies(deps ...*Dependency) {
+	for _, dep := range deps {
+		for i, d := range p.Dependencies {
+			if d.Reference == dep.Reference {
+				p.Dependencies = append(p.Dependencies[:i], p.Dependencies[i+1:]...)
+				break
+			}
+		}
 	}
-
-	return p.Profile.Dependencies
 }
+
+// func (p *Project) Dir() string {
+// 	return filepath.Dir(p.BlendFilePath)
+// }
+
+// func (p *Project) Name() string {
+// 	fileName := filepath.Base(p.BlendFilePath)
+// 	return strings.TrimSuffix(fileName, filepath.Ext(fileName))
+// }
+
+// func (p *Project) Requires() []*Dependency {
+// 	if p.Profile == nil {
+// 		return nil
+// 	}
+
+// 	return p.Profile.Dependencies
+// }
