@@ -54,7 +54,7 @@ To install `rocketblend` directly from source code, you can use the `go install`
 go install github.com/rocketblend/rocketblend/cmd/rocketblend@latest
 ```
 
-This command will download the latest version of the `rocketblend` source code and compile the binary for your platform. Ensure you have Go 1.21 or later installed on your system.
+This command will download the latest version of the `rocketblend` source code and compile the binary for your platform. Ensure you have Go 1.22 or later installed on your system.
 
 ## See Also
 
