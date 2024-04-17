@@ -24,14 +24,17 @@ func Parse(s string) (*Version, error) {
 	if len(parts) != 3 {
 		return nil, fmt.Errorf("invalid SemVer string: %q", s)
 	}
+
 	major, err := strconv.Atoi(parts[0])
 	if err != nil {
 		return nil, fmt.Errorf("invalid SemVer major version: %q", parts[0])
 	}
+
 	minor, err := strconv.Atoi(parts[1])
 	if err != nil {
 		return nil, fmt.Errorf("invalid SemVer minor version: %q", parts[1])
 	}
+
 	patch, err := strconv.Atoi(parts[2])
 	if err != nil {
 		return nil, fmt.Errorf("invalid SemVer patch version: %q", parts[2])

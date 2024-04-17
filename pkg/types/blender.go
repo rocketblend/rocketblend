@@ -1,0 +1,79 @@
+package types
+
+import (
+	"context"
+)
+
+const BlendFileExtension = ".blend"
+
+type (
+	Executable interface {
+		Name() string
+		ARGS() []string
+		OutputChannel() chan string
+	}
+
+	BlendFile struct {
+		Name         string          `json:"name" validate:"required"`
+		Path         string          `json:"path" validate:"required,filepath,blendfile"`
+		Dependencies []*Installation `json:"dependencies" validate:"required,onebuild,dive,required"`
+	}
+
+	BlenderOpts struct {
+		Background bool       `json:"background"`
+		BlendFile  *BlendFile `json:"blendFile,omitempty" validate:"omitempty"`
+	}
+
+	RenderOpts struct {
+		Start         int            `json:"start"`
+		End           int            `json:"end"`
+		Step          int            `json:"step"`
+		Output        string         `json:"output"`
+		Format        RenderFormat   `json:"format"`
+		CyclesDevices []CyclesDevice `json:"cyclesDevices"`
+		Threads       int            `json:"threads" validate:"omitempty,gte=0,lte=1024"`
+		BlenderOpts
+	}
+
+	RunOpts struct {
+		BlenderOpts
+	}
+
+	CreateOpts struct {
+		BlenderOpts
+	}
+
+	Blender interface {
+		Render(ctx context.Context, opts *RenderOpts) error
+		Run(ctx context.Context, opts *RunOpts) error
+		Create(ctx context.Context, opts *CreateOpts) error
+	}
+)
+
+func (b *BlendFile) Build() *Installation {
+	builds := b.find(PackageBuild)
+	if len(builds) > 0 {
+		return builds[0]
+	}
+
+	return nil
+}
+
+func (b *BlendFile) Addons() []*Installation {
+	return b.find(PackageAddon)
+}
+
+func (b *BlendFile) find(packageType PackageType) []*Installation {
+	if b.Dependencies == nil {
+		return nil
+	}
+
+	var dependencies []*Installation
+	for _, d := range b.Dependencies {
+		if d.Type == packageType {
+			dependencies = append(dependencies, d)
+		}
+	}
+
+	return dependencies
+}

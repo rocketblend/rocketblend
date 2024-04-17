@@ -7,16 +7,10 @@ import (
 	"os/signal"
 	"syscall"
 
-	cli "github.com/rocketblend/rocketblend/pkg/rocketblend"
+	"github.com/rocketblend/rocketblend/internal/cli"
 )
 
 func main() {
-	app, err := cli.New()
-	if err != nil {
-		fmt.Println("Error creating cli app: ", err)
-		return
-	}
-
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
@@ -34,11 +28,12 @@ func main() {
 		cancel()
 	}()
 
+	app := cli.New()
 	if err := app.ExecuteContext(ctx); err != nil {
 		if ctx.Err() == context.Canceled {
 			return
 		}
 
-		fmt.Println("Error executing: ", err)
+		fmt.Println("error: ", err)
 	}
 }
