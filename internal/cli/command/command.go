@@ -23,6 +23,13 @@ type (
 		Global      *global
 	}
 
+	containerOpts struct {
+		AppName     string
+		Development bool
+		Level       string
+		Verbose     bool
+	}
+
 	RootCommandOpts struct {
 		Name    string
 		Version string
@@ -69,13 +76,13 @@ Documentation is available at https://docs.rocketblend.io/`,
 	cc.AddCommand(
 		newConfigCommand(commandOpts),
 		newNewCommand(commandOpts),
-		// c.newInstallCommand(),
-		// c.newUninstallCommand(),
+		newInstallCommand(commandOpts),
+		newUninstallCommand(commandOpts),
 		newRunCommand(commandOpts),
 		newRenderCommand(commandOpts),
-		// c.newResolveCommand(),
-		// c.newDescribeCommand(),
-		// c.newInsertCommand(),
+		newResolveCommand(commandOpts),
+		newDescribeCommand(commandOpts),
+		newInsertCommand(commandOpts),
 	)
 
 	cc.PersistentFlags().StringVarP(&global.WorkingDirectory, "directory", "d", ".", "working directory for the command")
@@ -85,11 +92,11 @@ Documentation is available at https://docs.rocketblend.io/`,
 	return cc
 }
 
-func getContainer(name string, development bool, level string, verbose bool) (types.Container, error) {
+func getContainer(opts containerOpts) (types.Container, error) {
 	container, err := container.New(
-		container.WithLogger(getLogger(level, verbose)),
-		container.WithApplicationName(name),
-		container.WithDevelopmentMode(development),
+		container.WithLogger(getLogger(opts.Level, opts.Verbose)),
+		container.WithApplicationName(opts.AppName),
+		container.WithDevelopmentMode(opts.Development),
 	)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create container: %w", err)

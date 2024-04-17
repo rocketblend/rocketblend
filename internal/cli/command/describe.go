@@ -1,51 +1,77 @@
 package command
 
-// import (
-// 	"encoding/json"
-// 	"fmt"
+import (
+	"context"
+	"encoding/json"
+	"fmt"
 
-// 	"github.com/rocketblend/rocketblend/pkg/reference"
-// 	"github.com/spf13/cobra"
-// )
+	"github.com/rocketblend/rocketblend/pkg/reference"
+	"github.com/rocketblend/rocketblend/pkg/types"
+	"github.com/spf13/cobra"
+)
 
-// // newDescribeCommand creates a new cobra command that fetches the definition of a package.
-// // It retrieves the definition based on the reference provided as an argument and formats the output based on the 'output' flag.
-// func newDescribeCommand() *cobra.Command {
-// 	var output string
+type (
+	describePackageOpts struct {
+		commandOpts
+		Reference string
+	}
+)
 
-// 	cc := &cobra.Command{
-// 		Use:   "describe [reference]",
-// 		Short: "Fetches a package definition",
-// 		Long:  `Fetches the definition of a package by its reference. The output can be formatted by specifying the 'output' flag.`,
-// 		Args:  cobra.ExactArgs(1),
-// 		RunE: func(cmd *cobra.Command, args []string) error {
-// 			packages, err := c.factory.GetRocketPackService()
-// 			if err != nil {
-// 				return fmt.Errorf("failed to get package service: %w", err)
-// 			}
+func newDescribeCommand(opts commandOpts) *cobra.Command {
+	cc := &cobra.Command{
+		Use:   "describe [reference]",
+		Short: "Fetches a package definition",
+		Long:  `Fetches the definition of a package by its reference.`,
+		Args:  cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			if err := describePackage(cmd.Context(), describePackageOpts{
+				commandOpts: opts,
+				Reference:   args[0],
+			}); err != nil {
+				return fmt.Errorf("failed to describe package: %w", err)
+			}
 
-// 			ref, err := reference.Parse(args[0])
-// 			if err != nil {
-// 				return err
-// 			}
+			return nil
+		},
+	}
 
-// 			pkg, err := packages.Get(cmd.Context(), false, ref)
-// 			if err != nil {
-// 				return err
-// 			}
+	return cc
+}
 
-// 			display, err := json.Marshal(pkg)
-// 			if err != nil {
-// 				return err
-// 			}
+func describePackage(ctx context.Context, opts describePackageOpts) error {
+	ref, err := reference.Parse(opts.Reference)
+	if err != nil {
+		return err
+	}
 
-// 			cmd.Println(string(display))
+	container, err := getContainer(containerOpts{
+		AppName:     opts.AppName,
+		Development: opts.Development,
+		Level:       opts.Global.Level,
+		Verbose:     opts.Global.Verbose,
+	})
+	if err != nil {
+		return err
+	}
 
-// 			return nil
-// 		},
-// 	}
+	repository, err := container.GetRepository()
+	if err != nil {
+		return err
+	}
 
-// 	cc.Flags().StringVarP(&output, "output", "o", "table", "output format (table, json)")
+	packages, err := repository.GetPackages(ctx, &types.GetPackagesOpts{
+		References: []reference.Reference{ref},
+	})
+	if err != nil {
+		return err
+	}
 
-// 	return cc
-// }
+	display, err := json.Marshal(packages.Packs[ref])
+	if err != nil {
+		return err
+	}
+
+	fmt.Println(string(display))
+
+	return nil
+}

@@ -62,7 +62,12 @@ func createProject(ctx context.Context, opts createProjectOpts) error {
 		return errors.New("project already exists in directory")
 	}
 
-	container, err := getContainer(opts.AppName, opts.Development, opts.Global.Level, opts.Global.Verbose)
+	container, err := getContainer(containerOpts{
+		AppName:     opts.AppName,
+		Development: opts.Development,
+		Level:       opts.Global.Level,
+		Verbose:     opts.Global.Verbose,
+	})
 	if err != nil {
 		return err
 	}

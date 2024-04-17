@@ -19,7 +19,12 @@ func newConfigCommand(opts commandOpts) *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			key := args[0]
 
-			container, err := getContainer(opts.AppName, opts.Development, opts.Global.Level, opts.Global.Verbose)
+			container, err := getContainer(containerOpts{
+				AppName:     opts.AppName,
+				Development: opts.Development,
+				Level:       opts.Global.Level,
+				Verbose:     opts.Global.Verbose,
+			})
 			if err != nil {
 				fmt.Println(err)
 			}

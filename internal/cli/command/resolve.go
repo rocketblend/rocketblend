@@ -1,44 +1,84 @@
 package command
 
-// import (
-// 	"encoding/json"
+import (
+	"context"
+	"encoding/json"
+	"fmt"
 
-// 	"github.com/spf13/cobra"
-// )
+	"github.com/rocketblend/rocketblend/pkg/types"
+	"github.com/spf13/cobra"
+)
 
-// // newResolveCommand creates a new cobra.Command that outputs resolved information about the project.
-// // This information includes dependencies and paths for the project on the local machine.
-// func newResolveCommand() *cobra.Command {
-// 	var output string
+type (
+	resolveProjectOpts struct {
+		commandOpts
+		// Format string
+	}
+)
 
-// 	cc := &cobra.Command{
-// 		Use:   "resolve",
-// 		Short: "Resolves and outputs project details",
-// 		Long:  `Fetches and prints the resolved dependencies and paths for the project in the local machine in the specified output format (JSON or table)`,
-// 		Args:  cobra.NoArgs,
-// 		RunE: func(cmd *cobra.Command, args []string) error {
-// 			rocketblend, err := c.getDriver()
-// 			if err != nil {
-// 				return err
-// 			}
+// newResolveCommand creates a new cobra.Command that outputs resolved information about the project.
+// This information includes dependencies and paths for the project on the local machine.
+func newResolveCommand(opts commandOpts) *cobra.Command {
+	//var format string
 
-// 			blendFile, err := rocketblend.ResolveBlendFile(cmd.Context())
-// 			if err != nil {
-// 				return err
-// 			}
+	cc := &cobra.Command{
+		Use:   "resolve",
+		Short: "Resolves and outputs project details",
+		Long:  `Fetches and prints the resolved dependencies and paths for the project on the local machine.`,
+		Args:  cobra.NoArgs,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			if err := resolveProject(cmd.Context(), resolveProjectOpts{
+				commandOpts: opts,
+				// Format:      format,
+			}); err != nil {
+				return fmt.Errorf("failed to resolve project: %w", err)
+			}
 
-// 			display, err := json.Marshal(blendFile)
-// 			if err != nil {
-// 				return err
-// 			}
+			return nil
+		},
+	}
 
-// 			cmd.Println(string(display))
+	//cc.Flags().StringVarP(&format, "output", "o", "table", "output format (table, json)")
 
-// 			return nil
-// 		},
-// 	}
+	return cc
+}
 
-// 	cc.Flags().StringVarP(&output, "output", "o", "table", "output format (table, json)")
+func resolveProject(ctx context.Context, opts resolveProjectOpts) error {
+	container, err := getContainer(containerOpts{
+		AppName:     opts.AppName,
+		Development: opts.Development,
+		Level:       opts.Global.Level,
+		Verbose:     opts.Global.Verbose,
+	})
+	if err != nil {
+		return err
+	}
 
-// 	return cc
-// }
+	driver, err := container.GetDriver()
+	if err != nil {
+		return err
+	}
+
+	profiles, err := driver.LoadProfiles(ctx, &types.LoadProfilesOpts{
+		Paths: []string{opts.Global.WorkingDirectory},
+	})
+	if err != nil {
+		return err
+	}
+
+	resolve, err := driver.ResolveProfiles(ctx, &types.ResolveProfilesOpts{
+		Profiles: profiles.Profiles,
+	})
+	if err != nil {
+		return err
+	}
+
+	output, err := json.Marshal(resolve.Installations[0])
+	if err != nil {
+		return err
+	}
+
+	fmt.Println(string(output))
+
+	return nil
+}
