@@ -28,14 +28,16 @@ func newInstallCommand(opts commandOpts) *cobra.Command {
 		Args:  cobra.MaximumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			suffix := "Installing dependencies..."
+			reference := ""
 			if len(args) > 0 {
 				suffix = "Installing package..."
+				reference = args[0]
 			}
 
 			return runWithSpinner(cmd.Context(), func(ctx context.Context) error {
 				if err := installPackage(ctx, installPackageOpts{
 					commandOpts: opts,
-					Reference:   args[0],
+					Reference:   reference,
 					Update:      false,
 				}); err != nil {
 					return fmt.Errorf("failed to install project dependencies: %w", err)

@@ -67,9 +67,9 @@ func (d *Driver) tidyDependencies(ctx context.Context, dependencies []*types.Dep
 		return nil, err
 	}
 
-	tidied := dependencies
+	tidied := make([]*types.Dependency, 0, len(results.Packs))
 	for ref, pack := range results.Packs {
-		dependencies = append(dependencies, &types.Dependency{
+		tidied = append(tidied, &types.Dependency{
 			Reference: ref,
 			Type:      pack.Type,
 		})
