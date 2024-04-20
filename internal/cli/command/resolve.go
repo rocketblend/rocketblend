@@ -24,7 +24,7 @@ func newResolveCommand(opts commandOpts) *cobra.Command {
 	cc := &cobra.Command{
 		Use:   "resolve",
 		Short: "Resolves and outputs project details",
-		Long:  `Fetches and prints the resolved dependencies and paths for the project on the local machine.`,
+		Long:  `Fetches and prints the resolved dependency paths for the project.`,
 		Args:  cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if err := resolveProject(cmd.Context(), resolveProjectOpts{
