@@ -45,8 +45,39 @@ func newRenderCommand(opts commandOpts) *cobra.Command {
 	cc := &cobra.Command{
 		Use:   "render",
 		Short: "Renders the project",
-		Long:  `Renders the project from the specified start frame to the end frame, with the given step. Outputs the render in the provided format.`,
+		Long:  `Renders the project using the specified frame range and options.`,
 		Args:  cobra.NoArgs,
+		PreRunE: func(cmd *cobra.Command, args []string) error {
+			if frameStart < 1 {
+				return fmt.Errorf("frame start should be greater than 0")
+			}
+
+			if frameEnd == 0 {
+				frameEnd = frameStart
+			}
+
+			if frameEnd < 0 {
+				return fmt.Errorf("frame end should be greater than or equal to 0")
+			}
+
+			if frameStep < 1 {
+				return fmt.Errorf("frame step should be greater than 0")
+			}
+
+			if frameEnd < frameStart {
+				return fmt.Errorf("frame end should be greater than or equal to frame start")
+			}
+
+			if revision < 0 {
+				return fmt.Errorf("revision should be greater than or equal to 0")
+			}
+
+			if continueRendering && frameStart == frameEnd {
+				return fmt.Errorf("frame start and end should be different when continuing a render")
+			}
+
+			return nil
+		},
 		RunE: func(cmd *cobra.Command, args []string) error {
 			blendFilePath, err := findFilePathForExt(opts.Global.WorkingDirectory, types.BlendFileExtension)
 			if err != nil {
@@ -79,15 +110,11 @@ func newRenderCommand(opts commandOpts) *cobra.Command {
 				}
 			}
 
-			if existingFrame != 0 && existingFrame >= frameStart && (frameEnd == 0 || existingFrame <= frameEnd) {
+			if frameStart <= existingFrame {
 				promptMessage := fmt.Sprintf("The output directory already contains existing frames within the specified range (%d-%d). Are you sure you want to overwrite them?", frameStart, frameEnd)
-				if frameEnd == 0 {
-					promptMessage = fmt.Sprintf("The output directory already contains frames starting from %d. Are you sure you want to overwrite them?", frameStart)
-				}
-
 				if !askForConfirmation(
 					cmd.Context(),
-					fmt.Sprintf(promptMessage, frameStart, frameEnd),
+					promptMessage,
 					autoConfirm,
 				) {
 					return nil
@@ -115,11 +142,11 @@ func newRenderCommand(opts commandOpts) *cobra.Command {
 		},
 	}
 
-	cc.Flags().IntVarP(&frameStart, "frame-start", "s", 0, "start frame")
-	cc.Flags().IntVarP(&frameEnd, "frame-end", "e", 1, "end frame")
+	cc.Flags().IntVarP(&frameStart, "frame-start", "s", 1, "start frame")
+	cc.Flags().IntVarP(&frameEnd, "frame-end", "e", 0, "end frame. If not provided, the start frame will be used.")
 	cc.Flags().IntVarP(&frameStep, "frame-step", "t", 1, "frame step")
 
-	cc.Flags().IntVarP(&revision, "revision", "r", 0, "revision subfolder for output. Defaults to auto-increment.")
+	cc.Flags().IntVarP(&revision, "revision", "r", 0, "revision subfolder for output. If not provided, the next revision will be used.")
 	cc.Flags().BoolVarP(&continueRendering, "continue", "c", false, "continue rendering from the last rendered image within the specified frame range.")
 
 	cc.Flags().StringVarP(&output, "output", "o", DefaultOutputTemplate, "output path for the rendered frames")

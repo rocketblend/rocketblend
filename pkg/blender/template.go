@@ -43,7 +43,7 @@ func FindMaxRevision(templatedPath string) (int, error) {
 		return -1, err
 	}
 
-	maxRevision := -1
+	maxRevision := 0
 	revisionNumberPattern := regexp.MustCompile(`\d+$`)
 	for _, dir := range directories {
 		base := filepath.Base(dir)
