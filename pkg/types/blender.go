@@ -14,7 +14,6 @@ type (
 	}
 
 	BlendFile struct {
-		Name         string          `json:"name" validate:"required"`
 		Path         string          `json:"path" validate:"required,filepath,blendfile"`
 		Dependencies []*Installation `json:"dependencies" validate:"required,onebuild,dive,required"`
 	}
@@ -25,13 +24,13 @@ type (
 	}
 
 	RenderOpts struct {
-		Start         int            `json:"start"`
-		End           int            `json:"end"`
-		Step          int            `json:"step"`
-		Output        string         `json:"output"`
-		Format        RenderFormat   `json:"format"`
-		CyclesDevices []CyclesDevice `json:"cyclesDevices"`
-		Threads       int            `json:"threads" validate:"omitempty,gte=0,lte=1024"`
+		Start   int          `json:"start"`
+		End     int          `json:"end"`
+		Step    int          `json:"step"`
+		Output  string       `json:"output"`
+		Format  string       `json:"format"`
+		Engine  RenderEngine `json:"engine" validate:"omitempty,oneof=cycles eevee workbench"`
+		Threads int          `json:"threads" validate:"omitempty,gte=0,lte=1024"`
 		BlenderOpts
 	}
 

@@ -1,4 +1,4 @@
-package types
+package blender
 
 // CyclesDevice represents the available devices for rendering with the Cycles engine.
 type CyclesDevice string

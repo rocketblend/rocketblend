@@ -4,25 +4,11 @@ import (
 	"context"
 
 	"github.com/pkg/errors"
-	"github.com/rocketblend/rocketblend/pkg/helpers"
 	"github.com/rocketblend/rocketblend/pkg/types"
-)
-
-type (
-	outputPathData struct {
-		Name string `json:"name"`
-	}
 )
 
 func (b *Blender) Render(ctx context.Context, opts *types.RenderOpts) error {
 	if err := b.validator.Validate(opts); err != nil {
-		return err
-	}
-
-	outputPath, err := helpers.ParseTemplateWithData(opts.Output, &outputPathData{
-		Name: opts.BlendFile.Name,
-	})
-	if err != nil {
 		return err
 	}
 
@@ -38,12 +24,23 @@ func (b *Blender) Render(ctx context.Context, opts *types.RenderOpts) error {
 			Start:   opts.Start,
 			End:     opts.End,
 			Step:    opts.Step,
-			Output:  outputPath,
-			Format:  opts.Format,
-			Devices: opts.CyclesDevices,
+			Output:  opts.Output,
+			Format:  RenderFormat(opts.Format),
 			Threads: opts.Threads,
+			Engine:  convertRenderEngine(opts.Engine),
 		},
 	}
+
+	b.logger.Info("rendering", map[string]interface{}{
+		"blendFile": opts.BlendFile.Path,
+		"output":    opts.Output,
+		"start":     opts.Start,
+		"end":       opts.End,
+		"step":      opts.Step,
+		"format":    opts.Format,
+		"threads":   opts.Threads,
+		"engine":    opts.Engine,
+	})
 
 	if opts.BlendFile.Addons() != nil {
 		arguments.Script = startupScript()

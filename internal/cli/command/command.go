@@ -1,8 +1,12 @@
 package command
 
 import (
+	"bufio"
+	"context"
 	"fmt"
+	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/flowshot-io/x/pkg/logger"
 	"github.com/rocketblend/rocketblend/pkg/container"
@@ -129,4 +133,33 @@ func validatePath(path string) (string, error) {
 	}
 
 	return absPath, nil
+}
+
+// askForConfirmation asks the user for confirmation. If autoConfirm is true, it will return true.
+func askForConfirmation(ctx context.Context, prompt string, autoConfirm bool) bool {
+	if autoConfirm {
+		return true
+	}
+
+	fmt.Print(prompt + " (yes/no): ")
+
+	responseChan := make(chan string)
+	go func() {
+		reader := bufio.NewReader(os.Stdin)
+		response, err := reader.ReadString('\n')
+		if err != nil {
+			fmt.Println("Error reading input:", err)
+			responseChan <- "error"
+			return
+		}
+		responseChan <- response
+	}()
+
+	select {
+	case <-ctx.Done():
+		return false
+	case response := <-responseChan:
+		response = strings.TrimSpace(response)
+		return response == "y" || response == "yes"
+	}
 }
