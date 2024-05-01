@@ -15,8 +15,9 @@ type (
 		End     int
 		Step    int
 		Output  string
-		Format  types.RenderFormat
-		Devices []types.CyclesDevice
+		Format  RenderFormat
+		Devices []CyclesDevice
+		Engine  RenderEngine
 		Threads int
 	}
 
@@ -39,6 +40,10 @@ func (a *renderArguments) ARGS() []string {
 	}
 
 	args := []string{}
+	if a.Engine != "" {
+		args = append(args, "--engine", string(a.Engine))
+	}
+
 	if a.Start != 0 {
 		args = append(args, "--frame-start", fmt.Sprint(a.Start))
 	}

@@ -25,9 +25,9 @@ func (b *Blender) Render(ctx context.Context, opts *types.RenderOpts) error {
 			End:     opts.End,
 			Step:    opts.Step,
 			Output:  opts.Output,
-			Format:  opts.Format,
-			Devices: opts.CyclesDevices,
+			Format:  RenderFormat(opts.Format),
 			Threads: opts.Threads,
+			Engine:  convertRenderEngine(opts.Engine),
 		},
 	}
 
@@ -38,8 +38,8 @@ func (b *Blender) Render(ctx context.Context, opts *types.RenderOpts) error {
 		"end":       opts.End,
 		"step":      opts.Step,
 		"format":    opts.Format,
-		"devices":   opts.CyclesDevices,
 		"threads":   opts.Threads,
+		"engine":    opts.Engine,
 	})
 
 	if opts.BlendFile.Addons() != nil {

@@ -21,6 +21,7 @@ type (
 		FrameStart    int
 		FrameEnd      int
 		FrameStep     int
+		Engine        string
 
 		Output string
 		Format string
@@ -33,6 +34,8 @@ func newRenderCommand(opts commandOpts) *cobra.Command {
 	var frameStart int
 	var frameEnd int
 	var frameStep int
+
+	var engine string
 
 	var revision int
 	var continueRendering bool
@@ -86,10 +89,7 @@ func newRenderCommand(opts commandOpts) *cobra.Command {
 
 			// TODO: Switch to standard relative path formatting and just convert to // for Blender.
 			templatePath := strings.Replace(output, "//", fmt.Sprintf("%s/", opts.Global.WorkingDirectory), 1)
-
-			if revision < 1 {
-				revision = currentRevision(templatePath) + 1
-			}
+			revision := calculateRevision(revision, templatePath, continueRendering)
 
 			outputPath, err := helpers.ParseTemplateWithData(templatePath, &blender.TemplatedOutputData{
 				Name:     helpers.ExtractName(blendFilePath),
@@ -128,6 +128,7 @@ func newRenderCommand(opts commandOpts) *cobra.Command {
 					FrameStart:    frameStart,
 					FrameEnd:      frameEnd,
 					FrameStep:     frameStep,
+					Engine:        engine,
 					Output:        outputPath,
 					Format:        format,
 				}); err != nil {
@@ -142,17 +143,19 @@ func newRenderCommand(opts commandOpts) *cobra.Command {
 		},
 	}
 
-	cc.Flags().IntVarP(&frameStart, "frame-start", "s", 1, "start frame")
-	cc.Flags().IntVarP(&frameEnd, "frame-end", "e", 0, "end frame. If not provided, the start frame will be used.")
-	cc.Flags().IntVarP(&frameStep, "frame-step", "t", 1, "frame step")
+	cc.Flags().IntVarP(&frameStart, "start", "s", 1, "frame to start rendering from")
+	cc.Flags().IntVarP(&frameEnd, "end", "e", 0, "frame to end rendering at, 0 for single frame")
+	cc.Flags().IntVarP(&frameStep, "jump", "j", 1, "number of frames to step forward after each rendered frame")
 
-	cc.Flags().IntVarP(&revision, "revision", "r", 0, "revision subfolder for output. If not provided, the next revision will be used.")
-	cc.Flags().BoolVarP(&continueRendering, "continue", "c", false, "continue rendering from the last rendered image within the specified frame range.")
+	cc.Flags().IntVarP(&revision, "revision", "r", 0, "revision number for the output directory, 0 for auto-increment")
+	cc.Flags().BoolVarP(&continueRendering, "continue", "c", false, "continue rendering from the last rendered frame in the output directory")
+
+	cc.Flags().StringVarP(&engine, "engine", "g", "", "override render engine (cycles, eevee, workbench)")
 
 	cc.Flags().StringVarP(&output, "output", "o", DefaultOutputTemplate, "output path for the rendered frames")
 	cc.Flags().StringVarP(&format, "format", "f", "PNG", "output format for the rendered frames")
 
-	cc.Flags().BoolVarP(&autoConfirm, "auto-confirm", "y", false, "overwrite existing files without confirmation")
+	cc.Flags().BoolVarP(&autoConfirm, "auto-confirm", "y", false, "overwrite any existing files without requiring confirmation")
 
 	return cc
 }
@@ -197,7 +200,8 @@ func renderProject(ctx context.Context, opts renderProjectOpts) error {
 		End:    opts.FrameEnd,
 		Step:   opts.FrameStep,
 		Output: opts.Output,
-		Format: types.RenderFormat(opts.Format),
+		Format: opts.Format,
+		Engine: types.RenderEngine(opts.Engine),
 		BlenderOpts: types.BlenderOpts{
 			BlendFile: &types.BlendFile{
 				Path:         opts.BlendFilePath,
@@ -210,6 +214,23 @@ func renderProject(ctx context.Context, opts renderProjectOpts) error {
 	}
 
 	return nil
+}
+
+func calculateRevision(revision int, templatePath string, continueRendering bool) int {
+	if revision >= 1 {
+		return revision
+	}
+
+	current := currentRevision(templatePath)
+	if current <= 0 {
+		return 1
+	}
+
+	if continueRendering {
+		return current
+	}
+
+	return current + 1
 }
 
 func currentRevision(templatedPath string) int {

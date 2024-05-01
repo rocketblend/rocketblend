@@ -1,4 +1,4 @@
-package types
+package blender
 
 // RenderFormat represents the available formats for rendering.
 type RenderFormat string
