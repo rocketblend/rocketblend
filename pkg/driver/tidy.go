@@ -55,8 +55,12 @@ func (d *Driver) tidyDependencies(ctx context.Context, dependencies []*types.Dep
 	})
 
 	references := make([]reference.Reference, 0, len(dependencies))
+	seen := make(map[reference.Reference]struct{})
 	for _, dep := range dependencies {
-		references = append(references, dep.Reference)
+		if _, exists := seen[dep.Reference]; !exists {
+			references = append(references, dep.Reference)
+			seen[dep.Reference] = struct{}{}
+		}
 	}
 
 	results, err := d.repository.GetPackages(ctx, &types.GetPackagesOpts{
@@ -67,8 +71,17 @@ func (d *Driver) tidyDependencies(ctx context.Context, dependencies []*types.Dep
 		return nil, err
 	}
 
+	foundBuild := false
 	tidied := make([]*types.Dependency, 0, len(results.Packs))
 	for ref, pack := range results.Packs {
+		if foundBuild && pack.Type == types.PackageBuild {
+			continue
+		}
+
+		if pack.Type == types.PackageBuild {
+			foundBuild = true
+		}
+
 		tidied = append(tidied, &types.Dependency{
 			Reference: ref,
 			Type:      pack.Type,
