@@ -123,7 +123,8 @@ func (r *Repository) getInstallation(ctx context.Context, reference reference.Re
 		_, err := os.Stat(resourcePath)
 		if err != nil {
 			if os.IsNotExist(err) && fetch {
-				err := r.downloadInstallation(ctx, source.URI, resourcePath, installationPath)
+				packageFilePath := filepath.Join(r.packagePath, reference.String(), types.PackageFileName)
+				err := r.downloadInstallation(ctx, source.URI, packageFilePath, installationPath)
 				if err != nil {
 					return nil, err
 				}
@@ -164,7 +165,7 @@ func (r *Repository) removeInstallations(ctx context.Context, references []refer
 	return nil
 }
 
-func (r *Repository) downloadInstallation(ctx context.Context, downloadURI *types.URI, resourcePath string, installationPath string) error {
+func (r *Repository) downloadInstallation(ctx context.Context, downloadURI *types.URI, packageFilePath string, installationPath string) error {
 	if downloadURI == nil {
 		return fmt.Errorf("no download URI provided")
 	}
@@ -199,10 +200,10 @@ func (r *Repository) downloadInstallation(ctx context.Context, downloadURI *type
 				})
 			}
 
-			if err := touchFile(resourcePath); err != nil {
+			if err := touchFile(packageFilePath); err != nil {
 				r.logger.Error("failed to touch package", map[string]interface{}{
 					"error": err,
-					"path":  resourcePath,
+					"path":  packageFilePath,
 				})
 			}
 		}
