@@ -7,7 +7,6 @@ import (
 	"os"
 	"path"
 	"path/filepath"
-	"time"
 
 	"github.com/rocketblend/rocketblend/pkg/helpers"
 	"github.com/rocketblend/rocketblend/pkg/lockfile"
@@ -226,6 +225,13 @@ func (r *Repository) downloadInstallation(ctx context.Context, downloadURI *type
 		}
 	}
 
+	if err := touchFile(packageFilePath); err != nil {
+		r.logger.Error("failed to touch package", map[string]interface{}{
+			"error": err,
+			"path":  packageFilePath,
+		})
+	}
+
 	return nil
 }
 
@@ -240,6 +246,15 @@ func (r *Repository) removeInstallation(ctx context.Context, reference reference
 
 	if err := os.RemoveAll(installationPath); err != nil {
 		return err
+	}
+
+	packageFilePath := filepath.Join(r.packagePath, reference.String(), types.PackageFileName)
+	if err := touchFile(packageFilePath); err != nil {
+		r.logger.Error("failed to touch package", map[string]interface{}{
+			"error":     err,
+			"reference": reference.String(),
+			"path":      packageFilePath,
+		})
 	}
 
 	return nil
@@ -269,11 +284,17 @@ func writeProgressFile(path string, data types.Progress) error {
 	return nil
 }
 
+// touchFile used to trigger a file change event on the file system.
 func touchFile(path string) error {
-	now := time.Now()
-	if err := os.Chtimes(path, now, now); err != nil {
+	fileInfo, err := os.Stat(path)
+	if err != nil {
 		return err
 	}
 
-	return nil
+	mode := fileInfo.Mode()
+	if err := os.Chmod(path, mode^0200); err != nil {
+		return err
+	}
+
+	return os.Chmod(path, mode)
 }
