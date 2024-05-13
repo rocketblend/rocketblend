@@ -7,7 +7,6 @@ require (
 	github.com/flowshot-io/x v0.0.0-20240102003836-a3532f1d23dd
 	github.com/go-git/go-git/v5 v5.12.0
 	github.com/go-playground/validator/v10 v10.19.0
-	github.com/google/uuid v1.4.0
 	github.com/ivanpirog/coloredcobra v1.0.1
 	github.com/mholt/archiver/v3 v3.5.1
 	github.com/mitchellh/mapstructure v1.5.0

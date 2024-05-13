@@ -157,7 +157,6 @@ func (f *Container) getDownloader() (*downloader.Downloader, error) {
 	f.downloaderHolder.once.Do(func() {
 		f.downloaderHolder.instance, err = downloader.New(
 			downloader.WithLogger(f.logger),
-			downloader.WithLogFrequency(10<<20), // 10MB
 		)
 	})
 	if err != nil {
