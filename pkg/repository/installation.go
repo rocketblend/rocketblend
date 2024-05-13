@@ -16,8 +16,8 @@ import (
 )
 
 const (
-	LockFileName     = "reference.lock"
-	ProgressFileName = "download.json"
+	LockFileName             = "reference.lock"
+	DownloadProgressFileName = "download-progress.json"
 )
 
 type (
@@ -186,14 +186,12 @@ func (r *Repository) downloadInstallation(ctx context.Context, downloadURI *type
 		"filePath": downloadedFilePath,
 	})
 
-	progressFilePath := filepath.Join(installationPath, ProgressFileName)
-	defer os.Remove(progressFilePath)
-
+	progressFilePath := filepath.Join(installationPath, DownloadProgressFileName)
 	progressChan := make(chan types.Progress)
 	go func() {
 		for p := range progressChan {
-			if err := writeProgressFile(progressFilePath, p); err != nil {
-				r.logger.Error("failed to write progress file", map[string]interface{}{
+			if err := writeProgressToFile(progressFilePath, p); err != nil {
+				r.logger.Error("failed to write download progress file", map[string]interface{}{
 					"error": err,
 					"path":  progressFilePath,
 				})
@@ -205,6 +203,13 @@ func (r *Repository) downloadInstallation(ctx context.Context, downloadURI *type
 					"path":  packageFilePath,
 				})
 			}
+
+			r.logger.Info("download progress", map[string]interface{}{
+				"uri":     downloadURI.String(),
+				"total":   p.Total,
+				"current": p.Current,
+				"rate":    p.Speed,
+			})
 		}
 	}()
 
@@ -223,6 +228,13 @@ func (r *Repository) downloadInstallation(ctx context.Context, downloadURI *type
 		}); err != nil {
 			return err
 		}
+	}
+
+	if err := os.Remove(progressFilePath); err != nil {
+		r.logger.Error("failed to remove download progress file", map[string]interface{}{
+			"error": err,
+			"path":  progressFilePath,
+		})
 	}
 
 	if err := touchFile(packageFilePath); err != nil {
@@ -265,14 +277,14 @@ func (r *Repository) lock(ctx context.Context, dir string) (cancelFunc func(), e
 	return lockfile.New(ctx, lockfile.WithPath(filepath.Join(dir, LockFileName)), lockfile.WithLogger(r.logger))
 }
 
-func writeProgressFile(path string, data types.Progress) error {
+func writeProgressToFile(path string, progress types.Progress) error {
 	infoFile, err := os.Create(path)
 	if err != nil {
 		return err
 	}
 	defer infoFile.Close()
 
-	infoBytes, err := json.Marshal(data)
+	infoBytes, err := json.Marshal(progress)
 	if err != nil {
 		return err
 	}

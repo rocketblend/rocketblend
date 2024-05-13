@@ -91,7 +91,6 @@ func (d *Downloader) Download(ctx context.Context, opts *types.DownloadOpts) err
 	}
 
 	tempPath := opts.Path + TempFileExtension
-
 	if err := os.MkdirAll(filepath.Dir(tempPath), 0755); err != nil {
 		return err
 	}
@@ -149,13 +148,13 @@ func (d *Downloader) writeToFile(ctx context.Context, path string, contentLength
 		case <-ctx.Done():
 			return ctx.Err()
 		case <-ticker.C:
-			lastTime = d.reportProgress(path, lastUpdateBytes, totalBytes, contentLength, progress, lastTime)
+			lastTime = d.reportProgress(lastUpdateBytes, totalBytes, contentLength, progress, lastTime)
 			lastUpdateBytes = totalBytes
 		default:
 			totalBytes, err = d.processRead(reader, f, buffer, totalBytes)
 			if err != nil {
 				if err == io.EOF {
-					d.reportProgress(path, lastUpdateBytes, totalBytes, contentLength, progress, lastTime)
+					d.reportProgress(lastUpdateBytes, totalBytes, contentLength, progress, lastTime)
 					return nil
 				}
 
@@ -166,25 +165,18 @@ func (d *Downloader) writeToFile(ctx context.Context, path string, contentLength
 }
 
 // reportProgress sends progress updates to the channel
-func (d *Downloader) reportProgress(path string, lastUpdateBytes int64, totalBytes int64, totalSize int64, progress chan<- types.Progress, lastTime time.Time) time.Time {
+func (d *Downloader) reportProgress(lastUpdateBytes int64, totalBytes int64, totalSize int64, progress chan<- types.Progress, lastTime time.Time) time.Time {
 	now := time.Now()
 	timeElapsed := now.Sub(lastTime).Seconds()
 	speed := float64(totalBytes-lastUpdateBytes) / timeElapsed
 
 	if progress != nil {
 		progress <- types.Progress{
-			BytesRead: totalBytes,
-			TotalSize: totalSize,
-			Speed:     speed,
+			Current: totalBytes,
+			Total:   totalSize,
+			Speed:   speed,
 		}
 	}
-
-	d.logger.Info("download progress", map[string]interface{}{
-		"path":      path,
-		"bytesRead": totalBytes,
-		"totalSize": totalSize,
-		"speed":     speed,
-	})
 
 	return now
 }

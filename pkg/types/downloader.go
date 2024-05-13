@@ -4,9 +4,9 @@ import "context"
 
 type (
 	Progress struct {
-		BytesRead int64   `json:"bytesRead"` // current bytes read
-		TotalSize int64   `json:"totalSize"` // total bytes of the file
-		Speed     float64 `json:"speed"`     // bytes per second
+		Current int64   `json:"current"` // current bytes read
+		Total   int64   `json:"total"`   // total bytes of the file
+		Speed   float64 `json:"speed"`   // bytes per second
 	}
 
 	DownloadOpts struct {
