@@ -2,40 +2,40 @@ package downloader
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
 	"os"
 	"path/filepath"
-	"sync"
+	"time"
 
 	"github.com/flowshot-io/x/pkg/logger"
-	"github.com/google/uuid"
 	"github.com/rocketblend/rocketblend/pkg/types"
 )
 
 const (
 	TempFileExtension = ".tmp"
-	DownloadInfoFile  = "download-info.json"
+	// DownloadInfoFile  = "download-info.json"
 )
 
 type (
-	DownloadInfo struct {
-		URI  string `json:"uri"`
-		Size int64  `json:"size"`
-	}
+	// DownloadInfo struct {
+	// 	URI  string `json:"uri"`
+	// 	Size int64  `json:"size"`
+	// }
 
 	Options struct {
-		Logger  logger.Logger
-		LogFreq int64
+		Logger         logger.Logger
+		BufferSize     int
+		UpdateInterval time.Duration
 	}
 
 	Option func(*Options)
 
 	Downloader struct {
-		logger  logger.Logger
-		logFreq int64
+		logger         logger.Logger
+		bufferSize     int
+		updateInterval time.Duration
 	}
 )
 
@@ -46,29 +46,41 @@ func WithLogger(logger logger.Logger) Option {
 	}
 }
 
-// WithLogFrequency sets the frequency of log messages. The default is 1MB.
-func WithLogFrequency(logFreq int64) Option {
+// WithBufferSize sets the buffer size for reading and writing. The default is 2MB.
+func WithBufferSize(bufferSize int) Option {
 	return func(o *Options) {
-		o.LogFreq = logFreq
+		o.BufferSize = bufferSize
+	}
+}
+
+// WithUpdateInterval sets the frequency at which progress updates are sent. The default is 5 seconds.
+func WithUpdateInterval(updateInterval time.Duration) Option {
+	return func(o *Options) {
+		o.UpdateInterval = updateInterval
 	}
 }
 
 // New creates a new Downloader.
 func New(opts ...Option) (*Downloader, error) {
 	options := &Options{
-		Logger:  logger.NoOp(),
-		LogFreq: 1 << 20, // Default log frequency is 1MB
+		Logger:         logger.NoOp(),
+		BufferSize:     2 << 20,         // Default buffer size is 2MB
+		UpdateInterval: 5 * time.Second, // Default update interval is 5 seconds
 	}
 
 	for _, opt := range opts {
 		opt(options)
 	}
 
-	options.Logger.Debug("initializing Downloader", map[string]interface{}{"logFreq": options.LogFreq})
+	options.Logger.Debug("initializing Downloader", map[string]interface{}{
+		"bufferSize":      options.BufferSize,
+		"updateFrequency": options.UpdateInterval,
+	})
 
 	return &Downloader{
-		logger:  options.Logger,
-		logFreq: options.LogFreq,
+		logger:         options.Logger,
+		bufferSize:     options.BufferSize,
+		updateInterval: options.UpdateInterval,
 	}, nil
 }
 
@@ -78,87 +90,117 @@ func (d *Downloader) Download(ctx context.Context, opts *types.DownloadOpts) err
 		return err
 	}
 
-	downloadID := uuid.New().String()
 	tempPath := opts.Path + TempFileExtension
 
 	if err := os.MkdirAll(filepath.Dir(tempPath), 0755); err != nil {
 		return err
 	}
 
-	reader, contentLength, err := d.setupReader(ctx, opts.URI, 0) // fileSize is determined inside setupReader if needed
+	fileSize := d.checkFileSize(tempPath)
+	reader, contentLength, err := d.setupReader(ctx, opts.URI, fileSize)
 	if err != nil {
 		return err
 	}
 	defer reader.Close()
 
-	infoPath := filepath.Join(filepath.Dir(opts.Path), DownloadInfoFile)
-	if err := d.writeInfoFile(infoPath, DownloadInfo{
-		URI:  opts.URI.String(),
-		Size: contentLength,
-	}); err != nil {
-		return err
-	}
-	defer os.Remove(infoPath)
-
-	if err := d.writeToFile(ctx, tempPath, contentLength, reader); err != nil {
+	if err := d.writeToFile(ctx, tempPath, contentLength, reader, opts.ProgressChan); err != nil {
 		return err
 	}
 
-	if err := d.finalizeDownload(tempPath, opts.Path, downloadID, opts.URI); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func (d *Downloader) writeInfoFile(path string, data DownloadInfo) error {
-	infoFile, err := os.Create(path)
-	if err != nil {
-		return fmt.Errorf("error creating download info JSON file: %w", err)
-	}
-	defer infoFile.Close()
-
-	infoBytes, err := json.Marshal(data)
-	if err != nil {
-		return fmt.Errorf("error marshalling download info JSON: %w", err)
-	}
-
-	if _, err := infoFile.Write(infoBytes); err != nil {
-		return fmt.Errorf("error writing download info JSON: %w", err)
-	}
-
-	return nil
-}
-
-// writeToFile writes the downloaded file to disk
-func (d *Downloader) writeToFile(ctx context.Context, path string, contentLength int64, reader io.ReadCloser) error {
-	return d.openAndWriteToFile(ctx, path, contentLength, reader, uuid.New().String())
-}
-
-// finalizeDownload renames the temporary file to its final name once the download is complete
-func (d *Downloader) finalizeDownload(tempPath, path, downloadID string, uri *types.URI) error {
-	if err := d.renameFile(tempPath, path); err != nil {
+	if err := os.Rename(tempPath, opts.Path); err != nil {
 		return err
 	}
 
 	d.logger.Debug("file successfully downloaded", map[string]interface{}{
-		"downloadID": downloadID,
-		"uri":        uri.String(),
-		"path":       path,
+		"uri":  opts.URI.String(),
+		"path": opts.Path,
 	})
 
 	return nil
 }
 
-// // checkFileSize checks if a file exists and returns its size if it does
-// func (d *Downloader) checkFileSize(tempPath string) (int64, error) {
-// 	var fileSize int64 = 0
-// 	if fi, err := os.Stat(tempPath); err == nil {
-// 		fileSize = fi.Size()
-// 	}
+// checkFileSize checks the size of the file on disk, returning 0 if it doesn't exist
+func (d *Downloader) checkFileSize(tempPath string) int64 {
+	var fileSize int64 = 0
+	if fi, err := os.Stat(tempPath); err == nil {
+		fileSize = fi.Size()
+	}
 
-// 	return fileSize, nil
-// }
+	return fileSize
+}
+
+// writeToFile writes the file to disk, updating progress as it goes
+func (d *Downloader) writeToFile(ctx context.Context, path string, contentLength int64, reader io.ReadCloser, progress chan<- types.Progress) error {
+	f, err := os.OpenFile(path, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0644)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+
+	totalBytes := int64(0)
+	lastUpdateBytes := int64(0)
+	lastTime := time.Now()
+	buffer := make([]byte, d.bufferSize)
+	ticker := time.NewTicker(d.updateInterval)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		case <-ticker.C:
+			lastTime = d.reportProgress(path, lastUpdateBytes, totalBytes, contentLength, progress, lastTime)
+			lastUpdateBytes = totalBytes
+		default:
+			totalBytes, err = d.processRead(reader, f, buffer, totalBytes)
+			if err != nil {
+				if err == io.EOF {
+					d.reportProgress(path, lastUpdateBytes, totalBytes, contentLength, progress, lastTime)
+					return nil
+				}
+
+				return err
+			}
+		}
+	}
+}
+
+// reportProgress sends progress updates to the channel
+func (d *Downloader) reportProgress(path string, lastUpdateBytes int64, totalBytes int64, totalSize int64, progress chan<- types.Progress, lastTime time.Time) time.Time {
+	now := time.Now()
+	timeElapsed := now.Sub(lastTime).Seconds()
+	speed := float64(totalBytes-lastUpdateBytes) / timeElapsed
+
+	if progress != nil {
+		progress <- types.Progress{
+			BytesRead: totalBytes,
+			TotalSize: totalSize,
+			Speed:     speed,
+		}
+	}
+
+	d.logger.Info("download progress", map[string]interface{}{
+		"path":      path,
+		"bytesRead": totalBytes,
+		"totalSize": totalSize,
+		"speed":     speed,
+	})
+
+	return now
+}
+
+// processRead reads from the reader and writes to the file
+func (d *Downloader) processRead(reader io.Reader, f *os.File, buffer []byte, totalBytes int64) (int64, error) {
+	bytesRead, readErr := reader.Read(buffer)
+	if bytesRead > 0 {
+		if _, writeErr := f.Write(buffer[:bytesRead]); writeErr != nil {
+			return totalBytes, writeErr
+		}
+		totalBytes += int64(bytesRead)
+	}
+
+	return totalBytes, readErr
+}
 
 // setupReader sets up an io.ReadCloser based on whether the file is local or remote
 func (d *Downloader) setupReader(ctx context.Context, uri *types.URI, fileSize int64) (io.ReadCloser, int64, error) {
@@ -202,9 +244,10 @@ func (d *Downloader) setupRemoteReader(ctx context.Context, uri *types.URI, file
 		resumed = true
 	}
 
-	d.logger.Debug("HTTP request successful", map[string]interface{}{
+	d.logger.Debug("http request successful", map[string]interface{}{
 		"status":        resp.Status,
 		"contentLength": contentLength,
+		"currentSize":   fileSize,
 		"resumed":       resumed,
 	})
 
@@ -224,62 +267,4 @@ func (d *Downloader) setupLocalReader(uri *types.URI) (io.ReadCloser, int64, err
 	}
 
 	return file, fi.Size(), nil
-}
-
-// openAndWriteToFile opens the file for writing and starts the download process
-func (d *Downloader) openAndWriteToFile(ctx context.Context, tempPath string, contentLength int64, reader io.ReadCloser, downloadID string) error {
-	if err := ctx.Err(); err != nil {
-		return err
-	}
-
-	f, err := os.OpenFile(tempPath, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0644)
-	if err != nil {
-		return err
-	}
-	defer f.Close()
-
-	wg := &sync.WaitGroup{}
-	pw := &progressWriter{
-		id:      downloadID,
-		w:       f,
-		maxSize: contentLength,
-		logFreq: d.logFreq,
-		logger:  d.logger,
-		logCh:   make(chan int64),
-		wg:      wg,
-	}
-	pw.startLogging()
-
-	// Wrap resp.Body in a contextReader
-	cr := &contextReader{
-		id:     downloadID,
-		r:      reader,
-		ctx:    ctx,
-		logger: d.logger,
-	}
-
-	bufferSize := 2 << 20 // 2MB
-	buffer := make([]byte, bufferSize)
-	_, err = io.CopyBuffer(pw, cr, buffer)
-	pw.stopLogging()
-	wg.Wait() // Wait for the logging goroutine to finish
-
-	if err != nil {
-		if err == context.Canceled || err == context.DeadlineExceeded {
-			d.logger.Info("download cancelled", map[string]interface{}{"downloadID": downloadID})
-		}
-
-		return err
-	}
-
-	return nil
-}
-
-// renameFile renames the temporary file to its final name once the download is complete
-func (d *Downloader) renameFile(tempPath string, path string) error {
-	if err := os.Rename(tempPath, path); err != nil {
-		return err
-	}
-
-	return nil
 }

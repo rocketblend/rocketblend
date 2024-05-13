@@ -18,6 +18,7 @@ type (
 	GetInstallationsOpts struct {
 		Dependencies []*Dependency `json:"dependencies"`
 		Fetch        bool          `json:"fetch"`
+		// Progress     chan<- Progress `json:"-"`
 	}
 
 	GetInstallationsResult struct {

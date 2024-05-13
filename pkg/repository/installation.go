@@ -2,6 +2,7 @@ package repository
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"os"
 	"path"
@@ -14,7 +15,10 @@ import (
 	"github.com/rocketblend/rocketblend/pkg/types"
 )
 
-const LockFileName = "reference.lock"
+const (
+	LockFileName     = "reference.lock"
+	ProgressFileName = "download.json"
+)
 
 type (
 	getInstallationResult struct {
@@ -51,10 +55,6 @@ func (r *Repository) RemoveInstallations(ctx context.Context, opts *types.Remove
 }
 
 func (r *Repository) getInstallations(ctx context.Context, dependencies []*types.Dependency, fetch bool) (map[reference.Reference]*types.Installation, error) {
-	if err := ctx.Err(); err != nil {
-		return nil, err
-	}
-
 	references := make([]reference.Reference, 0, len(dependencies))
 	for _, dep := range dependencies {
 		references = append(references, dep.Reference)
@@ -103,10 +103,6 @@ func (r *Repository) getInstallations(ctx context.Context, dependencies []*types
 }
 
 func (r *Repository) getInstallation(ctx context.Context, reference reference.Reference, pack *types.Package, fetch bool) (*types.Installation, error) {
-	if err := ctx.Err(); err != nil {
-		return nil, err
-	}
-
 	r.logger.Info("checking installation", map[string]interface{}{
 		"bundled":   pack.Bundled(),
 		"reference": reference.String(),
@@ -126,7 +122,8 @@ func (r *Repository) getInstallation(ctx context.Context, reference reference.Re
 		_, err := os.Stat(resourcePath)
 		if err != nil {
 			if os.IsNotExist(err) && fetch {
-				err := r.downloadInstallation(ctx, source.URI, installationPath)
+				packageFilePath := filepath.Join(r.packagePath, reference.String(), types.PackageFileName)
+				err := r.downloadInstallation(ctx, source.URI, packageFilePath, installationPath)
 				if err != nil {
 					return nil, err
 				}
@@ -145,10 +142,6 @@ func (r *Repository) getInstallation(ctx context.Context, reference reference.Re
 }
 
 func (r *Repository) removeInstallations(ctx context.Context, references []reference.Reference) error {
-	if err := ctx.Err(); err != nil {
-		return err
-	}
-
 	packs, err := r.getPackages(ctx, references, false)
 	if err != nil {
 		return err
@@ -171,22 +164,16 @@ func (r *Repository) removeInstallations(ctx context.Context, references []refer
 	return nil
 }
 
-func (r *Repository) downloadInstallation(ctx context.Context, downloadURI *types.URI, installationPath string) error {
-	if err := ctx.Err(); err != nil {
-		return err
-	}
-
+func (r *Repository) downloadInstallation(ctx context.Context, downloadURI *types.URI, packageFilePath string, installationPath string) error {
 	if downloadURI == nil {
 		return fmt.Errorf("no download URI provided")
 	}
 
-	// Create the installation path if it doesn't exist.
 	if err := os.MkdirAll(installationPath, 0755); err != nil {
 		r.logger.Error("failed to create installation path", map[string]interface{}{"error": err, "installationPath": installationPath})
 		return err
 	}
 
-	// Lock the installation path to prevent concurrent downloads.
 	cancel, err := r.lock(ctx, installationPath)
 	if err != nil {
 		return err
@@ -195,19 +182,40 @@ func (r *Repository) downloadInstallation(ctx context.Context, downloadURI *type
 
 	downloadedFilePath := filepath.Join(installationPath, path.Base(downloadURI.Path))
 	r.logger.Info("downloading installation", map[string]interface{}{
-		"downloadURI":        downloadURI.String(),
-		"downloadedFilePath": downloadedFilePath,
+		"uri":      downloadURI.String(),
+		"filePath": downloadedFilePath,
 	})
 
-	// Download the file.
+	progressFilePath := filepath.Join(installationPath, ProgressFileName)
+	defer os.Remove(progressFilePath)
+
+	progressChan := make(chan types.Progress)
+	go func() {
+		for p := range progressChan {
+			if err := writeProgressFile(progressFilePath, p); err != nil {
+				r.logger.Error("failed to write progress file", map[string]interface{}{
+					"error": err,
+					"path":  progressFilePath,
+				})
+			}
+
+			if err := touchFile(packageFilePath); err != nil {
+				r.logger.Error("failed to touch package", map[string]interface{}{
+					"error": err,
+					"path":  packageFilePath,
+				})
+			}
+		}
+	}()
+
 	if err := r.downloader.Download(ctx, &types.DownloadOpts{
-		URI:  downloadURI,
-		Path: downloadedFilePath,
+		URI:          downloadURI,
+		Path:         downloadedFilePath,
+		ProgressChan: progressChan,
 	}); err != nil {
 		return err
 	}
 
-	// Extract the file if it's an archive.
 	if helpers.IsSupportedArchive(downloadedFilePath) {
 		if err := r.extractor.Extract(ctx, &types.ExtractOpts{
 			Path:       downloadedFilePath,
@@ -217,14 +225,17 @@ func (r *Repository) downloadInstallation(ctx context.Context, downloadURI *type
 		}
 	}
 
+	if err := touchFile(packageFilePath); err != nil {
+		r.logger.Error("failed to touch package", map[string]interface{}{
+			"error": err,
+			"path":  packageFilePath,
+		})
+	}
+
 	return nil
 }
 
 func (r *Repository) removeInstallation(ctx context.Context, reference reference.Reference) error {
-	if err := ctx.Err(); err != nil {
-		return err
-	}
-
 	installationPath := filepath.Join(r.installationPath, reference.String())
 
 	cancel, err := r.lock(ctx, installationPath)
@@ -237,10 +248,53 @@ func (r *Repository) removeInstallation(ctx context.Context, reference reference
 		return err
 	}
 
+	packageFilePath := filepath.Join(r.packagePath, reference.String(), types.PackageFileName)
+	if err := touchFile(packageFilePath); err != nil {
+		r.logger.Error("failed to touch package", map[string]interface{}{
+			"error":     err,
+			"reference": reference.String(),
+			"path":      packageFilePath,
+		})
+	}
+
 	return nil
 }
 
 func (r *Repository) lock(ctx context.Context, dir string) (cancelFunc func(), err error) {
 	r.logger.Debug("creating new file lock", map[string]interface{}{"path": dir, "lockFile": LockFileName})
 	return lockfile.New(ctx, lockfile.WithPath(filepath.Join(dir, LockFileName)), lockfile.WithLogger(r.logger))
+}
+
+func writeProgressFile(path string, data types.Progress) error {
+	infoFile, err := os.Create(path)
+	if err != nil {
+		return err
+	}
+	defer infoFile.Close()
+
+	infoBytes, err := json.Marshal(data)
+	if err != nil {
+		return err
+	}
+
+	if _, err := infoFile.Write(infoBytes); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// touchFile used to trigger a file change event on the file system.
+func touchFile(path string) error {
+	fileInfo, err := os.Stat(path)
+	if err != nil {
+		return err
+	}
+
+	mode := fileInfo.Mode()
+	if err := os.Chmod(path, mode^0200); err != nil {
+		return err
+	}
+
+	return os.Chmod(path, mode)
 }
