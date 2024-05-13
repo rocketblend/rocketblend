@@ -103,7 +103,7 @@ func (d *Downloader) Download(ctx context.Context, opts *types.DownloadOpts) err
 	}
 	defer reader.Close()
 
-	if err := d.writeToFile(ctx, tempPath, fileSize, contentLength, reader, opts.ProgressChan); err != nil {
+	if err := d.writeToFile(ctx, tempPath, contentLength, reader, opts.ProgressChan); err != nil {
 		return err
 	}
 
@@ -130,15 +130,15 @@ func (d *Downloader) checkFileSize(tempPath string) int64 {
 }
 
 // writeToFile writes the file to disk, updating progress as it goes
-func (d *Downloader) writeToFile(ctx context.Context, path string, initialSize int64, contentLength int64, reader io.ReadCloser, progress chan<- types.Progress) error {
+func (d *Downloader) writeToFile(ctx context.Context, path string, contentLength int64, reader io.ReadCloser, progress chan<- types.Progress) error {
 	f, err := os.OpenFile(path, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0644)
 	if err != nil {
 		return err
 	}
 	defer f.Close()
 
-	totalBytes := initialSize
-	lastUpdateBytes := initialSize
+	totalBytes := int64(0)
+	lastUpdateBytes := int64(0)
 	lastTime := time.Now()
 	buffer := make([]byte, d.bufferSize)
 	ticker := time.NewTicker(d.updateInterval)
@@ -247,6 +247,7 @@ func (d *Downloader) setupRemoteReader(ctx context.Context, uri *types.URI, file
 	d.logger.Debug("http request successful", map[string]interface{}{
 		"status":        resp.Status,
 		"contentLength": contentLength,
+		"currentSize":   fileSize,
 		"resumed":       resumed,
 	})
 
