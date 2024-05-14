@@ -94,7 +94,7 @@ func New(opts ...Option) (*Container, error) {
 		Validator:        validator.New(),
 		ApplicationName:  types.ApplicationName,
 		DownloadBuffer:   1 << 20,         // Default buffer size is 1MB
-		ProgressInterval: 1 * time.Second, // Default progress interval is 1 seconds
+		ProgressInterval: 5 * time.Second, // Default progress interval is 5 seconds
 	}
 
 	for _, opt := range opts {

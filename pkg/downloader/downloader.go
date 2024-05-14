@@ -53,7 +53,7 @@ func WithBufferSize(bufferSize int) Option {
 	}
 }
 
-// WithUpdateInterval sets the frequency at which progress updates are sent. The default is 1 seconds.
+// WithUpdateInterval sets the frequency at which progress updates are sent. The default is 5 seconds.
 func WithUpdateInterval(updateInterval time.Duration) Option {
 	return func(o *Options) {
 		o.UpdateInterval = updateInterval
@@ -65,7 +65,7 @@ func New(opts ...Option) (*Downloader, error) {
 	options := &Options{
 		Logger:         logger.NoOp(),
 		BufferSize:     1 << 20,         // Default buffer size is 1MB
-		UpdateInterval: 1 * time.Second, // Default update interval is 1 seconds
+		UpdateInterval: 5 * time.Second, // Default update interval is 5 seconds
 	}
 
 	for _, opt := range opts {
