@@ -123,6 +123,16 @@ func (r *Repository) getInstallation(ctx context.Context, reference reference.Re
 		if err != nil {
 			if os.IsNotExist(err) && fetch {
 				packageFilePath := filepath.Join(r.packagePath, reference.String(), types.PackageFileName)
+
+				defer func() {
+					if err := touchFile(packageFilePath); err != nil {
+						r.logger.Error("failed to touch package", map[string]interface{}{
+							"error": err,
+							"path":  packageFilePath,
+						})
+					}
+				}()
+
 				err := r.downloadInstallation(ctx, source.URI, packageFilePath, installationPath)
 				if err != nil {
 					return nil, err
@@ -234,13 +244,6 @@ func (r *Repository) downloadInstallation(ctx context.Context, downloadURI *type
 		r.logger.Error("failed to remove download progress file", map[string]interface{}{
 			"error": err,
 			"path":  progressFilePath,
-		})
-	}
-
-	if err := touchFile(packageFilePath); err != nil {
-		r.logger.Error("failed to touch package", map[string]interface{}{
-			"error": err,
-			"path":  packageFilePath,
 		})
 	}
 
