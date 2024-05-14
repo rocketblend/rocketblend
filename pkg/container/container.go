@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 	"sync"
+	"time"
 
 	"github.com/flowshot-io/x/pkg/logger"
 	"github.com/rocketblend/rocketblend/pkg/blender"
@@ -24,10 +25,12 @@ type (
 	}
 
 	Options struct {
-		Logger          logger.Logger
-		Validator       types.Validator
-		ApplicationName string
-		Development     bool
+		Logger           logger.Logger
+		Validator        types.Validator
+		ProgressInterval time.Duration
+		DownloadBuffer   int
+		ApplicationName  string
+		Development      bool
 	}
 
 	Option func(*Options)
@@ -36,6 +39,9 @@ type (
 		logger         types.Logger
 		validator      types.Validator
 		applicationDir string
+
+		downloadBuffer   int
+		progressInterval time.Duration
 
 		configuratorHolder *holder[configurator.Configurator]
 		downloaderHolder   *holder[downloader.Downloader]
@@ -70,11 +76,25 @@ func WithDevelopmentMode(development bool) Option {
 	}
 }
 
+func WithProgressInterval(interval time.Duration) Option {
+	return func(o *Options) {
+		o.ProgressInterval = interval
+	}
+}
+
+func WithDownloadBuffer(buffer int) Option {
+	return func(o *Options) {
+		o.DownloadBuffer = buffer
+	}
+}
+
 func New(opts ...Option) (*Container, error) {
 	options := &Options{
-		Logger:          logger.NoOp(),
-		Validator:       validator.New(),
-		ApplicationName: types.ApplicationName,
+		Logger:           logger.NoOp(),
+		Validator:        validator.New(),
+		ApplicationName:  types.ApplicationName,
+		DownloadBuffer:   1 << 20,         // Default buffer size is 1MB
+		ProgressInterval: 1 * time.Second, // Default progress interval is 1 seconds
 	}
 
 	for _, opt := range opts {
@@ -95,6 +115,8 @@ func New(opts ...Option) (*Container, error) {
 		logger:             options.Logger,
 		validator:          options.Validator,
 		applicationDir:     applicationDir,
+		downloadBuffer:     options.DownloadBuffer,
+		progressInterval:   options.ProgressInterval,
 		configuratorHolder: &holder[configurator.Configurator]{},
 		downloaderHolder:   &holder[downloader.Downloader]{},
 		extractorHolder:    &holder[extractor.Extractor]{},
@@ -157,6 +179,8 @@ func (f *Container) getDownloader() (*downloader.Downloader, error) {
 	f.downloaderHolder.once.Do(func() {
 		f.downloaderHolder.instance, err = downloader.New(
 			downloader.WithLogger(f.logger),
+			downloader.WithBufferSize(f.downloadBuffer),
+			downloader.WithUpdateInterval(f.progressInterval),
 		)
 	})
 	if err != nil {
