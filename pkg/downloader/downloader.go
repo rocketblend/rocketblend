@@ -46,7 +46,7 @@ func WithLogger(logger logger.Logger) Option {
 	}
 }
 
-// WithBufferSize sets the buffer size for reading and writing. The default is 2MB.
+// WithBufferSize sets the buffer size for reading and writing. The default is 1MB.
 func WithBufferSize(bufferSize int) Option {
 	return func(o *Options) {
 		o.BufferSize = bufferSize
@@ -64,7 +64,7 @@ func WithUpdateInterval(updateInterval time.Duration) Option {
 func New(opts ...Option) (*Downloader, error) {
 	options := &Options{
 		Logger:         logger.NoOp(),
-		BufferSize:     2 << 20,         // Default buffer size is 2MB
+		BufferSize:     1 << 20,         // Default buffer size is 1MB
 		UpdateInterval: 5 * time.Second, // Default update interval is 5 seconds
 	}
 
