@@ -20,3 +20,6 @@ jobs:
     uses: rocketblend/github-workflows/.github/workflows/validate-pr-title.yaml@main
     permissions:
       pull-requests: write
+  
+  go-ci:
+    uses: ./.github/workflows/go-ci.yaml

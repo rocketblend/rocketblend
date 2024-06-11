@@ -1,0 +1,15 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - master
+  workflow_dispatch:
+
+concurrency:
+  group: rocketblend-ci
+  cancel-in-progress: true
+
+jobs:
+  go-ci:
+    uses: ./.github/workflows/go-ci.yaml
