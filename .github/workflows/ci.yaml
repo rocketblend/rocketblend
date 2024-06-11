@@ -12,4 +12,4 @@ concurrency:
 
 jobs:
   go-ci:
-    uses: ./.github/workflows/go-ci.yml
+    uses: ./.github/workflows/go-ci.yaml
