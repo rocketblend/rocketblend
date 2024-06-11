@@ -22,6 +22,11 @@ type (
 	}
 
 	Task[T any] func(ctx context.Context) (T, error)
+
+	indexedResult[T any] struct {
+		Index  int
+		Result T
+	}
 )
 
 var (
@@ -82,19 +87,19 @@ func runSequentially[T any](ctx context.Context, tasks []Task[T]) ([]T, error) {
 func runConcurrently[T any](ctx context.Context, tasks []Task[T]) ([]T, error) {
 	var wg sync.WaitGroup
 	errChan := make(chan error, len(tasks))
-	resultChan := make(chan T, len(tasks))
+	resultChan := make(chan indexedResult[T], len(tasks))
 
-	for _, task := range tasks {
+	for i, task := range tasks {
 		wg.Add(1)
-		go func(t Task[T]) {
+		go func(index int, t Task[T]) {
 			defer wg.Done()
 			result, err := t(ctx)
 			if err != nil {
 				errChan <- err
 			} else {
-				resultChan <- result
+				resultChan <- indexedResult[T]{index, result}
 			}
-		}(task)
+		}(i, task)
 	}
 
 	wg.Wait()
@@ -105,7 +110,7 @@ func runConcurrently[T any](ctx context.Context, tasks []Task[T]) ([]T, error) {
 		return nil, err
 	}
 
-	return collectResults(resultChan), nil
+	return collectResults(resultChan, len(tasks)), nil
 }
 
 // runWithControlledConcurrency executes the tasks concurrently with controlled concurrency.
@@ -113,21 +118,21 @@ func runWithControlledConcurrency[T any](ctx context.Context, tasks []Task[T], m
 	sem := make(chan struct{}, maxConcurrency)
 	var wg sync.WaitGroup
 	errChan := make(chan error, len(tasks))
-	resultChan := make(chan T, len(tasks))
+	resultChan := make(chan indexedResult[T], len(tasks))
 
-	for _, task := range tasks {
+	for i, task := range tasks {
 		sem <- struct{}{} // Acquire a token
 		wg.Add(1)
-		go func(t Task[T]) {
+		go func(index int, t Task[T]) {
 			defer wg.Done()
 			defer func() { <-sem }() // Release the token
 			result, err := t(ctx)
 			if err != nil {
 				errChan <- err
 			} else {
-				resultChan <- result
+				resultChan <- indexedResult[T]{index, result}
 			}
-		}(task)
+		}(i, task)
 	}
 
 	wg.Wait()
@@ -138,14 +143,17 @@ func runWithControlledConcurrency[T any](ctx context.Context, tasks []Task[T], m
 		return nil, err
 	}
 
-	return collectResults(resultChan), nil
+	return collectResults(resultChan, len(tasks)), nil
 }
 
 // runWithWorkerPool executes the tasks using a worker pool.
 func runWithWorkerPool[T any](ctx context.Context, tasks []Task[T], numWorkers int) ([]T, error) {
-	tasksChan := make(chan Task[T], len(tasks))
+	tasksChan := make(chan struct {
+		Index int
+		Task  Task[T]
+	}, len(tasks))
 	errChan := make(chan error, len(tasks))
-	resultChan := make(chan T, len(tasks))
+	resultChan := make(chan indexedResult[T], len(tasks))
 	var wg sync.WaitGroup
 
 	// Start workers
@@ -155,8 +163,11 @@ func runWithWorkerPool[T any](ctx context.Context, tasks []Task[T], numWorkers i
 	}
 
 	// Send tasks to the channel
-	for _, task := range tasks {
-		tasksChan <- task
+	for i, task := range tasks {
+		tasksChan <- struct {
+			Index int
+			Task  Task[T]
+		}{i, task}
 	}
 	close(tasksChan) // No more tasks are coming, close the channel
 
@@ -169,11 +180,14 @@ func runWithWorkerPool[T any](ctx context.Context, tasks []Task[T], numWorkers i
 		return nil, err
 	}
 
-	return collectResults(resultChan), nil
+	return collectResults(resultChan, len(tasks)), nil
 }
 
 // worker processes tasks from the tasks channel.
-func worker[T any](ctx context.Context, tasks <-chan Task[T], wg *sync.WaitGroup, errChan chan<- error, resultChan chan<- T) {
+func worker[T any](ctx context.Context, tasks <-chan struct {
+	Index int
+	Task  Task[T]
+}, wg *sync.WaitGroup, errChan chan<- error, resultChan chan<- indexedResult[T]) {
 	defer wg.Done()
 	for task := range tasks {
 		select {
@@ -181,11 +195,11 @@ func worker[T any](ctx context.Context, tasks <-chan Task[T], wg *sync.WaitGroup
 			errChan <- ctx.Err()
 			return
 		default:
-			result, err := task(ctx)
+			result, err := task.Task(ctx)
 			if err != nil {
 				errChan <- err
 			} else {
-				resultChan <- result
+				resultChan <- indexedResult[T]{task.Index, result}
 			}
 		}
 	}
@@ -203,11 +217,11 @@ func collectErrors(errChan chan error) error {
 	return err
 }
 
-// collectResults aggregates results from a channel into a slice.
-func collectResults[T any](resultChan <-chan T) []T {
-	var results []T
+// collectResults aggregates results from a channel into a slice and orders them.
+func collectResults[T any](resultChan <-chan indexedResult[T], taskCount int) []T {
+	results := make([]T, taskCount)
 	for result := range resultChan {
-		results = append(results, result)
+		results[result.Index] = result.Result
 	}
 
 	return results
