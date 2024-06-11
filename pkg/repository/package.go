@@ -170,7 +170,7 @@ func (s *Repository) getPackage(ctx context.Context, ref reference.Reference, up
 	packagePath := filepath.Join(s.packagePath, ref.String(), types.PackageFileName)
 
 	// The repository does not exist locally, clone it
-	if _, err := os.Stat(repoPath); os.IsNotExist(err) || update && !ref.IsLocalOnly() {
+	if _, err := os.Stat(repoPath); os.IsNotExist(err) {
 		repoURL, err := ref.GetRepoURL()
 		if err != nil {
 			s.logger.Error("error getting repository URL", map[string]interface{}{"error": err, "reference": ref.String()})
@@ -184,7 +184,7 @@ func (s *Repository) getPackage(ctx context.Context, ref reference.Reference, up
 	}
 
 	// Check if the file exists in the repository
-	if _, err := os.Stat(packagePath); os.IsNotExist(err) || update && !ref.IsLocalOnly() {
+	if _, err := os.Stat(packagePath); os.IsNotExist(err) || update {
 		// The file does not exist or forced update, pull the latest changes
 		s.logger.Info("pulling latest changes for repository", map[string]interface{}{"path": packagePath, "reference": ref.String()})
 		if err := s.pullChanges(ctx, repoPath); err != nil {
