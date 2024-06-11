@@ -2,6 +2,7 @@ package driver
 
 import (
 	"context"
+	"sort"
 
 	"github.com/rocketblend/rocketblend/pkg/reference"
 	"github.com/rocketblend/rocketblend/pkg/taskrunner"
@@ -87,6 +88,10 @@ func (d *Driver) tidyDependencies(ctx context.Context, dependencies []*types.Dep
 			Type:      pack.Type,
 		})
 	}
+
+	sort.Slice(tidied, func(i, j int) bool {
+		return tidied[i].Reference < tidied[j].Reference
+	})
 
 	return tidied, nil
 }
