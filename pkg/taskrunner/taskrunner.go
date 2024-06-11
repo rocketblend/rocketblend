@@ -73,11 +73,16 @@ func validateOpts[T any](opts *RunOpts[T]) error {
 func runSequentially[T any](ctx context.Context, tasks []Task[T]) ([]T, error) {
 	results := make([]T, 0, len(tasks))
 	for _, task := range tasks {
-		result, err := task(ctx)
-		if err != nil {
-			return nil, err
+		select {
+		case <-ctx.Done():
+			return nil, ctx.Err()
+		default:
+			result, err := task(ctx)
+			if err != nil {
+				return nil, err
+			}
+			results = append(results, result)
 		}
-		results = append(results, result)
 	}
 
 	return results, nil
@@ -93,11 +98,16 @@ func runConcurrently[T any](ctx context.Context, tasks []Task[T]) ([]T, error) {
 		wg.Add(1)
 		go func(index int, t Task[T]) {
 			defer wg.Done()
-			result, err := t(ctx)
-			if err != nil {
-				errChan <- err
-			} else {
-				resultChan <- indexedResult[T]{index, result}
+			select {
+			case <-ctx.Done():
+				errChan <- ctx.Err()
+			default:
+				result, err := t(ctx)
+				if err != nil {
+					errChan <- err
+				} else {
+					resultChan <- indexedResult[T]{index, result}
+				}
 			}
 		}(i, task)
 	}
@@ -126,11 +136,16 @@ func runWithControlledConcurrency[T any](ctx context.Context, tasks []Task[T], m
 		go func(index int, t Task[T]) {
 			defer wg.Done()
 			defer func() { <-sem }() // Release the token
-			result, err := t(ctx)
-			if err != nil {
-				errChan <- err
-			} else {
-				resultChan <- indexedResult[T]{index, result}
+			select {
+			case <-ctx.Done():
+				errChan <- ctx.Err()
+			default:
+				result, err := t(ctx)
+				if err != nil {
+					errChan <- err
+				} else {
+					resultChan <- indexedResult[T]{index, result}
+				}
 			}
 		}(i, task)
 	}
