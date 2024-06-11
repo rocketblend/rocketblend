@@ -74,21 +74,26 @@ func (d *Driver) tidyDependencies(ctx context.Context, dependencies []*types.Dep
 
 	foundBuild := false
 	tidied := make([]*types.Dependency, 0, len(results.Packs))
-	for ref, pack := range results.Packs {
-		if foundBuild && pack.Type == types.PackageBuild {
-			continue
-		}
 
-		if pack.Type == types.PackageBuild {
-			foundBuild = true
-		}
+	// Iterate over the references to keep the order.
+	for _, ref := range references {
+		if pack, exists := results.Packs[ref]; exists {
+			if pack.Type == types.PackageBuild {
+				if foundBuild {
+					continue
+				}
 
-		tidied = append(tidied, &types.Dependency{
-			Reference: ref,
-			Type:      pack.Type,
-		})
+				foundBuild = true
+			}
+
+			tidied = append(tidied, &types.Dependency{
+				Reference: ref,
+				Type:      pack.Type,
+			})
+		}
 	}
 
+	// Sort the dependencies by reference to make it cleaner.
 	sort.Slice(tidied, func(i, j int) bool {
 		return tidied[i].Reference < tidied[j].Reference
 	})
