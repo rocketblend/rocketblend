@@ -41,7 +41,8 @@ func (p *Profile) FindAll(packageType PackageType) []*Dependency {
 }
 
 func (p *Profile) AddDependencies(deps ...*Dependency) {
-	p.Dependencies = append(p.Dependencies, deps...)
+	// Add the new dependencies to the beginning of the list so that they override any existing build dependencies.
+	p.Dependencies = append(deps, p.Dependencies...)
 }
 
 func (p *Profile) RemoveDependencies(deps ...*Dependency) {
