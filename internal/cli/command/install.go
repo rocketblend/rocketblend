@@ -13,13 +13,13 @@ type (
 	installPackageOpts struct {
 		commandOpts
 		Reference string
-		Update    bool
+		Pull      bool
 	}
 )
 
 // newInstallCommand creates a new cobra command for installing project dependencies.
 func newInstallCommand(opts commandOpts) *cobra.Command {
-	//var forceUpdate bool
+	var pull bool
 
 	cc := &cobra.Command{
 		Use:   "install [reference]",
@@ -38,7 +38,7 @@ func newInstallCommand(opts commandOpts) *cobra.Command {
 				if err := installPackage(ctx, installPackageOpts{
 					commandOpts: opts,
 					Reference:   reference,
-					Update:      false,
+					Pull:        pull,
 				}); err != nil {
 					return fmt.Errorf("failed to install project dependencies: %w", err)
 				}
@@ -51,7 +51,7 @@ func newInstallCommand(opts commandOpts) *cobra.Command {
 		},
 	}
 
-	//cc.Flags().BoolVarP(&forceUpdate, "update", "u", false, "refreshes the package definition before installing it")
+	cc.Flags().BoolVarP(&pull, "pull", "p", false, "pulls the latest package definitions before installing them")
 
 	return cc
 }
@@ -92,6 +92,7 @@ func installPackage(ctx context.Context, opts installPackageOpts) error {
 
 	if err := driver.TidyProfiles(ctx, &types.TidyProfilesOpts{
 		Profiles: profiles.Profiles,
+		Fetch:    opts.Pull,
 	}); err != nil {
 		return err
 	}
