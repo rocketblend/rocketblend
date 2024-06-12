@@ -46,6 +46,7 @@ func (b *Blender) Render(ctx context.Context, opts *types.RenderOpts) error {
 		arguments.Script = startupScript()
 		arguments.Rockeblend = &rocketblendArguments{
 			Addons: opts.BlendFile.Addons(),
+			Strict: opts.BlendFile.InjectionMode == types.StrictInjectionMode,
 		}
 	}
 

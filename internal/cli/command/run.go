@@ -83,8 +83,9 @@ func runProject(ctx context.Context, opts runProjectOpts) error {
 	if err := blender.Run(ctx, &types.RunOpts{
 		BlenderOpts: types.BlenderOpts{
 			BlendFile: &types.BlendFile{
-				Path:         blendFilePath,
-				Dependencies: resolve.Installations[0],
+				Path:          blendFilePath,
+				Dependencies:  resolve.Installations[0],
+				InjectionMode: profiles.Profiles[0].InjectionMode,
 			},
 		},
 	}); err != nil {

@@ -14,8 +14,9 @@ type (
 	}
 
 	Profile struct {
-		Spec         semver.Version `json:"spec,omitempty"`
-		Dependencies []*Dependency  `json:"dependencies,omitempty" validate:"omitempty,dive,required"`
+		Spec          semver.Version `json:"spec,omitempty"`
+		Dependencies  []*Dependency  `json:"dependencies,omitempty" validate:"omitempty,dive,required"`
+		InjectionMode InjectionMode  `json:"injectionMode,omitempty" validate:"omitempty,oneof=strict relaxed ignore"`
 		// ARGS         []string       `json:"args,omitempty"`
 	}
 

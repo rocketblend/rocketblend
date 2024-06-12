@@ -14,8 +14,9 @@ type (
 	}
 
 	BlendFile struct {
-		Path         string          `json:"path" validate:"required,filepath,blendfile"`
-		Dependencies []*Installation `json:"dependencies" validate:"required,onebuild,dive,required"`
+		Path          string          `json:"path" validate:"required,filepath,blendfile"`
+		InjectionMode InjectionMode   `json:"injectionMode" validate:"omitempty,oneof=strict relaxed ignore"`
+		Dependencies  []*Installation `json:"dependencies" validate:"required,onebuild,dive,required"`
 	}
 
 	BlenderOpts struct {
@@ -59,6 +60,10 @@ func (b *BlendFile) Build() *Installation {
 }
 
 func (b *BlendFile) Addons() []*Installation {
+	if b.InjectionMode != IgnoreInjectionMode {
+		return nil
+	}
+
 	return b.find(PackageAddon)
 }
 

@@ -27,6 +27,7 @@ func (b *Blender) Run(ctx context.Context, opts *types.RunOpts) error {
 		arguments.Script = startupScript()
 		arguments.Rockeblend = &rocketblendArguments{
 			Addons: opts.BlendFile.Addons(),
+			Strict: opts.BlendFile.InjectionMode == types.StrictInjectionMode,
 		}
 	}
 

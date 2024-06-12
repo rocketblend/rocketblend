@@ -13,18 +13,18 @@ if not os.path.exists("logs"):
     os.makedirs("logs")
 
 logging.basicConfig(
-    level=logging.INFO,
+    level=logging.DEBUG,
     format='%(asctime)s %(message)s',
     datefmt='%a, %d %b %Y %H:%M:%S',
     handlers=[
-        RotatingFileHandler(
-            "logs/rocketblend.log",
-            mode="a",
-            maxBytes=5*1024*1024,
-            backupCount=2,
-            encoding=None,
-            delay=0
-        ),
+        # RotatingFileHandler(
+        #     "logs/rocketblend.log",
+        #     mode="a",
+        #     maxBytes=5*1024*1024,
+        #     backupCount=2,
+        #     encoding=None,
+        #     delay=0
+        # ),
         logging.StreamHandler()
 ]) 
 
@@ -95,7 +95,7 @@ class Addon(object):
         return self.__str__()
 
     def _parse_version(self, version_str: str) -> tuple[int, int, int]:
-        if version_str is None:
+        if version_str == "":
             return (-1, -1, -1)
         
         version = ()
@@ -108,9 +108,11 @@ class AddonManager(object):
     def __init__(self, addons: list[dict]):
         self.addons = []
         for addon in addons:
-            path = Path(addon["path"])
+            path = Path(addon.get("path", ""))
             if path.exists() or path == "":
-                self.addons.append(Addon(addon["name"], addon["version"], addon["path"]))
+                name = addon.get("name", "")
+                version = addon.get("version", "")
+                self.addons.append(Addon(str(name), str(version), addon.get("path", "")))
 
     def get(self, ignore_pre_installed: bool = False) -> list[Addon]:
         return [addon for addon in self.addons if addon.path != "" or not ignore_pre_installed]
@@ -173,7 +175,7 @@ class Startup():
         """
         Enables the addon with the given name.
         """
-        mod = addon_utils.enable(addon_name, default_set=True)
+        mod = addon_utils.enable(addon_name, default_set=False, persistent=False)
 
         if mod:
             logging.debug(f"Enabled addon {addon_name}")
@@ -190,7 +192,7 @@ class Startup():
         """
         Disables the addon with the given name.
         """
-        addon_utils.disable(addon_name, default_set=True)
+        addon_utils.disable(addon_name, default_set=False)
         logging.debug(f"Disabled addon {addon_name}")
 
 parser = ArgumentParserForBlender()
