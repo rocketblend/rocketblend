@@ -1,5 +1,9 @@
 package types
 
+const (
+	DefaultInjectionMode = RelaxedInjectionMode
+)
+
 type (
 	InjectionMode string
 )

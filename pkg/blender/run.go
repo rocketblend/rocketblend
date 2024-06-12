@@ -23,7 +23,7 @@ func (b *Blender) Run(ctx context.Context, opts *types.RunOpts) error {
 		BlendFilePath: opts.BlendFile.Path,
 	}
 
-	if opts.BlendFile.Addons() != nil {
+	if opts.BlendFile.Addons() != nil && opts.BlendFile.InjectionMode != types.IgnoreInjectionMode {
 		arguments.Script = startupScript()
 		arguments.Rockeblend = &rocketblendArguments{
 			Addons: opts.BlendFile.Addons(),

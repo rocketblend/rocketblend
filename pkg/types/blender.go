@@ -60,10 +60,6 @@ func (b *BlendFile) Build() *Installation {
 }
 
 func (b *BlendFile) Addons() []*Installation {
-	if b.InjectionMode != IgnoreInjectionMode {
-		return nil
-	}
-
 	return b.find(PackageAddon)
 }
 

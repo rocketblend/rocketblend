@@ -94,6 +94,7 @@ func createProject(ctx context.Context, opts createProjectOpts) error {
 					Type:      types.PackageBuild,
 				},
 			},
+			InjectionMode: types.DefaultInjectionMode,
 		},
 	}
 
@@ -126,8 +127,9 @@ func createProject(ctx context.Context, opts createProjectOpts) error {
 	if err := blender.Create(ctx, &types.CreateOpts{
 		BlenderOpts: types.BlenderOpts{
 			BlendFile: &types.BlendFile{
-				Path:         blendFilePath,
-				Dependencies: resolveResults.Installations[0],
+				Path:          blendFilePath,
+				Dependencies:  resolveResults.Installations[0],
+				InjectionMode: profiles[0].InjectionMode,
 			},
 			Background: true,
 		},

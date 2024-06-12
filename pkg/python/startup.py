@@ -129,13 +129,13 @@ class Startup():
     addons specified by the command line argument.
     """
     
-    def __init__(self, addons: list[Addon]):
-        logging.debug(f"Starting Blender with the following addons: {addons}")
+    def __init__(self, addons: list[Addon], strict: bool):
+        logging.debug(f"Starting Blender with the following addons: {addons} strict: {strict}")
 
         self.manager = AddonManager(addons)
 
         self.install_addons(True)
-        self.reset_addons()
+        self.reset_addons(strict)
 
         logging.debug(f"Finished loading addons")
 
@@ -156,17 +156,18 @@ class Startup():
                 logging.debug(f"Installing addon {addon.name} {addon.version} from {addon.path}")
                 bpy.ops.preferences.addon_install(filepath=addon.path, overwrite=overwrite)
 
-    def reset_addons(self) -> None:
+    def reset_addons(self, strict: bool) -> None:
         """
         Resets addons to only the ones defined.
         """  
         enable = [addon.name for addon in self.manager.get()]
 
-        for addon in bpy.context.preferences.addons:
-            if addon.module not in enable:
-                self.disable_addon(addon.module)
-            else:
-                enable.remove(addon.module)
+        if strict:
+            for addon in bpy.context.preferences.addons:
+                if addon.module not in enable:
+                    self.disable_addon(addon.module)
+                else:
+                    enable.remove(addon.module)
 
         for addonName in enable:
             self.enable_addon(addonName)
@@ -197,7 +198,8 @@ class Startup():
 
 parser = ArgumentParserForBlender()
 parser.add_argument("-a", "--addons", help="Addons to load", type=ast.literal_eval, default={})
+parser.add_argument("-s", "--strict", help="Injection mode for addons", type=bool)
 
 args = parser.parse_args()
 
-Startup(args.addons)
+Startup(args.addons, args.strict)

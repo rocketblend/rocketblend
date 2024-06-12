@@ -8,10 +8,6 @@ import (
 	"github.com/rocketblend/rocketblend/pkg/types"
 )
 
-const (
-	defaultInjectionMode = types.RelaxedInjectionMode
-)
-
 func (d *Driver) LoadProfiles(ctx context.Context, opts *types.LoadProfilesOpts) (*types.LoadProfilesResult, error) {
 	d.mutex.Lock()
 	defer d.mutex.Unlock()
@@ -57,7 +53,7 @@ func (d *Driver) load(ctx context.Context, path string) (*types.Profile, error) 
 	}
 
 	if profile.InjectionMode == "" {
-		profile.InjectionMode = defaultInjectionMode
+		profile.InjectionMode = types.DefaultInjectionMode
 	}
 
 	return profile, nil
