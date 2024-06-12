@@ -23,6 +23,7 @@ type (
 
 	rocketblendArguments struct {
 		Addons []*types.Installation
+		Strict bool
 	}
 
 	arguments struct {
@@ -81,20 +82,26 @@ func (a *renderArguments) ARGS() []string {
 }
 
 func (a *rocketblendArguments) ARGS() []string {
+	args := []string{}
 	if a.Addons != nil {
 		json, err := json.Marshal(a.Addons)
 		if err != nil {
 			return nil
 		}
 
-		return []string{
-			"--",
+		args = append(args, []string{
 			"-a",
 			string(json),
-		}
+		}...)
 	}
 
-	return nil
+	if a.Strict {
+		args = append(args, []string{
+			"-s",
+		}...)
+	}
+
+	return args
 }
 
 func (a *arguments) ARGS() []string {
@@ -119,6 +126,7 @@ func (a *arguments) ARGS() []string {
 	}
 
 	if a.Script != "" && a.Rockeblend != nil {
+		args = append(args, "--")
 		args = append(args, a.Rockeblend.ARGS()...)
 	}
 

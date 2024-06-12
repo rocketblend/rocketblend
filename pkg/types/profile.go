@@ -16,6 +16,7 @@ type (
 	Profile struct {
 		Spec         semver.Version `json:"spec,omitempty"`
 		Dependencies []*Dependency  `json:"dependencies,omitempty" validate:"omitempty,dive,required"`
+		Strict       bool           `json:"strict,omitempty"`
 		// ARGS         []string       `json:"args,omitempty"`
 	}
 

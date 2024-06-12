@@ -23,10 +23,11 @@ func (b *Blender) Run(ctx context.Context, opts *types.RunOpts) error {
 		BlendFilePath: opts.BlendFile.Path,
 	}
 
-	if opts.BlendFile.Addons() != nil {
+	if opts.BlendFile.Addons() != nil || opts.BlendFile.Strict {
 		arguments.Script = startupScript()
 		arguments.Rockeblend = &rocketblendArguments{
 			Addons: opts.BlendFile.Addons(),
+			Strict: opts.BlendFile.Strict,
 		}
 	}
 

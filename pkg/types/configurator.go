@@ -10,16 +10,11 @@ var (
 )
 
 type (
-	Features struct {
-		Addons bool `mapstructure:"addons"`
-	}
-
 	Config struct {
 		Platform          runtime.Platform    `mapstructure:"platform"`
 		DefaultBuild      reference.Reference `mapstructure:"defaultBuild"`
 		InstallationsPath string              `mapstructure:"installationsPath"`
 		PackagesPath      string              `mapstructure:"packagesPath"`
-		Features          Features            `mapstructure:"features"`
 	}
 
 	Configurator interface {

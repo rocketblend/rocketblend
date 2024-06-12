@@ -85,6 +85,7 @@ func runProject(ctx context.Context, opts runProjectOpts) error {
 			BlendFile: &types.BlendFile{
 				Path:         blendFilePath,
 				Dependencies: resolve.Installations[0],
+				Strict:       profiles.Profiles[0].Strict,
 			},
 		},
 	}); err != nil {

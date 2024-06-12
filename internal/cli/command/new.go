@@ -128,6 +128,7 @@ func createProject(ctx context.Context, opts createProjectOpts) error {
 			BlendFile: &types.BlendFile{
 				Path:         blendFilePath,
 				Dependencies: resolveResults.Installations[0],
+				Strict:       profiles[0].Strict,
 			},
 			Background: true,
 		},

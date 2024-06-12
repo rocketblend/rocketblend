@@ -206,6 +206,7 @@ func renderProject(ctx context.Context, opts renderProjectOpts) error {
 			BlendFile: &types.BlendFile{
 				Path:         opts.BlendFilePath,
 				Dependencies: resolve.Installations[0],
+				Strict:       profiles.Profiles[0].Strict,
 			},
 			Background: true,
 		},

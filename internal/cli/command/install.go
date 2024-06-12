@@ -19,7 +19,7 @@ type (
 
 // newInstallCommand creates a new cobra command for installing project dependencies.
 func newInstallCommand(opts commandOpts) *cobra.Command {
-	var pull bool
+	var update bool
 
 	cc := &cobra.Command{
 		Use:   "install [reference]",
@@ -38,7 +38,7 @@ func newInstallCommand(opts commandOpts) *cobra.Command {
 				if err := installPackage(ctx, installPackageOpts{
 					commandOpts: opts,
 					Reference:   reference,
-					Pull:        pull,
+					Pull:        update,
 				}); err != nil {
 					return fmt.Errorf("failed to install project dependencies: %w", err)
 				}
@@ -51,7 +51,7 @@ func newInstallCommand(opts commandOpts) *cobra.Command {
 		},
 	}
 
-	cc.Flags().BoolVarP(&pull, "pull", "p", false, "pulls the latest package definitions before installing them")
+	cc.Flags().BoolVarP(&update, "update", "u", false, "updates to the latest package definitions before installing")
 
 	return cc
 }

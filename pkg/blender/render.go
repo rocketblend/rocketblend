@@ -42,10 +42,11 @@ func (b *Blender) Render(ctx context.Context, opts *types.RenderOpts) error {
 		"engine":    opts.Engine,
 	})
 
-	if opts.BlendFile.Addons() != nil {
+	if opts.BlendFile.Addons() != nil || opts.BlendFile.Strict {
 		arguments.Script = startupScript()
 		arguments.Rockeblend = &rocketblendArguments{
 			Addons: opts.BlendFile.Addons(),
+			Strict: opts.BlendFile.Strict,
 		}
 	}
 
