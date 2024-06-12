@@ -36,7 +36,10 @@ func (e *executable) OutputChannel() chan string {
 func (b *Blender) execute(ctx context.Context, name string, arguments *arguments, outputChannel chan string) error {
 	b.logger.Info("executing", map[string]interface{}{
 		"executable": name,
-		"arguments":  arguments,
+		"blendFile":  arguments.BlendFilePath,
+		"rockeblend": arguments.Rockeblend,
+		"render":     arguments.Render,
+		"background": arguments.Background,
 	})
 
 	if err := Execute(ctx, &executable{

@@ -28,7 +28,7 @@ type (
 		Type    PackageType     `json:"type" validate:"required,oneof=build addon"`
 		Name    string          `json:"name,omitempty"`
 		Version *semver.Version `json:"version,omitempty"`
-		Sources []*Source       `json:"sources" validate:"required"`
+		Sources []*Source       `json:"sources" validate:"omitempty,dive,required"`
 	}
 
 	GetPackagesOpts struct {
