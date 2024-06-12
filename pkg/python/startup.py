@@ -198,7 +198,7 @@ class Startup():
 
 parser = ArgumentParserForBlender()
 parser.add_argument("-a", "--addons", help="Addons to load", type=ast.literal_eval, default={})
-parser.add_argument("-s", "--strict", help="Injection mode for addons", type=bool)
+parser.add_argument("-s", "--strict", help="Injection mode for addons", action='store_true')
 
 args = parser.parse_args()
 
