@@ -16,7 +16,7 @@ type (
 	BlendFile struct {
 		Path         string          `json:"path" validate:"required,filepath,blendfile"`
 		Dependencies []*Installation `json:"dependencies" validate:"required,onebuild,dive,required"`
-		Strict       bool            `json:"strict,omitempty"`
+		Strict       bool            `json:"strict"`
 	}
 
 	BlenderOpts struct {
