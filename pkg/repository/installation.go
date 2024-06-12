@@ -300,16 +300,18 @@ func writeProgressToFile(path string, progress types.Progress) error {
 }
 
 // touchFile used to trigger a file change event on the file system.
+// this seems to be the simplist cross platform way to do this.
 func touchFile(path string) error {
-	fileInfo, err := os.Stat(path)
-	if err != nil {
+	tmpFileName := path + ".tmp"
+	originalFileName := path
+
+	if err := os.Rename(originalFileName, tmpFileName); err != nil {
 		return err
 	}
 
-	mode := fileInfo.Mode()
-	if err := os.Chmod(path, mode^0200); err != nil {
+	if err := os.Rename(tmpFileName, originalFileName); err != nil {
 		return err
 	}
 
-	return os.Chmod(path, mode)
+	return nil
 }
