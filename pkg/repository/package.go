@@ -257,16 +257,20 @@ func (s *Repository) pullChanges(ctx context.Context, repoPath string) error {
 	if err != nil {
 		return err
 	}
+
+	if err := r.FetchContext(ctx, &git.FetchOptions{}); err != nil && err != git.NoErrAlreadyUpToDate {
+		return err
+	}
+
 	w, err := r.Worktree()
 	if err != nil {
 		return err
 	}
 
-	err = w.PullContext(ctx, &git.PullOptions{
+	if err := w.PullContext(ctx, &git.PullOptions{
 		Force: true,
 		// Progress: LoggerWriter{s.logger},
-	})
-	if err != nil && err != git.NoErrAlreadyUpToDate {
+	}); err != nil && err != git.NoErrAlreadyUpToDate {
 		return err
 	}
 
