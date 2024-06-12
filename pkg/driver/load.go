@@ -52,9 +52,5 @@ func (d *Driver) load(ctx context.Context, path string) (*types.Profile, error) 
 		return nil, err
 	}
 
-	if profile.InjectionMode == "" {
-		profile.InjectionMode = types.DefaultInjectionMode
-	}
-
 	return profile, nil
 }

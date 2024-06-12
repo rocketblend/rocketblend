@@ -14,9 +14,9 @@ type (
 	}
 
 	BlendFile struct {
-		Path          string          `json:"path" validate:"required,filepath,blendfile"`
-		InjectionMode InjectionMode   `json:"injectionMode" validate:"omitempty,oneof=strict relaxed ignore"`
-		Dependencies  []*Installation `json:"dependencies" validate:"required,onebuild,dive,required"`
+		Path         string          `json:"path" validate:"required,filepath,blendfile"`
+		Dependencies []*Installation `json:"dependencies" validate:"required,onebuild,dive,required"`
+		Strict       bool            `json:"strict,omitempty"`
 	}
 
 	BlenderOpts struct {

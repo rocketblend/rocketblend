@@ -204,9 +204,9 @@ func renderProject(ctx context.Context, opts renderProjectOpts) error {
 		Engine: types.RenderEngine(opts.Engine),
 		BlenderOpts: types.BlenderOpts{
 			BlendFile: &types.BlendFile{
-				Path:          opts.BlendFilePath,
-				Dependencies:  resolve.Installations[0],
-				InjectionMode: profiles.Profiles[0].InjectionMode,
+				Path:         opts.BlendFilePath,
+				Dependencies: resolve.Installations[0],
+				Strict:       profiles.Profiles[0].Strict,
 			},
 			Background: true,
 		},
