@@ -93,12 +93,12 @@ func (a *rocketblendArguments) ARGS() []string {
 			"-a",
 			string(json),
 		}...)
+	}
 
-		if a.Strict {
-			args = append(args, []string{
-				"-s",
-			}...)
-		}
+	if a.Strict {
+		args = append(args, []string{
+			"-s",
+		}...)
 	}
 
 	return args
