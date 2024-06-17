@@ -7,6 +7,8 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
+
+	"github.com/rocketblend/rocketblend/pkg/helpers"
 )
 
 // TODO: Better cleanup on context cancel
@@ -20,6 +22,8 @@ func (e *Extractor) extractDMG(ctx context.Context, filePath string, destination
 
 	// Mount the DMG file
 	cmd := exec.CommandContext(ctx, "hdiutil", "attach", "-nobrowse", filePath)
+	helpers.SetupSysProcAttr(cmd)
+
 	out, err := cmd.CombinedOutput()
 	if err != nil {
 		return err
@@ -49,6 +53,7 @@ func (e *Extractor) extractDMG(ctx context.Context, filePath string, destination
 	defer func() {
 		// Use hdiutil command to detach the mounted .dmg
 		cmd = exec.Command("hdiutil", "detach", imageName)
+		helpers.SetupSysProcAttr(cmd)
 		cmd.Run()
 
 		e.logger.Debug(".dmg unmounted", logContext)
@@ -76,6 +81,8 @@ func (e *Extractor) extractDMG(ctx context.Context, filePath string, destination
 
 		// Use cp command to copy the .app file to the destination
 		cmd = exec.CommandContext(ctx, "cp", "-R", appFile, destination)
+		helpers.SetupSysProcAttr(cmd)
+
 		err = cmd.Run()
 		if err != nil {
 			if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
