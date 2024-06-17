@@ -5,6 +5,7 @@ import (
 	"context"
 	"os/exec"
 
+	"github.com/rocketblend/rocketblend/pkg/helpers"
 	"github.com/rocketblend/rocketblend/pkg/types"
 )
 
@@ -57,6 +58,7 @@ func (b *Blender) execute(ctx context.Context, name string, arguments *arguments
 // Execute runs the given executable with output sent to the executable's output channel.
 func Execute(ctx context.Context, executable types.Executable) error {
 	cmd := exec.CommandContext(ctx, executable.Name(), executable.ARGS()...)
+	helpers.SetupSysProcAttr(cmd)
 
 	outputChannel := executable.OutputChannel()
 	if outputChannel != nil {
