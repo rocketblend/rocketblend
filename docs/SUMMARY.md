@@ -23,10 +23,6 @@
     * [Config](reference/cli/commands/init.md)
     * [Completion](reference/cli/commands/completion.md)
   * [Configuration](reference/cli/configuration.md)
-* [Packages](reference/packages/README.md)
-  * [References](reference/packages/references.md)
-  * [Builds](reference/packages/builds.md)
-  * [Addons](reference/packages/addons.md)
 
 ## Development
 

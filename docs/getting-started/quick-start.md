@@ -23,13 +23,11 @@ $ rocketblend new hello-world
 To see a more detailed output of what's happening, add the `-v` flag.
 {% endhint %}
 
-In the example above we can see it installing the default build `github.com/rocketblend/official-library/packages/blender/builds/stable/3.4.1`
-
-Once complete you'll have a new `.blend` project and a `rocketfile.yaml` file used to define all your packages for your project.
+Once complete you'll have a new `.blend` project and a `rocketblend.json` file used to define all your packages for your project.
 
 ```shell-session
 $ ls
-hello-world.blend  rocketfile.yaml
+hello-world.blend  rocketblend.json
 ```
 
 ## Install a package <a href="#install-an-example-chart" id="install-an-example-chart"></a>
@@ -37,14 +35,14 @@ hello-world.blend  rocketfile.yaml
 To install a package, you can run the `rocketblend install` command. RocketBlend uses references to install packages from remote sources such as Github. You can create your own packages or use ones already defined online, but the easiest way to get started is to use the [official library](https://github.com/rocketblend/official-library).
 
 ```shell-session
-$ rocketblend install github.com/rocketblend/official-library/packages/blender/builds/stable/2.93.9
+$ rocketblend install github.com/rocketblend/official-library/packages/v0/builds/blender/4.0.1
 ⣯ Installing package...
 ```
 
-In this example, we're changing the project to use a Blender 2.93 build.
+In this example, we're changing the project to use a Blender 4.1.1 build.
 
 {% hint style="info" %}
-If you have purchased a build or addon, you can create a custom package definition locally. Then use the `rocketblend insert` command to insert it into your library.
+If you have purchased a build or add-on, you can create a custom package definition locally. Then use the `rocketblend insert` command to insert it into your library.
 {% endhint %}
 
 Running this command without specifying a package will install all dependencies for a project. This is particularly helpful when sharing projects across multiple machines.
@@ -53,6 +51,10 @@ Running this command without specifying a package will install all dependencies 
 
 With the project successfully configured, you can initiate it by executing the `rocketblend run` command. Blender will then launch with all the necessary dependencies defined for the project.
 
+By default, RocketBlend doesn't change any of your existing add-ons. It just adds the new ones you specified. This way, it works well with what you already have.
+
+However, If you set strict mode to `true` in the projects `rocketblend.json` file, only the add-ons listed in that file will be enabled. All other add-ons, including default ones like Cycles, will be turned off unless they are listed.
+
 {% hint style="warning" %}
-Addon injection is still very much a work-in-progress feature so is turned off by default. It can be turned on by running the command: `rocketblend config feature.addons -s true`
+Any changes to add-ons are temporary and only for that Blender session. They won't be saved to your user preferences, therefore the add-on menu in Blender might show incorrectly. This is done to retain any previously defined add-on preferences.
 {% endhint %}

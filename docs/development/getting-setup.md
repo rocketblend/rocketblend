@@ -7,7 +7,7 @@ description: How to set up an environment for developing on RocketBlend.
 ## Prerequisites <a href="#prerequisites" id="prerequisites"></a>
 
 * Linux or Windows x64
-* Go 1.19
+* Go 1.22.x
 * Git
 * GoReleaser (Release Only)
 * Cosign (Release Only)

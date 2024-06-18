@@ -10,7 +10,19 @@ Please note that RocketBlend is still in the early stages of development and may
 
 ## What is RocketBlend?
 
-[RocketBlend ](https://github.com/rocketblend/rocketblend)is a package manager for the 3D graphics software, [Blender](https://www.blender.org/). Offering build and addon management for your projects.
+[RocketBlend ](https://github.com/rocketblend/rocketblend)is a command line (CLI) dependency manager and toolkit for the 3D graphics software, [Blender](https://www.blender.org/). It helps manage builds, add-ons, and offers extended blender commands for your projects.
+
+## Features
+
+* Define dependencies for your projects, including builds and add-ons, and have them set up correctly when you open your project.
+* Render animations with improved output path templating, versioning, resumability, render engine selection, and more.
+* Use arguments in any order without needing to remember specific commands or the order of flags, unlike Blender's command line arguments.
+* Lightweight and requires no GUI or background processes.
+* Customisable, with all data stored in .json files instead of internal .blend file data blocks or file headers.
+* Write your own packages for any Blender build or add-on, with support for alternative forks of Blender, such as Bforartists and K-Cycles.
+* Host your own library of packages, providing flexibility beyond the official ones. Fix broken or missing packages and continue working. Libraries are just git repositories containing `rocketpack.json` files that define an add-on or build. You can fork existing ones or create your own for use in your projects.
+* Cross-platform compatibility with macOS, Windows, and Linux.
+* Open source and receptive to community feedback.
 
 ## Want to jump right in?
 
@@ -28,18 +40,8 @@ Dive a little deeper and start exploring our references documentation to get an 
 [cli](reference/cli/)
 {% endcontent-ref %}
 
-{% content-ref url="reference/packages/" %}
-[packages](reference/packages/)
-{% endcontent-ref %}
+## Not a Fan of Command Lines?
 
-## Looking for something else?
+Give the desktop application a try. It offers most of the same functionality as the CLI, plus some extra features, all within an easy-to-use interface.
 
-Check out the other RocketBlend related projects:
-
-{% content-ref url="https://app.gitbook.com/o/4FesCgkV4J6qvlt8rzNP/s/JYAvMxX4q5tA7nq6MNBH/" %}
-[Launcher](https://app.gitbook.com/o/4FesCgkV4J6qvlt8rzNP/s/JYAvMxX4q5tA7nq6MNBH/)
-{% endcontent-ref %}
-
-{% content-ref url="https://app.gitbook.com/o/4FesCgkV4J6qvlt8rzNP/s/m6ZeaZBwoSUNJBkqXOCz/" %}
-[Collector](https://app.gitbook.com/o/4FesCgkV4J6qvlt8rzNP/s/m6ZeaZBwoSUNJBkqXOCz/)
-{% endcontent-ref %}
+{% embed url="https://github.com/rocketblend/rocketblend-desktop" %}
