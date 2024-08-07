@@ -17,11 +17,14 @@ const DefaultOutputTemplate = "//output/" + blender.RevisionTempalteVariable + "
 
 type (
 	renderProjectOpts struct {
-		BlendFilePath string
-		FrameStart    int
-		FrameEnd      int
-		FrameStep     int
-		Engine        string
+		BlendFilePath    string
+		FrameStart       int
+		FrameEnd         int
+		FrameStep        int
+		FrameRegions     int
+		FrameRegionIndex int
+
+		Engine string
 
 		Output string
 		Format string
@@ -34,6 +37,8 @@ func newRenderCommand(opts commandOpts) *cobra.Command {
 	var frameStart int
 	var frameEnd int
 	var frameStep int
+	var frameRegions int
+	var frameRegionIndex int
 
 	var engine string
 
@@ -73,6 +78,10 @@ func newRenderCommand(opts commandOpts) *cobra.Command {
 
 			if revision < 0 {
 				return fmt.Errorf("revision should be greater than or equal to 0")
+			}
+
+			if frameRegionIndex < 0 || frameRegionIndex > frameRegions {
+				return fmt.Errorf("region index must be between 0 and the number of regions")
 			}
 
 			if continueRendering && frameStart == frameEnd {
@@ -123,14 +132,16 @@ func newRenderCommand(opts commandOpts) *cobra.Command {
 
 			return runWithSpinner(cmd.Context(), func(ctx context.Context) error {
 				if err := renderProject(ctx, renderProjectOpts{
-					commandOpts:   opts,
-					BlendFilePath: blendFilePath,
-					FrameStart:    frameStart,
-					FrameEnd:      frameEnd,
-					FrameStep:     frameStep,
-					Engine:        engine,
-					Output:        outputPath,
-					Format:        format,
+					commandOpts:      opts,
+					BlendFilePath:    blendFilePath,
+					FrameStart:       frameStart,
+					FrameEnd:         frameEnd,
+					FrameStep:        frameStep,
+					FrameRegions:     frameRegions,
+					FrameRegionIndex: frameRegionIndex,
+					Engine:           engine,
+					Output:           outputPath,
+					Format:           format,
 				}); err != nil {
 					return fmt.Errorf("failed to render project: %w", err)
 				}
@@ -146,6 +157,9 @@ func newRenderCommand(opts commandOpts) *cobra.Command {
 	cc.Flags().IntVarP(&frameStart, "start", "s", 1, "frame to start rendering from")
 	cc.Flags().IntVarP(&frameEnd, "end", "e", 0, "frame to end rendering at, 0 for single frame")
 	cc.Flags().IntVarP(&frameStep, "jump", "j", 1, "number of frames to step forward after each rendered frame")
+
+	cc.Flags().IntVarP(&frameRegions, "regions", "n", 1, "number of regions to split the render into (1, 2, 4, 8, 16)")
+	cc.Flags().IntVarP(&frameRegionIndex, "region-index", "i", 0, "index of the region to render (0 for all regions)")
 
 	cc.Flags().IntVarP(&revision, "revision", "r", 0, "revision number for the output directory, 0 for auto-increment")
 	cc.Flags().BoolVarP(&continueRendering, "continue", "c", false, "continue rendering from the last rendered frame in the output directory")
@@ -196,12 +210,14 @@ func renderProject(ctx context.Context, opts renderProjectOpts) error {
 	}
 
 	if err := blend.Render(ctx, &types.RenderOpts{
-		Start:  opts.FrameStart,
-		End:    opts.FrameEnd,
-		Step:   opts.FrameStep,
-		Output: opts.Output,
-		Format: opts.Format,
-		Engine: types.RenderEngine(opts.Engine),
+		Start:       opts.FrameStart,
+		End:         opts.FrameEnd,
+		Step:        opts.FrameStep,
+		Regions:     opts.FrameRegions,
+		RegionIndex: opts.FrameRegionIndex,
+		Output:      opts.Output,
+		Format:      opts.Format,
+		Engine:      types.RenderEngine(opts.Engine),
 		BlenderOpts: types.BlenderOpts{
 			BlendFile: &types.BlendFile{
 				Path:         opts.BlendFilePath,

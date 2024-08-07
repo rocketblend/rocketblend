@@ -25,13 +25,15 @@ type (
 	}
 
 	RenderOpts struct {
-		Start   int          `json:"start"`
-		End     int          `json:"end"`
-		Step    int          `json:"step"`
-		Output  string       `json:"output"`
-		Format  string       `json:"format"`
-		Engine  RenderEngine `json:"engine" validate:"omitempty,oneof=cycles eevee workbench"`
-		Threads int          `json:"threads" validate:"omitempty,gte=0,lte=1024"`
+		Start       int          `json:"start"`
+		End         int          `json:"end"`
+		Step        int          `json:"step"`
+		Regions     int          `json:"regions" validate:"omitempty,oneof=1 2 4 8 16 32 64 128"`
+		RegionIndex int          `json:"regionIndex" validate:"omitempty,min=0"`
+		Output      string       `json:"output"`
+		Format      string       `json:"format"`
+		Engine      RenderEngine `json:"engine" validate:"omitempty,oneof=cycles eevee workbench"`
+		Threads     int          `json:"threads" validate:"omitempty,gte=0,lte=1024"`
 		BlenderOpts
 	}
 
