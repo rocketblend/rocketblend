@@ -6,7 +6,7 @@ import (
 )
 
 var (
-	DefaultBuild = "github.com/rocketblend/official-library/packages/blender/builds/stable/3.3.8"
+	DefaultBuild = "github.com/rocketblend/official-library/packages/v0/builds/blender/4.2.2"
 )
 
 type (
