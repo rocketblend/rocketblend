@@ -1,6 +1,8 @@
 package blender
 
 import (
+	"reflect"
+
 	"github.com/flowshot-io/x/pkg/logger"
 	"github.com/rocketblend/rocketblend/pkg/types"
 	"github.com/rocketblend/rocketblend/pkg/validator"
@@ -18,6 +20,12 @@ type (
 		logger    types.Logger
 		validator types.Validator
 	}
+)
+
+var (
+	// Never obfuscate these type (Garble)
+	_ = reflect.TypeOf(TemplatedOutputData{})
+	_ = reflect.TypeOf(CreateBlendFileData{})
 )
 
 func WithLogger(logger types.Logger) Option {
