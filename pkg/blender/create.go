@@ -23,7 +23,7 @@ func (b *Blender) Create(ctx context.Context, opts *types.CreateOpts) error {
 		return errors.New("missing build")
 	}
 
-	script, err := createBlendFileScript(&createBlendFileData{
+	script, err := createBlendFileScript(&CreateBlendFileData{
 		FilePath: opts.BlendFile.Path,
 	})
 	if err != nil {
