@@ -50,5 +50,5 @@ func (d *Driver) save(ctx context.Context, path string, profile *types.Profile) 
 }
 
 func profileFilePath(path string) string {
-	return filepath.Join(path, types.ProfileFileName)
+	return filepath.Join(path, types.ProfileDirName, types.ProfileFileName)
 }
