@@ -140,6 +140,7 @@ func createProject(ctx context.Context, opts createProjectOpts) error {
 		Profiles: map[string]*types.Profile{
 			filepath.Dir(blendFilePath): profiles[0],
 		},
+		EnsurePaths: true,
 	}); err != nil {
 		return err
 	}

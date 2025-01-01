@@ -2,6 +2,8 @@ package driver
 
 import (
 	"context"
+	"fmt"
+	"os"
 	"path/filepath"
 
 	"github.com/rocketblend/rocketblend/pkg/helpers"
@@ -16,7 +18,7 @@ func (d *Driver) SaveProfiles(ctx context.Context, opts *types.SaveProfilesOpts)
 	tasks := make([]taskrunner.Task[struct{}], 0, len(opts.Profiles))
 	for path, profile := range opts.Profiles {
 		tasks = append(tasks, func(ctx context.Context) (struct{}, error) {
-			return struct{}{}, d.save(ctx, path, profile)
+			return struct{}{}, d.save(ctx, path, profile, opts.EnsurePaths)
 		})
 	}
 
@@ -32,17 +34,25 @@ func (d *Driver) SaveProfiles(ctx context.Context, opts *types.SaveProfilesOpts)
 	return nil
 }
 
-func (d *Driver) save(ctx context.Context, path string, profile *types.Profile) error {
+func (d *Driver) save(ctx context.Context, path string, profile *types.Profile, ensurePaths bool) error {
 	if err := ctx.Err(); err != nil {
 		return err
 	}
 
+	savePath := profileFilePath(path)
+	if ensurePaths {
+		dir := filepath.Dir(savePath)
+		if err := os.MkdirAll(dir, os.ModePerm); err != nil {
+			return fmt.Errorf("failed to create directory: %w", err)
+		}
+	}
+
 	d.logger.Debug("saving profile", map[string]interface{}{
-		"path":    path,
+		"path":    savePath,
 		"profile": profile,
 	})
 
-	if err := helpers.Save(d.validator, profileFilePath(path), profile); err != nil {
+	if err := helpers.Save(d.validator, savePath, profile); err != nil {
 		return err
 	}
 

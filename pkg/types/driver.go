@@ -31,7 +31,8 @@ type (
 	}
 
 	SaveProfilesOpts struct {
-		Profiles map[string]*Profile `json:"profiles" validate:"required,dive,required"`
+		Profiles    map[string]*Profile `json:"profiles" validate:"required,dive,required"` // Path to profile
+		EnsurePaths bool                `json:"ensurePaths"`                                // Ensure paths exist before saving
 	}
 
 	Driver interface {
