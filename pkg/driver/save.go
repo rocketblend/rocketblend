@@ -16,7 +16,7 @@ func (d *Driver) SaveProfiles(ctx context.Context, opts *types.SaveProfilesOpts)
 	tasks := make([]taskrunner.Task[struct{}], 0, len(opts.Profiles))
 	for path, profile := range opts.Profiles {
 		tasks = append(tasks, func(ctx context.Context) (struct{}, error) {
-			return struct{}{}, d.save(ctx, path, profile)
+			return struct{}{}, d.save(ctx, path, profile, opts.EnsurePaths)
 		})
 	}
 
@@ -32,17 +32,18 @@ func (d *Driver) SaveProfiles(ctx context.Context, opts *types.SaveProfilesOpts)
 	return nil
 }
 
-func (d *Driver) save(ctx context.Context, path string, profile *types.Profile) error {
+func (d *Driver) save(ctx context.Context, path string, profile *types.Profile, ensurePath bool) error {
 	if err := ctx.Err(); err != nil {
 		return err
 	}
 
+	savePath := profileFilePath(path)
 	d.logger.Debug("saving profile", map[string]interface{}{
-		"path":    path,
+		"path":    savePath,
 		"profile": profile,
 	})
 
-	if err := helpers.Save(d.validator, profileFilePath(path), profile); err != nil {
+	if err := helpers.Save(d.validator, savePath, ensurePath, profile); err != nil {
 		return err
 	}
 
@@ -50,5 +51,5 @@ func (d *Driver) save(ctx context.Context, path string, profile *types.Profile) 
 }
 
 func profileFilePath(path string) string {
-	return filepath.Join(path, types.ProfileFileName)
+	return filepath.Join(path, types.ProfileDirName, types.ProfileFileName)
 }

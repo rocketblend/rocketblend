@@ -5,7 +5,10 @@ import (
 	"github.com/rocketblend/rocketblend/pkg/semver"
 )
 
-const ProfileFileName = "rocketblend.json"
+const (
+	ProfileDirName  = ".rocketblend"
+	ProfileFileName = "profile.json"
+)
 
 type (
 	Dependency struct {
@@ -19,11 +22,6 @@ type (
 		Strict       bool           `json:"strict,omitempty"`
 		// ARGS         []string       `json:"args,omitempty"`
 	}
-
-	// Project struct {
-	// 	BlendFilePath string   `json:"blendFilePath" validate:"required,filepath,blendfile"`
-	// 	Profile       *Profile `json:"config" validate:"required"`
-	// }
 )
 
 func (p *Profile) FindAll(packageType PackageType) []*Dependency {
@@ -56,20 +54,3 @@ func (p *Profile) RemoveDependencies(deps ...*Dependency) {
 		}
 	}
 }
-
-// func (p *Project) Dir() string {
-// 	return filepath.Dir(p.BlendFilePath)
-// }
-
-// func (p *Project) Name() string {
-// 	fileName := filepath.Base(p.BlendFilePath)
-// 	return strings.TrimSuffix(fileName, filepath.Ext(fileName))
-// }
-
-// func (p *Project) Requires() []*Dependency {
-// 	if p.Profile == nil {
-// 		return nil
-// 	}
-
-// 	return p.Profile.Dependencies
-// }
