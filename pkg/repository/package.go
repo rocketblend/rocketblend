@@ -132,13 +132,7 @@ func (r *Repository) insertPackage(ctx context.Context, ref reference.Reference,
 
 	packagePath := filepath.Join(r.packagePath, ref.String(), types.PackageFileName)
 
-	err := os.MkdirAll(filepath.Dir(packagePath), 0755)
-	if err != nil {
-		r.logger.Error("error creating directory", map[string]interface{}{"error": err, "reference": ref.String(), "path": filepath.Dir(packagePath)})
-		return err
-	}
-
-	if err := helpers.Save(r.validator, packagePath, pack); err != nil {
+	if err := helpers.Save(r.validator, packagePath, true, pack); err != nil {
 		r.logger.Error("error saving package", map[string]interface{}{
 			"error":     err,
 			"reference": ref.String(),

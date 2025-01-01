@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"path/filepath"
 
 	"github.com/rocketblend/rocketblend/pkg/types"
 )
@@ -35,7 +36,7 @@ func Load[T any](validator types.Validator, filePath string) (*T, error) {
 	return &result, nil
 }
 
-func Save[T any](validator types.Validator, filePath string, object *T) error {
+func Save[T any](validator types.Validator, filePath string, ensurePath bool, object *T) error {
 	if validator == nil {
 		return errors.New("validator is required")
 	}
@@ -47,6 +48,12 @@ func Save[T any](validator types.Validator, filePath string, object *T) error {
 	bytes, err := json.MarshalIndent(object, "", "  ")
 	if err != nil {
 		return fmt.Errorf("failed to marshal object: %s", err)
+	}
+
+	if ensurePath {
+		if err := os.MkdirAll(filepath.Dir(filePath), 0755); err != nil {
+			return fmt.Errorf("failed to create parent directory: %w", err)
+		}
 	}
 
 	if err := os.WriteFile(filePath, bytes, 0644); err != nil {

@@ -2,8 +2,6 @@ package driver
 
 import (
 	"context"
-	"fmt"
-	"os"
 	"path/filepath"
 
 	"github.com/rocketblend/rocketblend/pkg/helpers"
@@ -34,25 +32,18 @@ func (d *Driver) SaveProfiles(ctx context.Context, opts *types.SaveProfilesOpts)
 	return nil
 }
 
-func (d *Driver) save(ctx context.Context, path string, profile *types.Profile, ensurePaths bool) error {
+func (d *Driver) save(ctx context.Context, path string, profile *types.Profile, ensurePath bool) error {
 	if err := ctx.Err(); err != nil {
 		return err
 	}
 
 	savePath := profileFilePath(path)
-	if ensurePaths {
-		dir := filepath.Dir(savePath)
-		if err := os.MkdirAll(dir, os.ModePerm); err != nil {
-			return fmt.Errorf("failed to create directory: %w", err)
-		}
-	}
-
 	d.logger.Debug("saving profile", map[string]interface{}{
 		"path":    savePath,
 		"profile": profile,
 	})
 
-	if err := helpers.Save(d.validator, savePath, profile); err != nil {
+	if err := helpers.Save(d.validator, savePath, ensurePath, profile); err != nil {
 		return err
 	}
 
