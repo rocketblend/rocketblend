@@ -16,7 +16,7 @@ func Load[T any](validator types.Validator, filePath string) (*T, error) {
 	}
 
 	if err := FileExists(filePath); err != nil {
-		return nil, fmt.Errorf("failed to find file: %s", err)
+		return nil, err
 	}
 
 	f, err := os.ReadFile(filePath)

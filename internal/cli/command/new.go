@@ -24,6 +24,7 @@ type (
 // It expects a single argument which is the name of the project.
 func newNewCommand(opts commandOpts) *cobra.Command {
 	var overwrite bool
+	var name string
 
 	cc := &cobra.Command{
 		Use:   "new [name]",
@@ -31,17 +32,18 @@ func newNewCommand(opts commandOpts) *cobra.Command {
 		Long:  `Creates a new project with a specified name.`,
 		Args:  cobra.MaximumNArgs(1),
 		PreRunE: func(cmd *cobra.Command, args []string) error {
-			if len(args) == 0 {
-				args = []string{generateProjectName(filepath.Base(opts.Global.WorkingDirectory))}
+			name = generateProjectName(filepath.Base(opts.Global.WorkingDirectory))
+			if len(args) > 0 {
+				name = args[0]
 			}
 
-			return validateProjectName(args[0])
+			return validateProjectName(name)
 		},
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return runWithSpinner(cmd.Context(), func(ctx context.Context) error {
 				if err := createProject(ctx, createProjectOpts{
 					commandOpts: opts,
-					Name:        args[0],
+					Name:        name,
 					Overwrite:   overwrite,
 				}); err != nil {
 					return fmt.Errorf("failed to create project: %w", err)
@@ -143,7 +145,9 @@ func createProject(ctx context.Context, opts createProjectOpts) error {
 		},
 		Overwrite: opts.Overwrite,
 	}); err != nil {
-		return err
+		if !errors.Is(err, types.ErrFileExists) {
+			return err
+		}
 	}
 
 	if err := driver.SaveProfiles(ctx, &types.SaveProfilesOpts{
@@ -151,7 +155,7 @@ func createProject(ctx context.Context, opts createProjectOpts) error {
 			filepath.Dir(blendFilePath): profiles.Profiles[0],
 		},
 		EnsurePaths: true,
-		Overwrite:   opts.Overwrite,
+		Overwrite:   true,
 	}); err != nil {
 		return err
 	}
