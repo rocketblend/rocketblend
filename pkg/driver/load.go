@@ -2,6 +2,7 @@ package driver
 
 import (
 	"context"
+	"errors"
 
 	"github.com/rocketblend/rocketblend/pkg/helpers"
 	"github.com/rocketblend/rocketblend/pkg/taskrunner"
@@ -15,7 +16,7 @@ func (d *Driver) LoadProfiles(ctx context.Context, opts *types.LoadProfilesOpts)
 	tasks := make([]taskrunner.Task[*types.Profile], len(opts.Paths))
 	for i, path := range opts.Paths {
 		tasks[i] = func(ctx context.Context) (*types.Profile, error) {
-			project, err := d.load(ctx, path)
+			project, err := d.load(ctx, path, opts.Default)
 			if err != nil {
 				return nil, err
 			}
@@ -38,7 +39,7 @@ func (d *Driver) LoadProfiles(ctx context.Context, opts *types.LoadProfilesOpts)
 	}, nil
 }
 
-func (d *Driver) load(ctx context.Context, path string) (*types.Profile, error) {
+func (d *Driver) load(ctx context.Context, path string, defaultProfile *types.Profile) (*types.Profile, error) {
 	if err := ctx.Err(); err != nil {
 		return nil, err
 	}
@@ -49,6 +50,10 @@ func (d *Driver) load(ctx context.Context, path string) (*types.Profile, error) 
 
 	profile, err := helpers.Load[types.Profile](d.validator, profileFilePath(path))
 	if err != nil {
+		if errors.Is(err, types.ErrFileNotFound) && defaultProfile != nil {
+			return defaultProfile, nil
+		}
+
 		return nil, err
 	}
 

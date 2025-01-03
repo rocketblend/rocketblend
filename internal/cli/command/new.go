@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"os"
 	"path/filepath"
 	"strings"
 
@@ -23,20 +24,26 @@ type (
 // It expects a single argument which is the name of the project.
 func newNewCommand(opts commandOpts) *cobra.Command {
 	var overwrite bool
+	var name string
 
 	cc := &cobra.Command{
 		Use:   "new [name]",
 		Short: "Create a new project",
 		Long:  `Creates a new project with a specified name.`,
-		Args:  cobra.MinimumNArgs(1),
+		Args:  cobra.MaximumNArgs(1),
 		PreRunE: func(cmd *cobra.Command, args []string) error {
-			return validateProjectName(args[0])
+			name = generateProjectName(filepath.Base(opts.Global.WorkingDirectory))
+			if len(args) > 0 {
+				name = args[0]
+			}
+
+			return validateProjectName(name)
 		},
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return runWithSpinner(cmd.Context(), func(ctx context.Context) error {
 				if err := createProject(ctx, createProjectOpts{
 					commandOpts: opts,
-					Name:        args[0],
+					Name:        name,
 					Overwrite:   overwrite,
 				}); err != nil {
 					return fmt.Errorf("failed to create project: %w", err)
@@ -57,7 +64,8 @@ func newNewCommand(opts commandOpts) *cobra.Command {
 
 // createProject creates a new project with the specified name.
 func createProject(ctx context.Context, opts createProjectOpts) error {
-	if !opts.Overwrite && existingProject(opts.Global.WorkingDirectory) {
+	existingProject := existingProject(opts.Global.WorkingDirectory)
+	if !opts.Overwrite && existingProject {
 		return errors.New("project already exists in directory")
 	}
 
@@ -86,8 +94,9 @@ func createProject(ctx context.Context, opts createProjectOpts) error {
 		return err
 	}
 
-	profiles := []*types.Profile{
-		{
+	profiles, err := driver.LoadProfiles(ctx, &types.LoadProfilesOpts{
+		Paths: []string{opts.Global.WorkingDirectory},
+		Default: &types.Profile{
 			Dependencies: []*types.Dependency{
 				{
 					Reference: config.DefaultBuild,
@@ -95,22 +104,25 @@ func createProject(ctx context.Context, opts createProjectOpts) error {
 				},
 			},
 		},
+	})
+	if err != nil {
+		return err
 	}
 
 	if err := driver.TidyProfiles(ctx, &types.TidyProfilesOpts{
-		Profiles: profiles,
+		Profiles: profiles.Profiles,
 	}); err != nil {
 		return err
 	}
 
 	if err := driver.InstallProfiles(ctx, &types.InstallProfilesOpts{
-		Profiles: profiles,
+		Profiles: profiles.Profiles,
 	}); err != nil {
 		return err
 	}
 
 	resolveResults, err := driver.ResolveProfiles(ctx, &types.ResolveProfilesOpts{
-		Profiles: profiles,
+		Profiles: profiles.Profiles,
 	})
 	if err != nil {
 		return err
@@ -122,25 +134,28 @@ func createProject(ctx context.Context, opts createProjectOpts) error {
 	}
 
 	blendFilePath := filepath.Join(opts.Global.WorkingDirectory, ensureBlendExtension(opts.Name))
-
 	if err := blender.Create(ctx, &types.CreateOpts{
 		BlenderOpts: types.BlenderOpts{
 			BlendFile: &types.BlendFile{
 				Path:         blendFilePath,
 				Dependencies: resolveResults.Installations[0],
-				Strict:       profiles[0].Strict,
+				Strict:       profiles.Profiles[0].Strict,
 			},
 			Background: true,
 		},
+		Overwrite: opts.Overwrite,
 	}); err != nil {
-		return err
+		if !errors.Is(err, types.ErrFileExists) {
+			return err
+		}
 	}
 
 	if err := driver.SaveProfiles(ctx, &types.SaveProfilesOpts{
 		Profiles: map[string]*types.Profile{
-			filepath.Dir(blendFilePath): profiles[0],
+			filepath.Dir(blendFilePath): profiles.Profiles[0],
 		},
 		EnsurePaths: true,
+		Overwrite:   true,
 	}); err != nil {
 		return err
 	}
@@ -150,8 +165,24 @@ func createProject(ctx context.Context, opts createProjectOpts) error {
 
 // existingProject checks if a project already exists at the specified path.
 func existingProject(path string) bool {
+	return existingBlendFile(path) && existingProfileDir(path)
+}
+
+// existingBlendFile checks if a blend file already exists at the specified path.
+func existingBlendFile(path string) bool {
 	_, err := findFilePathForExt(path, types.BlendFileExtension)
 	return err == nil
+}
+
+// existingProfile checks if a profile already exists at the specified path.
+func existingProfileDir(path string) bool {
+	profilePath := filepath.Join(path, types.ProfileDirName)
+	info, err := os.Stat(profilePath)
+	if err != nil {
+		return false
+	}
+
+	return info.IsDir()
 }
 
 // validateProjectName checks if the project name is valid.
@@ -174,4 +205,11 @@ func ensureBlendExtension(filename string) string {
 	}
 
 	return filename
+}
+
+// generateProjectName creates a project name by lowercasing and replacing spaces with hyphens.
+func generateProjectName(folderName string) string {
+	projectName := strings.ToLower(folderName)
+	projectName = strings.ReplaceAll(projectName, " ", "-")
+	return projectName
 }

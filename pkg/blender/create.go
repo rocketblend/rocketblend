@@ -5,7 +5,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/pkg/errors"
+	"github.com/rocketblend/rocketblend/pkg/helpers"
 	"github.com/rocketblend/rocketblend/pkg/types"
 )
 
@@ -14,13 +14,24 @@ func (b *Blender) Create(ctx context.Context, opts *types.CreateOpts) error {
 		return err
 	}
 
+	if err := helpers.FileExists(opts.BlendFile.Path); err == nil {
+		if !opts.Overwrite {
+			return types.ErrFileExists
+		}
+
+		// TODO: Look into doing soft deletes.
+		if err := os.Remove(opts.BlendFile.Path); err != nil {
+			return err
+		}
+	}
+
 	if err := os.MkdirAll(filepath.Dir(opts.BlendFile.Path), 0755); err != nil {
 		return err
 	}
 
 	build := opts.BlendFile.Build()
 	if build == nil {
-		return errors.New("missing build")
+		return types.ErrMissingBlenderBuild
 	}
 
 	script, err := createBlendFileScript(&CreateBlendFileData{

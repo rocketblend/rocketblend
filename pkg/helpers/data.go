@@ -16,7 +16,7 @@ func Load[T any](validator types.Validator, filePath string) (*T, error) {
 	}
 
 	if err := FileExists(filePath); err != nil {
-		return nil, fmt.Errorf("failed to find file: %s", err)
+		return nil, err
 	}
 
 	f, err := os.ReadFile(filePath)
@@ -36,7 +36,7 @@ func Load[T any](validator types.Validator, filePath string) (*T, error) {
 	return &result, nil
 }
 
-func Save[T any](validator types.Validator, filePath string, ensurePath bool, object *T) error {
+func Save[T any](validator types.Validator, filePath string, object *T, ensurePath bool, override bool) error {
 	if validator == nil {
 		return errors.New("validator is required")
 	}
@@ -48,6 +48,12 @@ func Save[T any](validator types.Validator, filePath string, ensurePath bool, ob
 	bytes, err := json.MarshalIndent(object, "", "  ")
 	if err != nil {
 		return fmt.Errorf("failed to marshal object: %s", err)
+	}
+
+	if !override {
+		if err := FileExists(filePath); err == nil {
+			return types.ErrFileExists
+		}
 	}
 
 	if ensurePath {

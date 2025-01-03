@@ -107,6 +107,7 @@ func installPackage(ctx context.Context, opts installPackageOpts) error {
 		Profiles: map[string]*types.Profile{
 			opts.Global.WorkingDirectory: profiles.Profiles[0],
 		},
+		Overwrite: true,
 	}); err != nil {
 		return err
 	}
