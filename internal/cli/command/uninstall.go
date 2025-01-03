@@ -74,6 +74,7 @@ func uninstallPackage(ctx context.Context, opts uninstallPackageOpts) error {
 		Profiles: map[string]*types.Profile{
 			opts.Global.WorkingDirectory: profiles.Profiles[0],
 		},
+		Overwrite: true,
 	}); err != nil {
 		return err
 	}

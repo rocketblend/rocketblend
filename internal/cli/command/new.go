@@ -63,9 +63,7 @@ func newNewCommand(opts commandOpts) *cobra.Command {
 // createProject creates a new project with the specified name.
 func createProject(ctx context.Context, opts createProjectOpts) error {
 	existingProject := existingProject(opts.Global.WorkingDirectory)
-	existingProfile := existingProfile(opts.Global.WorkingDirectory)
-
-	if !opts.Overwrite && existingProject && existingProfile {
+	if !opts.Overwrite && existingProject {
 		return errors.New("project already exists in directory")
 	}
 
@@ -153,6 +151,7 @@ func createProject(ctx context.Context, opts createProjectOpts) error {
 			filepath.Dir(blendFilePath): profiles.Profiles[0],
 		},
 		EnsurePaths: true,
+		Overwrite:   opts.Overwrite,
 	}); err != nil {
 		return err
 	}
@@ -162,12 +161,17 @@ func createProject(ctx context.Context, opts createProjectOpts) error {
 
 // existingProject checks if a project already exists at the specified path.
 func existingProject(path string) bool {
+	return existingBlendFile(path) && existingProfileDir(path)
+}
+
+// existingBlendFile checks if a blend file already exists at the specified path.
+func existingBlendFile(path string) bool {
 	_, err := findFilePathForExt(path, types.BlendFileExtension)
 	return err == nil
 }
 
 // existingProfile checks if a profile already exists at the specified path.
-func existingProfile(path string) bool {
+func existingProfileDir(path string) bool {
 	profilePath := filepath.Join(path, types.ProfileDirName)
 	info, err := os.Stat(profilePath)
 	if err != nil {

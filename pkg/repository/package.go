@@ -131,8 +131,7 @@ func (r *Repository) insertPackage(ctx context.Context, ref reference.Reference,
 	}
 
 	packagePath := filepath.Join(r.packagePath, ref.String(), types.PackageFileName)
-
-	if err := helpers.Save(r.validator, packagePath, true, pack); err != nil {
+	if err := helpers.Save(r.validator, packagePath, pack, true, true); err != nil {
 		r.logger.Error("error saving package", map[string]interface{}{
 			"error":     err,
 			"reference": ref.String(),

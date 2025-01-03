@@ -16,7 +16,7 @@ func (d *Driver) SaveProfiles(ctx context.Context, opts *types.SaveProfilesOpts)
 	tasks := make([]taskrunner.Task[struct{}], 0, len(opts.Profiles))
 	for path, profile := range opts.Profiles {
 		tasks = append(tasks, func(ctx context.Context) (struct{}, error) {
-			return struct{}{}, d.save(ctx, path, profile, opts.EnsurePaths)
+			return struct{}{}, d.save(ctx, path, profile, opts.EnsurePaths, opts.Overwrite)
 		})
 	}
 
@@ -32,7 +32,7 @@ func (d *Driver) SaveProfiles(ctx context.Context, opts *types.SaveProfilesOpts)
 	return nil
 }
 
-func (d *Driver) save(ctx context.Context, path string, profile *types.Profile, ensurePath bool) error {
+func (d *Driver) save(ctx context.Context, path string, profile *types.Profile, ensurePath bool, overwrite bool) error {
 	if err := ctx.Err(); err != nil {
 		return err
 	}
@@ -43,7 +43,7 @@ func (d *Driver) save(ctx context.Context, path string, profile *types.Profile, 
 		"profile": profile,
 	})
 
-	if err := helpers.Save(d.validator, savePath, ensurePath, profile); err != nil {
+	if err := helpers.Save(d.validator, savePath, profile, ensurePath, overwrite); err != nil {
 		return err
 	}
 
