@@ -6,7 +6,8 @@ import (
 
 type (
 	LoadProfilesOpts struct {
-		Paths []string `json:"paths" validate:"required,dive,dir"`
+		Paths   []string `json:"paths" validate:"required,dive,dir"`
+		Default *Profile `json:"default"`
 	}
 
 	LoadProfilesResult struct {

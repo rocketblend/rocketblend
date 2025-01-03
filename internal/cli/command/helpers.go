@@ -29,8 +29,6 @@ type spinnerOptions struct {
 // }
 
 func findFilePathForExt(dir string, ext string) (string, error) {
-	// Get a list of all files in the current directory.
-
 	files, err := filepath.Glob(filepath.Join(dir, "*"+ext))
 	if err != nil {
 		return "", fmt.Errorf("failed to list files in current directory: %w", err)

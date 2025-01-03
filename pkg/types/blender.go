@@ -41,6 +41,7 @@ type (
 
 	CreateOpts struct {
 		BlenderOpts
+		Overwrite bool `json:"overwrite"`
 	}
 
 	Blender interface {

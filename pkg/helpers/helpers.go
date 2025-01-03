@@ -8,6 +8,7 @@ import (
 
 	"github.com/flowshot-io/x/pkg/logger"
 	"github.com/pkg/errors"
+	"github.com/rocketblend/rocketblend/pkg/types"
 )
 
 func ValidateFilePath(filePath string, requiredFileName string) error {
@@ -25,7 +26,7 @@ func ValidateFilePath(filePath string, requiredFileName string) error {
 func FileExists(filePath string) error {
 	info, err := os.Stat(filePath)
 	if os.IsNotExist(err) {
-		return errors.New("file does not exist")
+		return types.ErrFileNotFound
 	}
 
 	if info.IsDir() {
