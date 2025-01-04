@@ -5,8 +5,14 @@ import (
 	"github.com/rocketblend/rocketblend/pkg/runtime"
 )
 
+const DefaultBuild = "github.com/rocketblend/official-library/packages/v0/builds/blender/4.2.2"
+
 var (
-	DefaultBuild = "github.com/rocketblend/official-library/packages/v0/builds/blender/4.2.2"
+	DefaultAliases = map[string]string{
+		"github.com/rocketblend/official-library/packages/v0/builds":         "builds",
+		"github.com/rocketblend/official-library/packages/v0/addons":         "addons",
+		"github.com/rocketblend/official-library/packages/v0/builds/blender": "blender",
+	}
 )
 
 type (
@@ -15,6 +21,7 @@ type (
 		DefaultBuild      reference.Reference `mapstructure:"defaultBuild"`
 		InstallationsPath string              `mapstructure:"installationsPath"`
 		PackagesPath      string              `mapstructure:"packagesPath"`
+		Aliases           map[string]string   `mapstructure:"aliases"`
 	}
 
 	Configurator interface {

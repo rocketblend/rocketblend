@@ -80,7 +80,17 @@ func installPackage(ctx context.Context, opts installPackageOpts) error {
 	}
 
 	if opts.Reference != "" {
-		ref, err := reference.Parse(opts.Reference)
+		configurator, err := container.GetConfigurator()
+		if err != nil {
+			return err
+		}
+
+		config, err := configurator.Get()
+		if err != nil {
+			return err
+		}
+
+		ref, err := reference.Aliased(opts.Reference, config.Aliases)
 		if err != nil {
 			return err
 		}
