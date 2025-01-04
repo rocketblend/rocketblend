@@ -1,6 +1,7 @@
 package ui
 
 import (
+	"context"
 	"fmt"
 	"strconv"
 	"strings"
@@ -27,18 +28,21 @@ type renderProgressModel struct {
 	earlyExit       bool
 	completedFrames []int
 	lastUpdate      time.Time
+	errorMessage    string
+	cancel          context.CancelFunc // Cancel function to stop the render
 }
 
 var (
 	progressStyle     = lipgloss.NewStyle().Foreground(lipgloss.Color("63")).Bold(true)
 	currentFrameStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("211"))
 	doneStyle         = lipgloss.NewStyle().Margin(1, 2).Foreground(lipgloss.Color("42"))
-	earlyExitStyle    = lipgloss.NewStyle().Margin(1, 2).Foreground(lipgloss.Color("9"))
+	errorExitStyle    = lipgloss.NewStyle().Margin(1, 2).Foreground(lipgloss.Color("9"))
+	earlyExitStyle    = lipgloss.NewStyle().Margin(1, 2).Foreground(lipgloss.Color("208")) // Warning orange color
 	checkMark         = lipgloss.NewStyle().Foreground(lipgloss.Color("42")).SetString("✓")
 	legendStyle       = lipgloss.NewStyle().Foreground(lipgloss.Color("242")).Italic(true)
 )
 
-func NewRenderProgressModel(totalFrames int, eventChan <-chan types.BlenderEvent) renderProgressModel {
+func NewRenderProgressModel(totalFrames int, eventChan <-chan types.BlenderEvent, cancel context.CancelFunc) renderProgressModel {
 	p := progress.New(
 		progress.WithDefaultGradient(),
 		progress.WithWidth(25),
@@ -53,6 +57,7 @@ func NewRenderProgressModel(totalFrames int, eventChan <-chan types.BlenderEvent
 		totalFrames: totalFrames,
 		startTime:   time.Now(),
 		lastUpdate:  time.Now(),
+		cancel:      cancel,
 	}
 }
 
@@ -69,6 +74,7 @@ func (m *renderProgressModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		switch msg.String() {
 		case "ctrl+c", "esc", "q":
 			m.earlyExit = true
+			m.cancel()
 			return m, tea.Quit
 		}
 
@@ -95,9 +101,16 @@ func (m *renderProgressModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		if renderEvent, ok := msg.(*types.RenderEvent); ok {
 			return m.handleRenderEvent(renderEvent)
 		}
+
 		if genericEvent, ok := msg.(*types.GenericEvent); ok {
 			tea.Printf("%s %s\n", checkMark, genericEvent.Message)
 		}
+
+		if errorEvent, ok := msg.(*types.ErrorEvent); ok {
+			m.errorMessage = errorEvent.Message
+			return m, tea.Quit
+		}
+
 		return m, waitForBlenderEvent(m.eventChan)
 
 	default:
@@ -115,6 +128,10 @@ func (m *renderProgressModel) View() string {
 			"Rendering complete! Rendered %d frames in %s (avg: %s per frame).\n",
 			m.totalFrames, totalTime, avgTime,
 		))
+	}
+
+	if m.errorMessage != "" {
+		return errorExitStyle.Render(fmt.Sprintf("Error: %s\n", m.errorMessage))
 	}
 
 	if m.earlyExit {

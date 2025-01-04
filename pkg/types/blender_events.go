@@ -9,6 +9,10 @@ type (
 		Message string
 	}
 
+	ErrorEvent struct {
+		Message string
+	}
+
 	// RenderEvent represents a render-specific Blender event.
 	RenderEvent struct {
 		Frame      int
