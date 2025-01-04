@@ -7,6 +7,8 @@ import (
 	"path/filepath"
 	"strings"
 
+	tea "github.com/charmbracelet/bubbletea"
+	"github.com/rocketblend/rocketblend/internal/cli/ui"
 	"github.com/rocketblend/rocketblend/pkg/blender"
 	"github.com/rocketblend/rocketblend/pkg/helpers"
 	"github.com/rocketblend/rocketblend/pkg/types"
@@ -162,7 +164,32 @@ func newRenderCommand(opts commandOpts) *cobra.Command {
 }
 
 func displayRenderProject(ctx context.Context, opts displayRenderProjectOpts) error {
-	return runWithSpinner(ctx, func(ctx context.Context) error {
+	if opts.Verbose {
+		return renderInVerboseMode(ctx, opts)
+	}
+
+	return renderWithUI(ctx, opts)
+}
+
+func renderInVerboseMode(ctx context.Context, opts displayRenderProjectOpts) error {
+	return renderProject(ctx, renderProjectOpts{
+		commandOpts:   opts.commandOpts,
+		BlendFilePath: opts.renderProjectOpts.BlendFilePath,
+		FrameStart:    opts.renderProjectOpts.FrameStart,
+		FrameEnd:      opts.renderProjectOpts.FrameEnd,
+		FrameStep:     opts.renderProjectOpts.FrameStep,
+		Engine:        opts.renderProjectOpts.Engine,
+		Output:        opts.renderProjectOpts.Output,
+		Format:        opts.renderProjectOpts.Format,
+		EventChan:     nil,
+	})
+}
+
+func renderWithUI(ctx context.Context, opts displayRenderProjectOpts) error {
+	eventChan := make(chan types.BlenderEvent, 100)
+	defer close(eventChan)
+
+	go func() {
 		if err := renderProject(ctx, renderProjectOpts{
 			commandOpts:   opts.commandOpts,
 			BlendFilePath: opts.renderProjectOpts.BlendFilePath,
@@ -172,15 +199,21 @@ func displayRenderProject(ctx context.Context, opts displayRenderProjectOpts) er
 			Engine:        opts.renderProjectOpts.Engine,
 			Output:        opts.renderProjectOpts.Output,
 			Format:        opts.renderProjectOpts.Format,
+			EventChan:     eventChan,
 		}); err != nil {
-			return fmt.Errorf("failed to render project: %w", err)
+			eventChan <- &types.GenericEvent{Message: fmt.Sprintf("Error: %s", err)}
 		}
+	}()
 
-		return nil
-	}, &spinnerOptions{
-		Suffix:  "Rendering project...",
-		Verbose: opts.Global.Verbose,
-	})
+	totalFrames := calculateTotalFrames(opts.renderProjectOpts.FrameStart, opts.renderProjectOpts.FrameEnd, opts.renderProjectOpts.FrameStep)
+
+	m := ui.NewRenderProgressModel(totalFrames, eventChan)
+	program := tea.NewProgram(&m, tea.WithContext(ctx))
+	if _, err := program.Run(); err != nil {
+		return fmt.Errorf("failed to run UI: %w", err)
+	}
+
+	return nil
 }
 
 func renderProject(ctx context.Context, opts renderProjectOpts) error {
@@ -232,12 +265,21 @@ func renderProject(ctx context.Context, opts renderProjectOpts) error {
 				Strict:       profiles.Profiles[0].Strict,
 			},
 			Background: true,
+			EventChan:  opts.EventChan,
 		},
 	}); err != nil {
 		return err
 	}
 
 	return nil
+}
+
+func calculateTotalFrames(frameStart, frameEnd, frameStep int) int {
+	if frameStep <= 0 {
+		frameStep = 1
+	}
+
+	return (frameEnd-frameStart)/frameStep + 1
 }
 
 func calculateRevision(revision int, templatePath string, continueRendering bool) int {

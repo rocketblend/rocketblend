@@ -72,7 +72,7 @@ func parseRenderOutput(line string) (*renderInfo, error) {
 
 	if operationType == renderingOperation {
 		currentSample, totalSamples := parseSamples(operationDetails)
-		info.Data["progress"] = strconv.Itoa(currentSample)
+		info.Data["current"] = strconv.Itoa(currentSample)
 		info.Data["total"] = strconv.Itoa(totalSamples)
 	}
 
