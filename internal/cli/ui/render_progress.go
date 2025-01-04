@@ -18,6 +18,7 @@ type renderProgressModel struct {
 	spinner         spinner.Model
 	eventChan       <-chan types.BlenderEvent
 	currentFrame    int
+	currentMemory   string
 	totalFrames     int
 	currentSample   int
 	totalSamples    int
@@ -26,6 +27,7 @@ type renderProgressModel struct {
 	earlyExit       bool
 	completedFrames []int
 	displayLimit    int
+	lastUpdate      time.Time
 }
 
 var (
@@ -35,13 +37,14 @@ var (
 	earlyExitStyle     = lipgloss.NewStyle().Margin(1, 2).Foreground(lipgloss.Color("9"))
 	checkMark          = lipgloss.NewStyle().Foreground(lipgloss.Color("42")).SetString("✓")
 	statusMessageStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("245"))
+	errorStyle         = lipgloss.NewStyle().Foreground(lipgloss.Color("196"))
+	legendStyle        = lipgloss.NewStyle().Foreground(lipgloss.Color("242")).Italic(true)
 )
 
 func NewRenderProgressModel(totalFrames int, eventChan <-chan types.BlenderEvent) renderProgressModel {
 	p := progress.New(
 		progress.WithDefaultGradient(),
-		progress.WithWidth(40),
-		progress.WithoutPercentage(),
+		progress.WithWidth(25), // Shortened for better fitting
 	)
 	s := spinner.New()
 	s.Style = lipgloss.NewStyle().Foreground(lipgloss.Color("63"))
@@ -52,6 +55,7 @@ func NewRenderProgressModel(totalFrames int, eventChan <-chan types.BlenderEvent
 		eventChan:    eventChan,
 		totalFrames:  totalFrames,
 		startTime:    time.Now(),
+		lastUpdate:   time.Now(),
 		displayLimit: 5, // Show 5 frames: 1 + ellipsis + 3 recent + current
 	}
 }
@@ -85,7 +89,10 @@ func (m *renderProgressModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, cmd
 
 	case tea.WindowSizeMsg:
-		m.progress.Width = msg.Width - 10 // Dynamically adjust progress bar width
+		m.progress.Width = msg.Width - 30 // Dynamically adjust progress bar width
+		if m.progress.Width < 10 {
+			m.progress.Width = 10 // Ensure a minimum width
+		}
 		return m, nil
 
 	case types.BlenderEvent:
@@ -106,56 +113,78 @@ func (m *renderProgressModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 func (m *renderProgressModel) View() string {
 	if m.done {
-		return doneStyle.Render(fmt.Sprintf("Rendering complete! Rendered %d frames.\n", m.totalFrames))
+		totalTime := time.Since(m.startTime).Truncate(time.Second)
+		avgTime := totalTime / time.Duration(len(m.completedFrames))
+		return doneStyle.Render(fmt.Sprintf(
+			"Rendering complete! Rendered %d frames in %s (avg: %s per frame).\n",
+			m.totalFrames, totalTime, avgTime,
+		))
 	}
 
 	if m.earlyExit {
-		return earlyExitStyle.Render(fmt.Sprintf("Rendering stopped early. Completed %d/%d frames.\n", len(m.completedFrames), m.totalFrames))
+		totalTime := time.Since(m.startTime).Truncate(time.Second)
+		return earlyExitStyle.Render(fmt.Sprintf(
+			"Rendering stopped early. Completed %d/%d frames in %s.\n",
+			len(m.completedFrames), m.totalFrames, totalTime,
+		))
 	}
 
-	spin := m.spinner.View()
-	prog := progressStyle.Render(m.progress.View())
-
-	status := fmt.Sprintf(
-		"Rendering frame %s/%s | Elapsed: %s",
-		currentFrameStyle.Render(fmt.Sprintf("%d", m.currentFrame)),
-		fmt.Sprintf("%d", m.totalFrames),
-		time.Since(m.startTime).Truncate(time.Second),
-	)
-
+	// List of completed frames with current frame in progress
 	visibleFrames := strings.Join(m.getVisibleFrames(), "\n")
 
+	// Spinner and overall status message on the same line
+	status := m.renderStatus()
+
+	// Overall progress bar with percentage
+	progressPercent := float64(len(m.completedFrames)) / float64(m.totalFrames) * 100
+	prog := fmt.Sprintf("%s (%0.1f%%)", progressStyle.Render(m.progress.View()), progressPercent)
+
+	// Final layout
 	return fmt.Sprintf(
-		"%s %s\n%s\n\n%s",
-		spin, statusMessageStyle.Render(status), prog, visibleFrames,
+		"\n%s\n\n%s\n\n%s\n\n%s",
+		visibleFrames,
+		status,
+		prog,
+		legendStyle.Render("Press 'q' or 'esc' to cancel."), // Legend for controls
+	)
+}
+
+func (m *renderProgressModel) renderStatus() string {
+	elapsed := time.Since(m.startTime).Truncate(time.Second)
+	var eta string
+	if len(m.completedFrames) > 0 {
+		avgTime := elapsed / time.Duration(len(m.completedFrames))
+		remainingFrames := m.totalFrames - len(m.completedFrames)
+		eta = (time.Duration(remainingFrames) * avgTime).Truncate(time.Second).String()
+	} else {
+		eta = "Calculating..."
+	}
+
+	memory := "N/A"
+	if m.currentMemory != "" {
+		memory = m.currentMemory
+	}
+
+	return fmt.Sprintf(
+		"Frame %s/%s | Elapsed: %s | ETA: %s | Memory: %s",
+		currentFrameStyle.Render(fmt.Sprintf("%d", m.currentFrame)),
+		fmt.Sprintf("%d", m.totalFrames),
+		elapsed, eta, memory,
 	)
 }
 
 func (m *renderProgressModel) getVisibleFrames() []string {
 	visibleFrames := []string{}
 
-	if len(m.completedFrames) > 0 {
-		visibleFrames = append(visibleFrames, checkMark.String()+" "+fmt.Sprintf("Frame %d", m.completedFrames[0]))
+	// Add all completed frames to the list
+	for _, frame := range m.completedFrames {
+		visibleFrames = append(visibleFrames, checkMark.String()+" "+fmt.Sprintf("Frame %d", frame))
 	}
 
-	if len(m.completedFrames) > m.displayLimit {
-		visibleFrames = append(visibleFrames, "...")
-	}
-
-	start := len(m.completedFrames) - (m.displayLimit - 1)
-	if start < 1 { // Ensure we don't include the first frame again
-		start = 1
-	}
-
-	if start < len(m.completedFrames) { // Ensure start is within bounds
-		for _, frame := range m.completedFrames[start:] {
-			visibleFrames = append(visibleFrames, checkMark.String()+" "+fmt.Sprintf("Frame %d", frame))
-		}
-	}
-
+	// Add the current frame with progress
 	frameProgress := progress.New(
 		progress.WithGradient("yellow", "green"),
-		progress.WithWidth(30),
+		progress.WithWidth(25),
 		progress.WithoutPercentage(),
 	)
 
@@ -172,7 +201,7 @@ func (m *renderProgressModel) getVisibleFrames() []string {
 func (m *renderProgressModel) handleRenderEvent(e *types.RenderEvent) (tea.Model, tea.Cmd) {
 	if e.Frame != m.currentFrame {
 		m.currentFrame = e.Frame
-		m.completedFrames = append(m.completedFrames, e.Frame) // Mark frame as completed
+		m.completedFrames = append(m.completedFrames, e.Frame)
 
 		if len(m.completedFrames) > m.displayLimit {
 			m.completedFrames = m.completedFrames[1:]
@@ -183,6 +212,7 @@ func (m *renderProgressModel) handleRenderEvent(e *types.RenderEvent) (tea.Model
 	totalSamples, _ := strconv.Atoi(e.Data["total"])
 	m.currentSample = currentSample
 	m.totalSamples = totalSamples
+	m.currentMemory = e.Memory
 
 	frameProgress := 0.0
 	if totalSamples > 0 {
@@ -210,6 +240,6 @@ func (m *renderProgressModel) handleRenderEvent(e *types.RenderEvent) (tea.Model
 
 func waitForBlenderEvent(eventChan <-chan types.BlenderEvent) tea.Cmd {
 	return func() tea.Msg {
-		return <-eventChan // Receive an event from the channel
+		return <-eventChan
 	}
 }
