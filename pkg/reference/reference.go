@@ -2,6 +2,7 @@ package reference
 
 import (
 	"fmt"
+	"path"
 	"strings"
 )
 
@@ -17,12 +18,23 @@ func (r Reference) IsLocalOnly() bool {
 
 func (r Reference) Validate() error {
 	if r.IsLocalOnly() {
+		// Basic check for now, we can add more checks later.
+		if len(string(r)) <= len("local/") {
+			return fmt.Errorf("invalid local reference: %s", r)
+		}
+
 		return nil
 	}
 
 	parts := strings.SplitN(string(r), "/", 4)
 	if len(parts) < 4 {
 		return fmt.Errorf("invalid reference: %s", r)
+	}
+
+	for _, part := range parts {
+		if part == "" {
+			return fmt.Errorf("invalid reference: %s (contains empty parts)", r)
+		}
 	}
 
 	return nil
@@ -68,6 +80,7 @@ func (r Reference) GetRepoPath() (string, error) {
 	return parts[3], nil
 }
 
+// Parse parses a reference string and returns a Reference.
 func Parse(s string) (Reference, error) {
 	r := Reference(s)
 	if err := r.Validate(); err != nil {
@@ -75,4 +88,18 @@ func Parse(s string) (Reference, error) {
 	}
 
 	return r, nil
+}
+
+// Aliased resolves a reference string using a map of aliases.
+// If the input string starts with an alias key, it expands the reference using the alias map.
+func Aliased(input string, aliases map[string]string) (Reference, error) {
+	for fullPath, alias := range aliases {
+		if strings.HasPrefix(input, alias) {
+			remainingPath := strings.TrimPrefix(input, alias)
+			resolved := path.Join(fullPath, remainingPath)
+			return Reference(resolved), nil
+		}
+	}
+
+	return "", fmt.Errorf("failed to resolve reference: %s", input)
 }
