@@ -14,6 +14,14 @@ type (
 		Message string `mapstructure:"message"`
 	}
 
+	// QuitEvent represents the "Blender quit" event.
+	QuitEvent struct{}
+
+	// SavedFileEvent represents a file saved by Blender.
+	SavedFileEvent struct {
+		Path string `mapstructure:"path"`
+	}
+
 	// RenderBase represents common fields for all rendering-related Blender events.
 	RenderBase struct {
 		Frame      int    `mapstructure:"frame"`

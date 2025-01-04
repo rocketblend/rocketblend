@@ -57,16 +57,20 @@ func convertEventToMap(event types.BlenderEvent) map[string]interface{} {
 	}
 
 	switch event.(type) {
+	case *types.QuitEvent:
+		result["event"] = "quit"
+	case *types.SavedFileEvent:
+		result["event"] = "saved"
 	case *types.RenderingEvent:
-		result["type"] = "rendering"
+		result["event"] = "rendering"
 	case *types.SynchronizingEvent:
-		result["type"] = "synchronizing"
+		result["event"] = "synchronizing"
 	case *types.UpdatingEvent:
-		result["type"] = "updating"
+		result["event"] = "updating"
 	case *types.GenericEvent:
-		result["type"] = "raw"
+		result["event"] = "raw"
 	case *types.ErrorEvent:
-		result["type"] = "error"
+		result["event"] = "error"
 	}
 
 	return result

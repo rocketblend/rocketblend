@@ -11,6 +11,9 @@ import (
 )
 
 const (
+	savedFilePattern = `(?i)^saved: '(.+)'$`
+	quitPattern      = `^blender quit$`
+
 	eventPatternEevee  = `Fra:(\d+) Mem:([0-9.]+[MK]?) \(Peak ([0-9.]+[MK]?)\) \| Time:([0-9:.]+) \| (.*)`
 	eventPatternCycles = `Fra:(\d+) Mem:([0-9.]+[MK]?) \(Peak ([0-9.]+[MK]?)\) \| Time:([0-9:.]+) \| Mem:([0-9.]+[MK]?), Peak:([0-9.]+[MK]?) \| (.*)`
 )
@@ -19,6 +22,14 @@ const (
 func ParseBlenderEvent(output string) (types.BlenderEvent, error) {
 	if output == "" {
 		return nil, fmt.Errorf("output is empty")
+	}
+
+	if event, err := parseQuitEvent(output); err == nil {
+		return event, nil
+	}
+
+	if event, err := parseSavedFileEvent(output); err == nil {
+		return event, nil
 	}
 
 	if event, err := parseEeveeBlenderEvent(output); err == nil {
@@ -32,17 +43,34 @@ func ParseBlenderEvent(output string) (types.BlenderEvent, error) {
 	return nil, errors.New("could not parse output")
 }
 
-// Parsing logic for Eevee Blender events
+func parseQuitEvent(line string) (types.BlenderEvent, error) {
+	if strings.ToLower(strings.TrimSpace(line)) == "blender quit" {
+		return &types.QuitEvent{}, nil
+	}
+
+	return nil, fmt.Errorf("not a quit event")
+}
+
+func parseSavedFileEvent(line string) (types.BlenderEvent, error) {
+	re := regexp.MustCompile(savedFilePattern)
+	match := re.FindStringSubmatch(strings.TrimSpace(line))
+	if len(match) != 2 {
+		return nil, fmt.Errorf("could not parse saved file line: %s", line)
+	}
+
+	return &types.SavedFileEvent{
+		Path: match[1],
+	}, nil
+}
+
 func parseEeveeBlenderEvent(line string) (types.BlenderEvent, error) {
 	return parseRenderEventWithPattern(line, eventPatternEevee)
 }
 
-// Parsing logic for Cycles Blender events
 func parseCyclesBlenderEvent(line string) (types.BlenderEvent, error) {
 	return parseRenderEventWithPattern(line, eventPatternCycles)
 }
 
-// Common parsing logic shared by Eevee and Cycles
 func parseRenderEventWithPattern(line, pattern string) (types.BlenderEvent, error) {
 	re := regexp.MustCompile(pattern)
 	match := re.FindStringSubmatch(line)
