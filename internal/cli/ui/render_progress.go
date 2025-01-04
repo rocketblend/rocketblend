@@ -144,7 +144,7 @@ func (m *renderProgressModel) View() string {
 	prog := progressStyle.Render(m.progress.View())
 
 	return fmt.Sprintf(
-		"%s\n\n%s\n\n%s\n\n%s",
+		"\n%s\n\n%s\n\n%s\n\n%s",
 		visibleFrames,
 		status,
 		prog,

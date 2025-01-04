@@ -189,28 +189,32 @@ func renderWithUI(ctx context.Context, opts displayRenderProjectOpts) error {
 	eventChan := make(chan types.BlenderEvent, 100)
 	defer close(eventChan)
 
-	go func() {
-		if err := renderProject(ctx, renderProjectOpts{
-			commandOpts:   opts.commandOpts,
-			BlendFilePath: opts.renderProjectOpts.BlendFilePath,
-			FrameStart:    opts.renderProjectOpts.FrameStart,
-			FrameEnd:      opts.renderProjectOpts.FrameEnd,
-			FrameStep:     opts.renderProjectOpts.FrameStep,
-			Engine:        opts.renderProjectOpts.Engine,
-			Output:        opts.renderProjectOpts.Output,
-			Format:        opts.renderProjectOpts.Format,
-			EventChan:     eventChan,
-		}); err != nil {
-			eventChan <- &types.GenericEvent{Message: fmt.Sprintf("Error: %s", err)}
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
+
+	go func(routinectx context.Context) {
+		defer cancel()
+		totalFrames := calculateTotalFrames(opts.renderProjectOpts.FrameStart, opts.renderProjectOpts.FrameEnd, opts.renderProjectOpts.FrameStep)
+
+		m := ui.NewRenderProgressModel(totalFrames, eventChan)
+		program := tea.NewProgram(&m, tea.WithContext(routinectx))
+		if _, err := program.Run(); err != nil {
+			return
 		}
-	}()
+	}(ctx)
 
-	totalFrames := calculateTotalFrames(opts.renderProjectOpts.FrameStart, opts.renderProjectOpts.FrameEnd, opts.renderProjectOpts.FrameStep)
-
-	m := ui.NewRenderProgressModel(totalFrames, eventChan)
-	program := tea.NewProgram(&m, tea.WithContext(ctx))
-	if _, err := program.Run(); err != nil {
-		return fmt.Errorf("failed to run UI: %w", err)
+	if err := renderProject(ctx, renderProjectOpts{
+		commandOpts:   opts.commandOpts,
+		BlendFilePath: opts.renderProjectOpts.BlendFilePath,
+		FrameStart:    opts.renderProjectOpts.FrameStart,
+		FrameEnd:      opts.renderProjectOpts.FrameEnd,
+		FrameStep:     opts.renderProjectOpts.FrameStep,
+		Engine:        opts.renderProjectOpts.Engine,
+		Output:        opts.renderProjectOpts.Output,
+		Format:        opts.renderProjectOpts.Format,
+		EventChan:     eventChan,
+	}); err != nil {
+		return err
 	}
 
 	return nil
