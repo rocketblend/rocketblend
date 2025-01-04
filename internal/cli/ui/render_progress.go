@@ -22,6 +22,14 @@ type (
 	}
 )
 
+var (
+	progressStyle      = lipgloss.NewStyle().Foreground(lipgloss.Color("63")).Bold(true)
+	currentFrameStyle  = lipgloss.NewStyle().Foreground(lipgloss.Color("211"))
+	doneStyle          = lipgloss.NewStyle().Margin(1, 2).Foreground(lipgloss.Color("42"))
+	checkMark          = lipgloss.NewStyle().Foreground(lipgloss.Color("42")).SetString("✓")
+	statusMessageStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("245"))
+)
+
 func NewRenderProgressModel(totalFrames int, eventChan <-chan types.BlenderEvent) renderProgressModel {
 	p := progress.New(
 		progress.WithDefaultGradient(),
@@ -50,7 +58,7 @@ func (m *renderProgressModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
 		switch msg.String() {
-		case "ctrl+c", "q":
+		case "ctrl+c", "esc", "q":
 			return m, tea.Quit
 		}
 
@@ -60,8 +68,11 @@ func (m *renderProgressModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, cmd
 
 	case progress.FrameMsg:
-		progressModel, cmd := m.progress.Update(msg)
-		m.progress = progressModel.(progress.Model)
+		newModel, cmd := m.progress.Update(msg)
+		if newModel, ok := newModel.(progress.Model); ok {
+			m.progress = newModel
+		}
+
 		return m, cmd
 
 	case types.BlenderEvent:
@@ -77,12 +88,19 @@ func (m *renderProgressModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 func (m *renderProgressModel) View() string {
 	if m.done {
-		return fmt.Sprintf("Rendering complete! Rendered %d frames.\n", m.totalFrames)
+		return doneStyle.Render(fmt.Sprintf("Rendering complete! Rendered %d frames.\n", m.totalFrames))
 	}
 
 	spin := m.spinner.View()
-	prog := m.progress.View()
-	return fmt.Sprintf("%s Rendering frame %d/%d\n%s", spin, m.currentFrame, m.totalFrames, prog)
+	prog := progressStyle.Render(m.progress.View())
+	status := fmt.Sprintf(
+		"Rendering frame %s/%s",
+		currentFrameStyle.Render(fmt.Sprintf("%d", m.currentFrame)),
+		fmt.Sprintf("%d", m.totalFrames),
+	)
+	status = statusMessageStyle.Render(status)
+
+	return fmt.Sprintf("%s %s\n%s", spin, status, prog)
 }
 
 func (m *renderProgressModel) handleRenderEvent(e *types.RenderEvent) (tea.Model, tea.Cmd) {
@@ -99,6 +117,14 @@ func (m *renderProgressModel) handleRenderEvent(e *types.RenderEvent) (tea.Model
 
 	totalProgress := (float64(m.currentFrame-1) + frameProgress) / float64(m.totalFrames)
 	progressCmd := m.progress.SetPercent(totalProgress)
+
+	tea.Printf(
+		"%s Frame: %s, Progress: %d/%d, Memory: %s, Peak Memory: %s\n",
+		checkMark,
+		currentFrameStyle.Render(fmt.Sprintf("%d", m.currentFrame)),
+		currentSample, totalSamples,
+		e.Memory, e.PeakMemory,
+	)
 
 	if m.currentFrame >= m.totalFrames && frameProgress >= 1.0 {
 		m.done = true
