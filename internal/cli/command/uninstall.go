@@ -39,17 +39,27 @@ func newUninstallCommand(opts commandOpts) *cobra.Command {
 }
 
 func uninstallPackage(ctx context.Context, opts uninstallPackageOpts) error {
-	ref, err := reference.Parse(opts.Reference)
-	if err != nil {
-		return err
-	}
-
 	container, err := getContainer(containerOpts{
 		AppName:     opts.AppName,
 		Development: opts.Development,
 		Level:       opts.Global.Level,
 		Verbose:     opts.Global.Verbose,
 	})
+	if err != nil {
+		return err
+	}
+
+	configurator, err := container.GetConfigurator()
+	if err != nil {
+		return err
+	}
+
+	config, err := configurator.Get()
+	if err != nil {
+		return err
+	}
+
+	ref, err := reference.Aliased(opts.Reference, config.Aliases)
 	if err != nil {
 		return err
 	}
