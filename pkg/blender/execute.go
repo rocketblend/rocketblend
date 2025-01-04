@@ -89,7 +89,8 @@ func Execute(ctx context.Context, executable types.Executable) error {
 // processChannel reads strings from a channel and applies a processing function to each string.
 func processChannel(inputChan <-chan string, outputChan chan<- types.BlenderEvent, processFunc func(string) types.BlenderEvent) {
 	for data := range inputChan {
-		if event := processFunc(data); event != nil {
+		event := processFunc(data)
+		if event != nil && outputChan != nil {
 			outputChan <- event
 		}
 	}
