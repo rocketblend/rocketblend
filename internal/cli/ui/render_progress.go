@@ -41,7 +41,7 @@ var (
 func NewRenderProgressModel(totalFrames int, eventChan <-chan types.BlenderEvent) renderProgressModel {
 	p := progress.New(
 		progress.WithDefaultGradient(),
-		progress.WithWidth(25), // Shortened for better fitting
+		progress.WithWidth(25),
 	)
 	s := spinner.New()
 	s.Style = lipgloss.NewStyle().Foreground(lipgloss.Color("63"))
@@ -141,9 +141,7 @@ func (m *renderProgressModel) View() string {
 	visibleFrames := strings.Join(m.getVisibleFrames(), "\n")
 
 	status := m.renderStatus()
-
-	progressPercent := float64(len(m.completedFrames)) / float64(m.totalFrames) * 100
-	prog := fmt.Sprintf("%s (%0.1f%%)", progressStyle.Render(m.progress.View()), progressPercent)
+	prog := progressStyle.Render(m.progress.View())
 
 	return fmt.Sprintf(
 		"%s\n\n%s\n\n%s\n\n%s",
