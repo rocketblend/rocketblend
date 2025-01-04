@@ -61,26 +61,3 @@ func (b *Blender) Render(ctx context.Context, opts *types.RenderOpts) error {
 
 	return nil
 }
-
-func createRenderEvent(b *Blender, info *renderInfo) *types.RenderEvent {
-	data := map[string]interface{}{
-		"frame":      info.FrameNumber,
-		"memory":     info.Memory,
-		"peakMemory": info.PeakMemory,
-		"time":       info.Time,
-	}
-	for key, value := range info.Data {
-		data[key] = value
-	}
-
-	b.logger.Info(info.Operation, data)
-
-	return &types.RenderEvent{
-		Frame:      info.FrameNumber,
-		Memory:     info.Memory,
-		PeakMemory: info.PeakMemory,
-		Time:       info.Time,
-		Operation:  info.Operation,
-		Data:       info.Data,
-	}
-}

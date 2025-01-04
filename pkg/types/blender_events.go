@@ -6,20 +6,22 @@ type (
 
 	// GenericEvent represents a generic Blender event.
 	GenericEvent struct {
-		Message string
+		Message string `mapstructure:"message"`
 	}
 
 	ErrorEvent struct {
-		Message string
+		Message string `mapstructure:"message"`
 	}
 
 	// RenderEvent represents a render-specific Blender event.
 	RenderEvent struct {
-		Frame      int
-		Memory     string
-		PeakMemory string
-		Time       string
-		Operation  string
-		Data       map[string]string
+		Frame      int               `mapstructure:"frame"`
+		Memory     string            `mapstructure:"memory"`
+		PeakMemory string            `mapstructure:"peakMemory"`
+		Time       string            `mapstructure:"time"`
+		Current    int               `mapstructure:"current"`
+		Total      int               `mapstructure:"total"`
+		Operation  string            `mapstructure:"operation"`
+		Data       map[string]string `mapstructure:"data"`
 	}
 )
