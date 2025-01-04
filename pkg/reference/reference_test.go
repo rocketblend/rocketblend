@@ -78,6 +78,11 @@ func TestAliased(t *testing.T) {
 		expectErr bool
 	}{
 		{
+			name:     "No alias match",
+			input:    "domain.com/base/repo/v1/builds/example/1.0",
+			expected: "domain.com/base/repo/v1/builds/example/1.0",
+		},
+		{
 			name:     "Simple alias match",
 			input:    "builds/module/1.0",
 			expected: "domain.com/base/repo/v1/builds/module/1.0",

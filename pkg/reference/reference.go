@@ -97,9 +97,9 @@ func Aliased(input string, aliases map[string]string) (Reference, error) {
 		if strings.HasPrefix(input, alias) {
 			remainingPath := strings.TrimPrefix(input, alias)
 			resolved := path.Join(fullPath, remainingPath)
-			return Reference(resolved), nil
+			return Parse(resolved)
 		}
 	}
 
-	return "", fmt.Errorf("failed to resolve reference: %s", input)
+	return Parse(input)
 }
