@@ -23,9 +23,9 @@ type renderProgressModel struct {
 	currentSample   int
 	totalSamples    int
 	startTime       time.Time
+	completedFrames []int
 	done            bool
 	earlyExit       bool
-	completedFrames []int
 	lastUpdate      time.Time
 	errorMessage    string
 	cancel          context.CancelFunc // Cancel function to stop the render
@@ -43,7 +43,7 @@ var (
 
 func NewRenderProgressModel(totalFrames int, eventChan <-chan types.BlenderEvent, cancel context.CancelFunc) renderProgressModel {
 	p := progress.New(
-		progress.WithDefaultGradient(),
+		progress.WithGradient("#4E51D0", "#E06F5A"),
 		progress.WithWidth(25),
 	)
 	s := spinner.New()
@@ -90,15 +90,19 @@ func (m *renderProgressModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, cmd
 
 	case tea.WindowSizeMsg:
-		m.progress.Width = msg.Width - 30 // Dynamically adjust progress bar width
+		m.progress.Width = msg.Width - 30
 		if m.progress.Width < 10 {
-			m.progress.Width = 10 // Ensure a minimum width
+			m.progress.Width = 10
 		}
 		return m, nil
 
 	case types.BlenderEvent:
 		if renderEvent, ok := msg.(*types.RenderingEvent); ok {
 			return m.handleRenderEvent(renderEvent)
+		}
+
+		if savedFileEvent, ok := msg.(*types.SavedFileEvent); ok {
+			return m.handleSavedFileEvent(savedFileEvent)
 		}
 
 		if genericEvent, ok := msg.(*types.GenericEvent); ok {
@@ -202,7 +206,7 @@ func (m *renderProgressModel) getVisibleFrames() []string {
 	}
 
 	frameProgress := progress.New(
-		progress.WithGradient("yellow", "green"),
+		progress.WithGradient("#64B5D9", "#4E51D0"),
 		progress.WithWidth(25),
 		progress.WithoutPercentage(),
 	)
@@ -223,32 +227,36 @@ func (m *renderProgressModel) handleRenderEvent(e *types.RenderingEvent) (tea.Mo
 	m.currentSample = e.Current
 	m.totalSamples = e.Total
 	m.currentMemory = e.Memory
+	m.currentFrame = e.Frame
 
-	frameProgress := 0.0
-	if e.Total > 0 {
-		frameProgress = float64(e.Current) / float64(e.Total)
-	}
-
-	if frameProgress >= 1.0 {
-		if e.Frame != m.currentFrame {
-			m.completedFrames = append(m.completedFrames, m.currentFrame)
-		}
-
-		m.currentFrame = e.Frame
-	}
-
-	totalProgress := (float64(len(m.completedFrames)) + frameProgress) / float64(m.totalFrames)
+	totalProgress := (float64(len(m.completedFrames))*float64(m.totalSamples) + float64(m.currentSample)) /
+		(float64(m.totalFrames) * float64(m.totalSamples))
 	progressCmd := m.progress.SetPercent(totalProgress)
 
 	tea.Printf(
 		"%s Frame: %s, Progress: %d/%d, Memory: %s, Peak Memory: %s\n",
 		checkMark,
-		currentFrameStyle.Render(fmt.Sprintf("%d", m.currentFrame)),
+		currentFrameStyle.Render(fmt.Sprintf("%d", e.Frame)),
 		e.Current, e.Total,
 		e.Memory, e.PeakMemory,
 	)
 
-	if m.currentFrame >= m.totalFrames && frameProgress >= 1.0 {
+	return m, tea.Batch(progressCmd, waitForBlenderEvent(m.eventChan))
+}
+
+func (m *renderProgressModel) handleSavedFileEvent(e *types.SavedFileEvent) (tea.Model, tea.Cmd) {
+	// Only mark the current frame as complete if rendering is done
+	if m.currentSample == m.totalSamples {
+		m.completedFrames = append(m.completedFrames, m.currentFrame)
+		tea.Printf("%s Frame %d saved: %s\n", checkMark, m.currentFrame, e.Path)
+	}
+
+	// Calculate total progress based on completed frames and current frame's progress
+	totalProgress := (float64(len(m.completedFrames)) * float64(m.totalSamples)) /
+		(float64(m.totalFrames) * float64(m.totalSamples))
+	progressCmd := m.progress.SetPercent(totalProgress)
+
+	if len(m.completedFrames) == m.totalFrames {
 		m.done = true
 		return m, tea.Quit
 	}
