@@ -20,8 +20,9 @@ type (
 	}
 
 	BlenderOpts struct {
-		Background bool       `json:"background"`
-		BlendFile  *BlendFile `json:"blendFile,omitempty" validate:"omitempty"`
+		Background bool              `json:"background"`
+		BlendFile  *BlendFile        `json:"blendFile,omitempty" validate:"omitempty"`
+		EventChan  chan BlenderEvent `json:"-"` // Channel for sending events
 	}
 
 	RenderOpts struct {

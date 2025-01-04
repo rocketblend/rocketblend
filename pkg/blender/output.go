@@ -5,6 +5,8 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+
+	"github.com/rocketblend/rocketblend/pkg/types"
 )
 
 const (
@@ -25,6 +27,23 @@ type (
 		Data        map[string]string
 	}
 )
+
+func (b *Blender) processOutput(output string) types.BlenderEvent {
+	if output == "" {
+		return nil
+	}
+
+	if info, err := parseRenderOutput(output); err == nil {
+		return createRenderEvent(b, info)
+	}
+
+	trimmedOutput := strings.ToLower(strings.TrimSpace(output))
+	b.logger.Debug("blender", map[string]interface{}{
+		"output": trimmedOutput,
+	})
+
+	return &types.GenericEvent{Message: output}
+}
 
 func parseRenderOutput(line string) (*renderInfo, error) {
 	re := regexp.MustCompile(renderOutputPattern)
