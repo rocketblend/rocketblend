@@ -16,40 +16,57 @@ func (b *Blender) processOutput(output string) types.BlenderEvent {
 	event, err := parser.ParseBlenderEvent(output)
 	if err != nil {
 		trimmedOutput := strings.ToLower(strings.TrimSpace(output))
-		b.logger.Info("blender", map[string]interface{}{
+		b.logger.Debug("blender", map[string]interface{}{
 			"output": trimmedOutput,
 			"error":  err.Error(),
 		})
 
-		return &types.GenericEvent{Message: output}
+		return err
 	}
 
 	eventMap := convertEventToMap(event)
-	b.logger.Info("blender", eventMap)
+	if len(eventMap) != 0 {
+		b.logger.Info("blender", eventMap)
+	}
 
 	return event
 }
 
 func convertEventToMap(event types.BlenderEvent) map[string]interface{} {
-	var result map[string]interface{}
+	result := make(map[string]interface{})
 
-	err := mapstructure.Decode(event, &result)
+	decoder, err := mapstructure.NewDecoder(&mapstructure.DecoderConfig{
+		Metadata: nil,
+		Result:   &result,
+		TagName:  "mapstructure",
+		Squash:   true,
+	})
 	if err != nil {
 		return map[string]interface{}{
-			"type":  "UnknownEvent",
+			"type":  "unknown",
+			"error": "failed to create decoder",
+		}
+	}
+
+	err = decoder.Decode(event)
+	if err != nil {
+		return map[string]interface{}{
+			"type":  "unknown",
 			"error": err.Error(),
 		}
 	}
 
 	switch event.(type) {
-	case *types.RenderEvent:
-		result["type"] = "render"
+	case *types.RenderingEvent:
+		result["type"] = "rendering"
+	case *types.SynchronizingEvent:
+		result["type"] = "synchronizing"
+	case *types.UpdatingEvent:
+		result["type"] = "updating"
 	case *types.GenericEvent:
-		result["type"] = "generic"
+		result["type"] = "raw"
 	case *types.ErrorEvent:
 		result["type"] = "error"
-	default:
-		result["type"] = "unknown"
 	}
 
 	return result

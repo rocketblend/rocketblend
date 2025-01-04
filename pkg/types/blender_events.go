@@ -9,19 +9,36 @@ type (
 		Message string `mapstructure:"message"`
 	}
 
+	// ErrorEvent represents an error Blender event.
 	ErrorEvent struct {
 		Message string `mapstructure:"message"`
 	}
 
-	// RenderEvent represents a render-specific Blender event.
-	RenderEvent struct {
-		Frame      int               `mapstructure:"frame"`
-		Memory     string            `mapstructure:"memory"`
-		PeakMemory string            `mapstructure:"peakMemory"`
-		Time       string            `mapstructure:"time"`
-		Current    int               `mapstructure:"current"`
-		Total      int               `mapstructure:"total"`
-		Operation  string            `mapstructure:"operation"`
-		Data       map[string]string `mapstructure:"data"`
+	// RenderBase represents common fields for all rendering-related Blender events.
+	RenderBase struct {
+		Frame      int    `mapstructure:"frame"`
+		Memory     string `mapstructure:"memory"`
+		PeakMemory string `mapstructure:"peakMemory"`
+		Time       string `mapstructure:"time"`
+	}
+
+	// RenderingEvent represents a rendering-specific Blender event.
+	RenderingEvent struct {
+		RenderBase `mapstructure:",squash"`
+		Current    int    `mapstructure:"current"`
+		Total      int    `mapstructure:"total"`
+		Operation  string `mapstructure:"operation"`
+	}
+
+	// SynchronizingEvent represents a synchronizing-specific Blender event.
+	SynchronizingEvent struct {
+		RenderBase `mapstructure:",squash"`
+		Object     string `mapstructure:"object"`
+	}
+
+	// UpdatingEvent represents an updating-specific Blender event.
+	UpdatingEvent struct {
+		RenderBase
+		Details string `mapstructure:"details"`
 	}
 )

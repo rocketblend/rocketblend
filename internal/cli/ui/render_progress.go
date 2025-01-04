@@ -3,7 +3,6 @@ package ui
 import (
 	"context"
 	"fmt"
-	"strconv"
 	"strings"
 	"time"
 
@@ -98,7 +97,7 @@ func (m *renderProgressModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, nil
 
 	case types.BlenderEvent:
-		if renderEvent, ok := msg.(*types.RenderEvent); ok {
+		if renderEvent, ok := msg.(*types.RenderingEvent); ok {
 			return m.handleRenderEvent(renderEvent)
 		}
 
@@ -220,16 +219,14 @@ func (m *renderProgressModel) getVisibleFrames() []string {
 	return visibleFrames
 }
 
-func (m *renderProgressModel) handleRenderEvent(e *types.RenderEvent) (tea.Model, tea.Cmd) {
-	currentSample, _ := strconv.Atoi(e.Data["current"])
-	totalSamples, _ := strconv.Atoi(e.Data["total"])
-	m.currentSample = currentSample
-	m.totalSamples = totalSamples
+func (m *renderProgressModel) handleRenderEvent(e *types.RenderingEvent) (tea.Model, tea.Cmd) {
+	m.currentSample = e.Current
+	m.totalSamples = e.Total
 	m.currentMemory = e.Memory
 
 	frameProgress := 0.0
-	if totalSamples > 0 {
-		frameProgress = float64(currentSample) / float64(totalSamples)
+	if e.Total > 0 {
+		frameProgress = float64(e.Current) / float64(e.Total)
 	}
 
 	if frameProgress >= 1.0 {
@@ -247,7 +244,7 @@ func (m *renderProgressModel) handleRenderEvent(e *types.RenderEvent) (tea.Model
 		"%s Frame: %s, Progress: %d/%d, Memory: %s, Peak Memory: %s\n",
 		checkMark,
 		currentFrameStyle.Render(fmt.Sprintf("%d", m.currentFrame)),
-		currentSample, totalSamples,
+		e.Current, e.Total,
 		e.Memory, e.PeakMemory,
 	)
 

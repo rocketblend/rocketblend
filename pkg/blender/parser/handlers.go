@@ -6,51 +6,42 @@ import (
 	"github.com/rocketblend/rocketblend/pkg/types"
 )
 
-// OperationHandler is a function that processes specific operation details
-type OperationHandler func(details string, event *types.RenderEvent)
+// OperationHandler returns a specific BlenderEvent based on the operation details
+type OperationHandler func(details string, base types.RenderBase) types.BlenderEvent
 
 // Operation registry mapping operations to their handlers
 var operationRegistry = map[string]OperationHandler{
-	"rendering":     handleRendering,
-	"sample":        handleRendering, // Treat "sample" as a rendering operation
-	"synchronizing": handleSynchronizing,
-	"initializing":  handleGenericOperation,
-	"waiting":       handleGenericOperation,
-	"updating":      handleUpdating,
-	"loading":       handleGenericOperation,
+	"rendering":     createRenderingEvent,
+	"sample":        createRenderingEvent, // Treat "sample" as a rendering operation
+	"synchronizing": createSynchronizingEvent,
+	"updating":      createUpdatingEvent,
 }
 
-// Handles the specified operation based on the registry
-func handleOperation(operationRaw string, event *types.RenderEvent) {
-	for op, handler := range operationRegistry {
-		if strings.Contains(operationRaw, op) {
-			event.Operation = op
-			handler(operationRaw, event)
-			return
-		}
+func createRenderingEvent(details string, base types.RenderBase) types.BlenderEvent {
+	current, total := parseSamples(details)
+	return &types.RenderingEvent{
+		RenderBase: base,
+		Current:    current,
+		Total:      total,
+		Operation:  "rendering",
 	}
-
-	event.Operation = "general"
-	handleGenericOperation(operationRaw, event)
 }
 
-// Specific handlers for each operation type
-func handleRendering(details string, event *types.RenderEvent) {
-	currentSample, totalSamples := parseSamples(details)
-	event.Current = currentSample
-	event.Total = totalSamples
-}
-
-func handleSynchronizing(details string, event *types.RenderEvent) {
+func createSynchronizingEvent(details string, base types.RenderBase) types.BlenderEvent {
+	object := ""
 	if strings.Contains(details, "object") {
-		event.Data["object"] = strings.TrimPrefix(details, "synchronizing object | ")
+		object = strings.TrimPrefix(details, "synchronizing object | ")
+	}
+
+	return &types.SynchronizingEvent{
+		RenderBase: base,
+		Object:     object,
 	}
 }
 
-func handleUpdating(details string, event *types.RenderEvent) {
-	event.Data["details"] = details
-}
-
-func handleGenericOperation(details string, event *types.RenderEvent) {
-	event.Data["details"] = details
+func createUpdatingEvent(details string, base types.RenderBase) types.BlenderEvent {
+	return &types.UpdatingEvent{
+		RenderBase: base,
+		Details:    details,
+	}
 }

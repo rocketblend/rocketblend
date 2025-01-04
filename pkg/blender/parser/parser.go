@@ -1,6 +1,7 @@
 package parser
 
 import (
+	"errors"
 	"fmt"
 	"regexp"
 	"strconv"
@@ -28,7 +29,7 @@ func ParseBlenderEvent(output string) (types.BlenderEvent, error) {
 		return event, nil
 	}
 
-	return &types.GenericEvent{Message: output}, nil
+	return nil, errors.New("could not parse output")
 }
 
 // Parsing logic for Eevee Blender events
@@ -56,14 +57,22 @@ func parseRenderEventWithPattern(line, pattern string) (types.BlenderEvent, erro
 	}
 
 	operationRaw := strings.ToLower(match[len(match)-1])
-	event := &types.RenderEvent{
+	base := types.RenderBase{
 		Frame:      frameNumber,
 		Memory:     strings.ToLower(match[2]),
 		PeakMemory: strings.ToLower(match[3]),
 		Time:       strings.ToLower(match[4]),
-		Data:       make(map[string]string),
 	}
 
-	handleOperation(operationRaw, event)
-	return event, nil
+	return createRenderEventFromOperation(operationRaw, base)
+}
+
+func createRenderEventFromOperation(operationRaw string, base types.RenderBase) (types.BlenderEvent, error) {
+	for op, handler := range operationRegistry {
+		if strings.Contains(operationRaw, op) {
+			return handler(operationRaw, base), nil
+		}
+	}
+
+	return nil, nil
 }
