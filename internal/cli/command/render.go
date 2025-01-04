@@ -25,7 +25,14 @@ type (
 
 		Output string
 		Format string
+
+		EventChan chan types.BlenderEvent
 		commandOpts
+	}
+
+	displayRenderProjectOpts struct {
+		Verbose bool
+		renderProjectOpts
 	}
 )
 
@@ -121,9 +128,9 @@ func newRenderCommand(opts commandOpts) *cobra.Command {
 				}
 			}
 
-			return runWithSpinner(cmd.Context(), func(ctx context.Context) error {
-				if err := renderProject(ctx, renderProjectOpts{
-					commandOpts:   opts,
+			return displayRenderProject(cmd.Context(), displayRenderProjectOpts{
+				Verbose: opts.Global.Verbose,
+				renderProjectOpts: renderProjectOpts{
 					BlendFilePath: blendFilePath,
 					FrameStart:    frameStart,
 					FrameEnd:      frameEnd,
@@ -131,14 +138,8 @@ func newRenderCommand(opts commandOpts) *cobra.Command {
 					Engine:        engine,
 					Output:        outputPath,
 					Format:        format,
-				}); err != nil {
-					return fmt.Errorf("failed to render project: %w", err)
-				}
-
-				return nil
-			}, &spinnerOptions{
-				Suffix:  "Rendering project...",
-				Verbose: opts.Global.Verbose,
+					commandOpts:   opts,
+				},
 			})
 		},
 	}
@@ -158,6 +159,28 @@ func newRenderCommand(opts commandOpts) *cobra.Command {
 	cc.Flags().BoolVarP(&autoConfirm, "auto-confirm", "y", false, "overwrite any existing files without requiring confirmation")
 
 	return cc
+}
+
+func displayRenderProject(ctx context.Context, opts displayRenderProjectOpts) error {
+	return runWithSpinner(ctx, func(ctx context.Context) error {
+		if err := renderProject(ctx, renderProjectOpts{
+			commandOpts:   opts.commandOpts,
+			BlendFilePath: opts.renderProjectOpts.BlendFilePath,
+			FrameStart:    opts.renderProjectOpts.FrameStart,
+			FrameEnd:      opts.renderProjectOpts.FrameEnd,
+			FrameStep:     opts.renderProjectOpts.FrameStep,
+			Engine:        opts.renderProjectOpts.Engine,
+			Output:        opts.renderProjectOpts.Output,
+			Format:        opts.renderProjectOpts.Format,
+		}); err != nil {
+			return fmt.Errorf("failed to render project: %w", err)
+		}
+
+		return nil
+	}, &spinnerOptions{
+		Suffix:  "Rendering project...",
+		Verbose: opts.Global.Verbose,
+	})
 }
 
 func renderProject(ctx context.Context, opts renderProjectOpts) error {
