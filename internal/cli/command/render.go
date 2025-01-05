@@ -7,6 +7,8 @@ import (
 	"path/filepath"
 	"strings"
 
+	tea "github.com/charmbracelet/bubbletea"
+	"github.com/rocketblend/rocketblend/internal/cli/ui"
 	"github.com/rocketblend/rocketblend/pkg/blender"
 	"github.com/rocketblend/rocketblend/pkg/helpers"
 	"github.com/rocketblend/rocketblend/pkg/types"
@@ -25,7 +27,14 @@ type (
 
 		Output string
 		Format string
+
+		EventChan chan types.BlenderEvent
 		commandOpts
+	}
+
+	displayRenderProjectOpts struct {
+		Verbose bool
+		renderProjectOpts
 	}
 )
 
@@ -121,9 +130,9 @@ func newRenderCommand(opts commandOpts) *cobra.Command {
 				}
 			}
 
-			return runWithSpinner(cmd.Context(), func(ctx context.Context) error {
-				if err := renderProject(ctx, renderProjectOpts{
-					commandOpts:   opts,
+			return displayRenderProject(cmd.Context(), displayRenderProjectOpts{
+				Verbose: opts.Global.Verbose,
+				renderProjectOpts: renderProjectOpts{
 					BlendFilePath: blendFilePath,
 					FrameStart:    frameStart,
 					FrameEnd:      frameEnd,
@@ -131,14 +140,8 @@ func newRenderCommand(opts commandOpts) *cobra.Command {
 					Engine:        engine,
 					Output:        outputPath,
 					Format:        format,
-				}); err != nil {
-					return fmt.Errorf("failed to render project: %w", err)
-				}
-
-				return nil
-			}, &spinnerOptions{
-				Suffix:  "Rendering project...",
-				Verbose: opts.Global.Verbose,
+					commandOpts:   opts,
+				},
 			})
 		},
 	}
@@ -158,6 +161,68 @@ func newRenderCommand(opts commandOpts) *cobra.Command {
 	cc.Flags().BoolVarP(&autoConfirm, "auto-confirm", "y", false, "overwrite any existing files without requiring confirmation")
 
 	return cc
+}
+
+func displayRenderProject(ctx context.Context, opts displayRenderProjectOpts) error {
+	if opts.Verbose {
+		return renderInVerboseMode(ctx, opts)
+	}
+
+	return renderWithUI(ctx, opts)
+}
+
+func renderInVerboseMode(ctx context.Context, opts displayRenderProjectOpts) error {
+	return renderProject(ctx, renderProjectOpts{
+		commandOpts:   opts.commandOpts,
+		BlendFilePath: opts.renderProjectOpts.BlendFilePath,
+		FrameStart:    opts.renderProjectOpts.FrameStart,
+		FrameEnd:      opts.renderProjectOpts.FrameEnd,
+		FrameStep:     opts.renderProjectOpts.FrameStep,
+		Engine:        opts.renderProjectOpts.Engine,
+		Output:        opts.renderProjectOpts.Output,
+		Format:        opts.renderProjectOpts.Format,
+		EventChan:     nil,
+	})
+}
+
+func renderWithUI(ctx context.Context, opts displayRenderProjectOpts) error {
+	eventChan := make(chan types.BlenderEvent, 100)
+
+	ctxRender, cancelRender := context.WithCancel(ctx)
+	defer cancelRender()
+
+	go func() {
+		defer close(eventChan)
+
+		if err := renderProject(ctxRender, renderProjectOpts{
+			commandOpts:   opts.commandOpts,
+			BlendFilePath: opts.renderProjectOpts.BlendFilePath,
+			FrameStart:    opts.renderProjectOpts.FrameStart,
+			FrameEnd:      opts.renderProjectOpts.FrameEnd,
+			FrameStep:     opts.renderProjectOpts.FrameStep,
+			Engine:        opts.renderProjectOpts.Engine,
+			Output:        opts.renderProjectOpts.Output,
+			Format:        opts.renderProjectOpts.Format,
+			EventChan:     eventChan,
+		}); err != nil {
+			if ctxRender.Err() == context.Canceled {
+				return
+			}
+
+			// Send error to UI
+			eventChan <- &types.ErrorEvent{Message: err.Error()}
+		}
+	}()
+
+	totalFrames := calculateTotalFrames(opts.renderProjectOpts.FrameStart, opts.renderProjectOpts.FrameEnd, opts.renderProjectOpts.FrameStep)
+
+	m := ui.NewRenderProgressModel(totalFrames, eventChan, cancelRender)
+	program := tea.NewProgram(&m, tea.WithContext(ctx))
+	if _, err := program.Run(); err != nil {
+		return fmt.Errorf("failed to run UI: %w", err)
+	}
+
+	return nil
 }
 
 func renderProject(ctx context.Context, opts renderProjectOpts) error {
@@ -209,12 +274,21 @@ func renderProject(ctx context.Context, opts renderProjectOpts) error {
 				Strict:       profiles.Profiles[0].Strict,
 			},
 			Background: true,
+			EventChan:  opts.EventChan,
 		},
 	}); err != nil {
 		return err
 	}
 
 	return nil
+}
+
+func calculateTotalFrames(frameStart, frameEnd, frameStep int) int {
+	if frameStep <= 0 {
+		frameStep = 1
+	}
+
+	return (frameEnd-frameStart)/frameStep + 1
 }
 
 func calculateRevision(revision int, templatePath string, continueRendering bool) int {

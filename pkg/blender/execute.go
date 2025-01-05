@@ -86,9 +86,11 @@ func Execute(ctx context.Context, executable types.Executable) error {
 	return cmd.Wait()
 }
 
-// ProcessChannel reads strings from a channel and applies a processing function to each string.
-func ProcessChannel(outputChannel <-chan string, processFunc func(string)) {
-	for data := range outputChannel {
-		processFunc(data)
+func processChannel(inputChan <-chan string, outputChan chan<- types.BlenderEvent, processFunc func(string) types.BlenderEvent) {
+	for data := range inputChan {
+		event := processFunc(data)
+		if event != nil && outputChan != nil {
+			outputChan <- event
+		}
 	}
 }

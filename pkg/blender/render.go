@@ -50,12 +50,12 @@ func (b *Blender) Render(ctx context.Context, opts *types.RenderOpts) error {
 		}
 	}
 
-	outputChannel := make(chan string, 100)
-	defer close(outputChannel)
+	outputChan := make(chan string, 100)
+	defer close(outputChan)
 
-	go ProcessChannel(outputChannel, b.processOuput)
+	go processChannel(outputChan, opts.EventChan, b.processOutput)
 
-	if err := b.execute(ctx, build.Path, &arguments, outputChannel); err != nil {
+	if err := b.execute(ctx, build.Path, &arguments, outputChan); err != nil {
 		return err
 	}
 

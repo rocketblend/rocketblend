@@ -1,90 +1,77 @@
 package blender
 
 import (
-	"fmt"
-	"regexp"
-	"strconv"
 	"strings"
+
+	"github.com/mitchellh/mapstructure"
+	"github.com/rocketblend/rocketblend/pkg/blender/parser"
+	"github.com/rocketblend/rocketblend/pkg/types"
 )
 
-const (
-	renderOutputPattern = `Fra:(\d+) Mem:([0-9.]+[MK]?) \(Peak ([0-9.]+[MK]?)\) \| Time:([0-9:.]+) \| (.*)`
-
-	generalOperation   = "blender"
-	syncingOperation   = "syncing"
-	renderingOperation = "rendering"
-)
-
-type (
-	renderInfo struct {
-		FrameNumber int
-		Memory      string
-		PeakMemory  string
-		Time        string
-		Operation   string
-		Data        map[string]string
-	}
-)
-
-func parseRenderOutput(line string) (*renderInfo, error) {
-	re := regexp.MustCompile(renderOutputPattern)
-	match := re.FindStringSubmatch(line)
-
-	if len(match) != 6 {
-		return nil, fmt.Errorf("could not parse line: %s", line)
+func (b *Blender) processOutput(output string) types.BlenderEvent {
+	if output == "" {
+		return nil
 	}
 
-	frameNumber, err := strconv.Atoi(match[1])
+	event, err := parser.ParseBlenderEvent(output)
 	if err != nil {
-		return nil, err
+		trimmedOutput := strings.ToLower(strings.TrimSpace(output))
+		b.logger.Debug("blender", map[string]interface{}{
+			"output": trimmedOutput,
+			"error":  err.Error(),
+		})
+
+		return err
 	}
 
-	operationRaw := strings.ToLower(match[5])
-	operationType, operationDetails := parseOperation(operationRaw)
-
-	info := &renderInfo{
-		FrameNumber: frameNumber,
-		Memory:      strings.ToLower(match[2]),
-		PeakMemory:  strings.ToLower(match[3]),
-		Time:        strings.ToLower(match[4]),
-		Operation:   operationType,
-		Data:        make(map[string]string),
+	eventMap := convertEventToMap(event)
+	if len(eventMap) != 0 {
+		b.logger.Info("blender", eventMap)
 	}
 
-	if operationType == renderingOperation {
-		currentSample, totalSamples := parseSamples(operationDetails)
-		info.Data["progress"] = strconv.Itoa(currentSample)
-		info.Data["total"] = strconv.Itoa(totalSamples)
-	}
-
-	if operationType == syncingOperation {
-		info.Data["object"] = operationDetails
-	}
-
-	return info, nil
+	return event
 }
 
-func parseSamples(details string) (currentSample int, totalSamples int) {
-	re := regexp.MustCompile(`(\d+) / (\d+) samples`)
-	match := re.FindStringSubmatch(details)
-	if len(match) == 3 {
-		currentSample, _ = strconv.Atoi(match[1])
-		totalSamples, _ = strconv.Atoi(match[2])
-	}
-	return
-}
+func convertEventToMap(event types.BlenderEvent) map[string]interface{} {
+	result := make(map[string]interface{})
 
-func parseOperation(operation string) (string, string) {
-	operations := map[string]bool{
-		syncingOperation:   true,
-		renderingOperation: true,
-	}
-
-	for key := range operations {
-		if strings.Contains(operation, key) {
-			return key, strings.TrimPrefix(operation, key+" ")
+	decoder, err := mapstructure.NewDecoder(&mapstructure.DecoderConfig{
+		Metadata: nil,
+		Result:   &result,
+		TagName:  "mapstructure",
+		Squash:   true,
+	})
+	if err != nil {
+		return map[string]interface{}{
+			"type":  "unknown",
+			"error": "failed to create decoder",
 		}
 	}
 
-	return generalOperation, operation
+	err = decoder.Decode(event)
+	if err != nil {
+		return map[string]interface{}{
+			"type":  "unknown",
+			"error": err.Error(),
+		}
+	}
+
+	switch event.(type) {
+	case *types.QuitEvent:
+		result["event"] = "quit"
+	case *types.SavedFileEvent:
+		result["event"] = "saved"
+	case *types.RenderingEvent:
+		result["event"] = "rendering"
+	case *types.SynchronizingEvent:
+		result["event"] = "synchronizing"
+	case *types.UpdatingEvent:
+		result["event"] = "updating"
+	case *types.GenericEvent:
+		result["event"] = "raw"
+	case *types.ErrorEvent:
+		result["event"] = "error"
+	}
+
+	return result
 }
