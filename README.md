@@ -54,11 +54,11 @@ To install `rocketblend` directly from source code, you can use the `go install`
 go install github.com/rocketblend/rocketblend/cmd/rocketblend@latest
 ```
 
-This command will download the latest version of the `rocketblend` source code and compile the binary for your platform. Ensure you have Go 1.22 or later installed on your system.
+This command will download the latest version of the `rocketblend` source code and compile the binary for your platform. Ensure you have Go 1.23 or later installed on your system.
 
 ## See Also
 
-- [RocketBlend Launcher](https://github.com/rocketblend/rocketblend-launcher) - Replacement launcher for Blender that utilises RocketBlend.
+- [RocketBlend Desktop](https://github.com/rocketblend/rocketblend-desktop) - Desktop application version.
 - [RocketBlend Collector](https://github.com/rocketblend/rocketblend-collector) - CLI tool for generating build collections from offical blender releases.
 - [RocketBlend Companion](https://github.com/rocketblend/rocketblend-companion) - Blender addon to aid with working with RocketBlend. **NOTE: WIP**
 - [Official Library](https://github.com/rocketblend/official-library) - Collection of builds and addons.
@@ -66,7 +66,6 @@ This command will download the latest version of the `rocketblend` source code a
 ## Roadmap
 - CI/CD pipeline for releases.
 - Companion blender addon.
-- GUI launcher project.
 - Searchable build and addon website similar to [hub.docker.com](https://hub.docker.com/) or [pkg.go.dev](pkg.go.dev).
 
 ## Inspired By
