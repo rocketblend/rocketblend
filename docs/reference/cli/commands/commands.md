@@ -1,12 +1,12 @@
 ---
-description: A package manager for Blender.
+description: An improved command-line interface for Blender.
 ---
 
 # Rocketblend
 
 ## Synopsis
 
-A blender package manager.
+A dependency manager for Blender projects.
 
 Common actions for RocketBlend:
 
@@ -29,6 +29,7 @@ $ rocketblend [commands] [flags]
 ```shell-session
   -d, --directory string   working directory for the command (default ".")
   -h, --help               help for rocketblend
+  -l, --log-level string   log level (debug, info, warn, error) (default "info")
   -v, --verbose            enable verbose logging
       --version            version for rocketblend
 ```

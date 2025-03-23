@@ -23,5 +23,6 @@ $ rocketblend install [reference] [flags]
 
 ```shell-session
   -d, --directory string   working directory for the command (default ".")
+  -l, --log-level string   log level (debug, info, warn, error) (default "info")
   -v, --verbose            enable verbose logging
 ```

@@ -10,7 +10,7 @@ Please note that RocketBlend is still in the early stages of development and may
 
 ## What is RocketBlend?
 
-[RocketBlend ](https://github.com/rocketblend/rocketblend)is a command line (CLI) dependency manager and toolkit for the 3D graphics software, [Blender](https://www.blender.org/). It helps manage builds, add-ons, and offers extended blender commands for your projects.
+[RocketBlend ](https://github.com/rocketblend/rocketblend)is a command line (CLI) dependency manager and toolkit for the 3D graphics software, [Blender](https://www.blender.org/). It helps manage builds, add-ons, renders, and offers extended blender commands for your projects.
 
 ## Features
 
@@ -20,9 +20,9 @@ Please note that RocketBlend is still in the early stages of development and may
 * Lightweight and requires no GUI or background processes.
 * Customisable, with all data stored in .json files instead of internal .blend file data blocks or file headers.
 * Write your own packages for any Blender build or add-on, with support for alternative forks of Blender, such as Bforartists and K-Cycles.
-* Host your own library of packages, providing flexibility beyond the official ones. Fix broken or missing packages and continue working. Libraries are just git repositories containing `rocketpack.json` files that define an add-on or build. You can fork existing ones or create your own for use in your projects.
+* Host your own library of packages, providing flexibility beyond the official ones. Fix broken or missing packages and continue working. Libraries are just git repositories containing `rocketpack.json` files defining an add-on or build. You can fork existing ones or create your own for use in your projects.
 * Cross-platform compatibility with macOS, Windows, and Linux.
-* Open source and receptive to community feedback.
+* Open source and free.
 
 ## Want to jump right in?
 
@@ -44,4 +44,4 @@ Dive a little deeper and start exploring our references documentation to get an 
 
 Give the desktop application a try. It offers most of the same functionality as the CLI, plus some extra features, all within an easy-to-use interface.
 
-{% embed url="https://github.com/rocketblend/rocketblend-desktop" %}
+{% @github-files/github-code-block url="https://github.com/rocketblend/rocketblend-desktop" %}

@@ -8,24 +8,12 @@ description: >-
 
 ## RocketBlend Desktop
 
-{% embed url="https://github.com/rocketblend/rocketblend-desktop" %}
-A launcher and GUI for managing RocketBlend projects.
-{% endembed %}
+{% @github-files/github-code-block url="https://github.com/rocketblend/rocketblend-desktop" %}
 
 ## Official Library
 
-{% embed url="https://github.com/rocketblend/official-library" %}
-Contains offical builds and addons.
-{% endembed %}
+{% @github-files/github-code-block url="https://github.com/rocketblend/official-library" %}
 
 ## RocketBlend Collector
 
-{% embed url="https://github.com/rocketblend/rocketblend-collector" %}
-CLI tool for generating build package collections from official blender releases.
-{% endembed %}
-
-## RocketBlend Companion
-
-{% embed url="https://github.com/rocketblend/rocketblend-companion" %}
-Blender add-on to aid with working with RocketBlend.
-{% endembed %}
+{% @github-files/github-code-block url="https://github.com/rocketblend/rocketblend-collector" %}
