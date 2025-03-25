@@ -2,7 +2,6 @@ package command
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 
 	"github.com/rocketblend/rocketblend/pkg/reference"
@@ -17,6 +16,7 @@ type (
 	}
 )
 
+// newDescribeCommand creates a new cobra.Command that fetches a package definition.
 func newDescribeCommand(opts commandOpts) *cobra.Command {
 	cc := &cobra.Command{
 		Use:   "describe [reference]",
@@ -66,12 +66,12 @@ func describePackage(ctx context.Context, opts describePackageOpts) error {
 		return err
 	}
 
-	display, err := json.Marshal(packages.Packs[ref])
+	display, err := displayJSON(packages.Packs[ref])
 	if err != nil {
 		return err
 	}
 
-	fmt.Println(string(display))
+	fmt.Println(display)
 
 	return nil
 }

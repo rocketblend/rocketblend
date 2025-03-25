@@ -2,8 +2,8 @@ package command
 
 import (
 	"context"
-	"fmt"
 
+	"github.com/rocketblend/rocketblend/internal/cli/ui"
 	"github.com/rocketblend/rocketblend/pkg/reference"
 	"github.com/rocketblend/rocketblend/pkg/types"
 	"github.com/spf13/cobra"
@@ -11,7 +11,8 @@ import (
 
 type uninstallPackageOpts struct {
 	commandOpts
-	Reference string
+	Reference    string
+	ProgressChan chan<- ui.ProgressEvent
 }
 
 // newUninstallCommand creates a new cobra.Command that uninstalls dependencies from the current project.
@@ -22,23 +23,31 @@ func newUninstallCommand(opts commandOpts) *cobra.Command {
 		Long:  "Removes dependencies from the current project.",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return runWithSpinner(cmd.Context(), func(ctx context.Context) error {
-				if err := uninstallPackage(ctx, uninstallPackageOpts{
-					commandOpts: opts,
-					Reference:   args[0],
-				}); err != nil {
-					return fmt.Errorf("failed to uninstall package: %w", err)
-				}
-
-				return nil
-			}, &spinnerOptions{Suffix: "Removing package..."})
+			return runWithProgressUI(
+				cmd.Context(),
+				opts.Global.Verbose,
+				func(ctx context.Context, eventChan chan<- ui.ProgressEvent) error {
+					return uninstallPackage(ctx, uninstallPackageOpts{
+						commandOpts:  opts,
+						Reference:    args[0],
+						ProgressChan: eventChan,
+					})
+				})
 		},
 	}
 
 	return cc
 }
 
+// uninstallPackage performs the uninstallation steps and sends events after each step.
 func uninstallPackage(ctx context.Context, opts uninstallPackageOpts) error {
+	emit := func(ev ui.ProgressEvent) {
+		if opts.ProgressChan != nil {
+			opts.ProgressChan <- ev
+		}
+	}
+
+	emit(ui.StepEvent{Message: "Initialising..."})
 	container, err := getContainer(containerOpts{
 		AppName:     opts.AppName,
 		Development: opts.Development,
@@ -69,6 +78,7 @@ func uninstallPackage(ctx context.Context, opts uninstallPackageOpts) error {
 		return err
 	}
 
+	emit(ui.StepEvent{Message: "Loading profiles..."})
 	profiles, err := driver.LoadProfiles(ctx, &types.LoadProfilesOpts{
 		Paths: []string{opts.Global.WorkingDirectory},
 	})
@@ -76,10 +86,12 @@ func uninstallPackage(ctx context.Context, opts uninstallPackageOpts) error {
 		return err
 	}
 
+	emit(ui.StepEvent{Message: "Removing dependency..."})
 	profiles.Profiles[0].RemoveDependencies(&types.Dependency{
 		Reference: ref,
 	})
 
+	emit(ui.StepEvent{Message: "Saving profiles..."})
 	if err := driver.SaveProfiles(ctx, &types.SaveProfilesOpts{
 		Profiles: map[string]*types.Profile{
 			opts.Global.WorkingDirectory: profiles.Profiles[0],
@@ -89,5 +101,6 @@ func uninstallPackage(ctx context.Context, opts uninstallPackageOpts) error {
 		return err
 	}
 
+	emit(ui.CompletionEvent{Message: "Dependency removed!"})
 	return nil
 }

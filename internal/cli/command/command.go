@@ -56,9 +56,8 @@ func NewRootCommand(opts *RootCommandOpts) *cobra.Command {
 	cc := &cobra.Command{
 		Version: opts.Version,
 		Use:     opts.Name,
-		Short:   "RocketBlend is a build and addon manager for Blender projects.",
-		Long: `RocketBlend is a CLI tool that streamlines the process of managing
-builds and addons for Blender projects.
+		Short:   "An improved command-line for Blender.",
+		Long: `An improved command-line for Blender. Manage versions, add-ons, renders and more.
 
 Documentation is available at https://docs.rocketblend.io/`,
 		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {

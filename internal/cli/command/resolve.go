@@ -2,7 +2,6 @@ package command
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 
 	"github.com/rocketblend/rocketblend/pkg/types"
@@ -73,12 +72,12 @@ func resolveProject(ctx context.Context, opts resolveProjectOpts) error {
 		return err
 	}
 
-	output, err := json.Marshal(resolve.Installations[0])
+	display, err := displayJSON(resolve.Installations[0])
 	if err != nil {
 		return err
 	}
 
-	fmt.Println(string(output))
+	fmt.Println(display)
 
 	return nil
 }

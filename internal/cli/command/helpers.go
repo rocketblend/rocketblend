@@ -2,31 +2,12 @@ package command
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"path/filepath"
-	"time"
 
-	"github.com/briandowns/spinner"
+	"github.com/rocketblend/rocketblend/internal/cli/ui"
 )
-
-type spinnerOptions struct {
-	Spinner          []string
-	Suffix           string
-	CompletedMessage string
-	CanceledMessage  string
-	Verbose          bool
-}
-
-// func removeDuplicateStr(strs []string) []string {
-// 	sort.Strings(strs)
-// 	for i := len(strs) - 1; i > 0; i-- {
-// 		if strs[i] == strs[i-1] {
-// 			strs = append(strs[:i], strs[i+1:]...)
-// 		}
-// 	}
-
-// 	return strs
-// }
 
 func findFilePathForExt(dir string, ext string) (string, error) {
 	files, err := filepath.Glob(filepath.Join(dir, "*"+ext))
@@ -41,61 +22,21 @@ func findFilePathForExt(dir string, ext string) (string, error) {
 	return files[0], nil
 }
 
-func runWithSpinner(ctx context.Context, f func(context.Context) error, options *spinnerOptions) error {
-	if options == nil {
-		options = &spinnerOptions{}
+// runWithProgressUI is a helper that runs the provided work function with a progress UI
+// when verbose is false, otherwise it runs the work function directly.
+func runWithProgressUI(ctx context.Context, verbose bool, work func(ctx context.Context, eventChan chan<- ui.ProgressEvent) error) error {
+	if verbose {
+		return work(ctx, nil)
 	}
 
-	if options.Verbose {
-		return f(ctx)
+	return ui.Run(ctx, work)
+}
+
+func displayJSON(v any) (string, error) {
+	display, err := json.MarshalIndent(v, "", "  ")
+	if err != nil {
+		return "", err
 	}
 
-	if options.Spinner == nil {
-		options.Spinner = spinner.CharSets[11]
-	}
-
-	if options.Suffix == "" {
-		options.Suffix = "Loading..."
-	}
-
-	if options.CompletedMessage == "" {
-		options.CompletedMessage = "Complete!"
-	}
-
-	if options.CanceledMessage == "" {
-		options.CanceledMessage = "Canceled!"
-	}
-
-	// create a new spinner with the given set of spinner characters
-	s := spinner.New(options.Spinner, 100*time.Millisecond,
-		spinner.WithHiddenCursor(true),
-		spinner.WithSuffix(" "+options.Suffix),
-	)
-
-	// Start the spinner
-	s.Start()
-
-	errChan := make(chan error, 1)
-
-	go func() {
-		defer close(errChan)
-		err := f(ctx)
-		if err != nil {
-			errChan <- err
-		}
-	}()
-
-	select {
-	case <-ctx.Done():
-		s.Stop()
-		fmt.Println(options.CanceledMessage)
-		return ctx.Err()
-	case err := <-errChan:
-		s.Stop()
-		if err != nil {
-			return err
-		}
-		fmt.Println(options.CompletedMessage)
-		return nil
-	}
+	return string(display), nil
 }

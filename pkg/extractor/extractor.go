@@ -47,7 +47,7 @@ func New(opts ...Option) (*Extractor, error) {
 		opt(options)
 	}
 
-	options.Logger.Debug("initializing Extractor", map[string]interface{}{"cleanup": options.Cleanup})
+	options.Logger.Debug("initialising Extractor", map[string]interface{}{"cleanup": options.Cleanup})
 
 	return &Extractor{
 		cleanup: options.Cleanup,

@@ -116,7 +116,7 @@ func New(opts ...Option) (*Repository, error) {
 		return nil, err
 	}
 
-	options.Logger.Debug("initializing repository", map[string]interface{}{
+	options.Logger.Debug("initialising repository", map[string]interface{}{
 		"packagePath": options.PackagePath,
 	})
 
