@@ -4,18 +4,19 @@ import (
 	"context"
 	"fmt"
 
+	tea "github.com/charmbracelet/bubbletea"
+	"github.com/rocketblend/rocketblend/internal/cli/ui"
 	"github.com/rocketblend/rocketblend/pkg/reference"
 	"github.com/rocketblend/rocketblend/pkg/types"
 	"github.com/spf13/cobra"
 )
 
-type (
-	installPackageOpts struct {
-		commandOpts
-		Reference string
-		Pull      bool
-	}
-)
+type installPackageOpts struct {
+	commandOpts
+	Reference    string
+	Pull         bool
+	ProgressChan chan<- ui.InstallEvent
+}
 
 // newInstallCommand creates a new cobra command for installing project dependencies.
 func newInstallCommand(opts commandOpts) *cobra.Command {
@@ -27,36 +28,59 @@ func newInstallCommand(opts commandOpts) *cobra.Command {
 		Long:  `Adds the specified dependencies to the current project and installs them. If no reference is provided, all dependencies in the project are installed instead.`,
 		Args:  cobra.MaximumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			suffix := "Installing dependencies..."
-			reference := ""
+			ref := ""
 			if len(args) > 0 {
-				suffix = "Installing package..."
-				reference = args[0]
+				ref = args[0]
 			}
 
-			return runWithSpinner(cmd.Context(), func(ctx context.Context) error {
-				if err := installPackage(ctx, installPackageOpts{
-					commandOpts: opts,
-					Reference:   reference,
-					Pull:        update,
-				}); err != nil {
-					return fmt.Errorf("failed to install project dependencies: %w", err)
-				}
-
-				return nil
-			}, &spinnerOptions{
-				Suffix:  suffix,
-				Verbose: opts.Global.Verbose,
+			return installWithUI(cmd.Context(), installPackageOpts{
+				commandOpts: opts,
+				Reference:   ref,
+				Pull:        update,
 			})
 		},
 	}
 
 	cc.Flags().BoolVarP(&update, "update", "u", false, "updates to the latest package definitions before installing")
-
 	return cc
 }
 
+// installWithUI runs installPackage asynchronously and shows a Bubble Tea UI.
+func installWithUI(ctx context.Context, opts installPackageOpts) error {
+	if opts.Global.Verbose {
+		return installPackage(ctx, opts)
+	}
+
+	eventChan := make(chan ui.InstallEvent, 10)
+	opts.ProgressChan = eventChan
+	ctxInstall, cancelInstall := context.WithCancel(ctx)
+	defer cancelInstall()
+
+	go func() {
+		defer close(eventChan)
+		if err := installPackage(ctxInstall, opts); err != nil {
+			eventChan <- ui.InstallErrorEvent{Message: err.Error()}
+		}
+	}()
+
+	m := ui.NewInstallProgressModel(eventChan, cancelInstall)
+	program := tea.NewProgram(&m, tea.WithContext(ctx))
+	if _, err := program.Run(); err != nil {
+		return fmt.Errorf("failed to run UI: %w", err)
+	}
+
+	return nil
+}
+
+// installPackage performs the installation steps and sends events after each step.
 func installPackage(ctx context.Context, opts installPackageOpts) error {
+	emit := func(ev ui.InstallEvent) {
+		if opts.ProgressChan != nil {
+			opts.ProgressChan <- ev
+		}
+	}
+
+	emit(ui.InstallStepEvent{Step: 1, Message: "Initializing container..."})
 	container, err := getContainer(containerOpts{
 		AppName:     opts.AppName,
 		Development: opts.Development,
@@ -67,11 +91,13 @@ func installPackage(ctx context.Context, opts installPackageOpts) error {
 		return err
 	}
 
+	emit(ui.InstallStepEvent{Step: 2, Message: "Getting driver..."})
 	driver, err := container.GetDriver()
 	if err != nil {
 		return err
 	}
 
+	emit(ui.InstallStepEvent{Step: 3, Message: "Loading profiles..."})
 	profiles, err := driver.LoadProfiles(ctx, &types.LoadProfilesOpts{
 		Paths: []string{opts.Global.WorkingDirectory},
 	})
@@ -80,6 +106,7 @@ func installPackage(ctx context.Context, opts installPackageOpts) error {
 	}
 
 	if opts.Reference != "" {
+		emit(ui.InstallStepEvent{Step: 4, Message: "Updating dependencies..."})
 		configurator, err := container.GetConfigurator()
 		if err != nil {
 			return err
@@ -100,6 +127,7 @@ func installPackage(ctx context.Context, opts installPackageOpts) error {
 		})
 	}
 
+	emit(ui.InstallStepEvent{Step: 5, Message: "Tidying profiles..."})
 	if err := driver.TidyProfiles(ctx, &types.TidyProfilesOpts{
 		Profiles: profiles.Profiles,
 		Fetch:    opts.Pull,
@@ -107,12 +135,14 @@ func installPackage(ctx context.Context, opts installPackageOpts) error {
 		return err
 	}
 
+	emit(ui.InstallStepEvent{Step: 6, Message: "Installing profiles..."})
 	if err := driver.InstallProfiles(ctx, &types.InstallProfilesOpts{
 		Profiles: profiles.Profiles,
 	}); err != nil {
 		return err
 	}
 
+	emit(ui.InstallStepEvent{Step: 7, Message: "Saving profiles..."})
 	if err := driver.SaveProfiles(ctx, &types.SaveProfilesOpts{
 		Profiles: map[string]*types.Profile{
 			opts.Global.WorkingDirectory: profiles.Profiles[0],
@@ -122,5 +152,6 @@ func installPackage(ctx context.Context, opts installPackageOpts) error {
 		return err
 	}
 
+	emit(ui.InstallStepEvent{Step: 8, Message: "Save complete!"})
 	return nil
 }

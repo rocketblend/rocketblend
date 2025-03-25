@@ -34,11 +34,6 @@ type renderProgressModel struct {
 var (
 	progressStyle     = lipgloss.NewStyle().Foreground(lipgloss.Color("63")).Bold(true)
 	currentFrameStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("211"))
-	doneStyle         = lipgloss.NewStyle().Margin(1, 2).Foreground(lipgloss.Color("42"))
-	errorExitStyle    = lipgloss.NewStyle().Margin(1, 2).Foreground(lipgloss.Color("9"))
-	earlyExitStyle    = lipgloss.NewStyle().Margin(1, 2).Foreground(lipgloss.Color("208")) // Warning orange color
-	checkMark         = lipgloss.NewStyle().Foreground(lipgloss.Color("42")).SetString("✓")
-	legendStyle       = lipgloss.NewStyle().Foreground(lipgloss.Color("242")).Italic(true)
 )
 
 func NewRenderProgressModel(totalFrames int, eventChan <-chan types.BlenderEvent, cancel context.CancelFunc) renderProgressModel {
@@ -127,20 +122,20 @@ func (m *renderProgressModel) View() string {
 	if m.done {
 		totalTime := time.Since(m.startTime).Truncate(time.Second)
 		avgTime := totalTime / time.Duration(len(m.completedFrames))
-		return doneStyle.Render(fmt.Sprintf(
-			"Rendering complete! Rendered %d frames in %s (avg: %s per frame).\n",
+		return successStyle.Render(fmt.Sprintf(
+			"Rendered %d frames in %s (avg: %s per frame).\n",
 			m.totalFrames, totalTime, avgTime,
 		))
 	}
 
 	if m.errorMessage != "" {
-		return errorExitStyle.Render(fmt.Sprintf("Error: %s\n", m.errorMessage))
+		return errorStyle.Render(fmt.Sprintf("Error: %s\n", m.errorMessage))
 	}
 
 	if m.earlyExit {
 		totalTime := time.Since(m.startTime).Truncate(time.Second)
-		return earlyExitStyle.Render(fmt.Sprintf(
-			"Rendering stopped early. Completed %d/%d frames in %s.\n",
+		return warningStyle.Render(fmt.Sprintf(
+			"Rendering cancelled. Completed %d/%d frames in %s.\n",
 			len(m.completedFrames), m.totalFrames, totalTime,
 		))
 	}
@@ -150,11 +145,12 @@ func (m *renderProgressModel) View() string {
 			"%s Waiting for Blender to start rendering...",
 			m.spinner.View(),
 		)
+
 		return fmt.Sprintf(
 			"%s\n\n%s\n\n%s",
 			waitingMessage,
-			progressStyle.Render(m.progress.View()),             // Placeholder progress bar
-			legendStyle.Render("Press 'q' or 'esc' to cancel."), // Legend for controls
+			progressStyle.Render(m.progress.View()), // Placeholder progress bar
+			renderLegend(),                          // Legend for controls
 		)
 	}
 
@@ -168,7 +164,7 @@ func (m *renderProgressModel) View() string {
 		visibleFrames,
 		status,
 		prog,
-		legendStyle.Render("Press 'q' or 'esc' to cancel."), // Legend for controls
+		renderLegend(), // Legend for controls
 	)
 }
 
