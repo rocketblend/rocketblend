@@ -80,7 +80,7 @@ func installPackage(ctx context.Context, opts installPackageOpts) error {
 		}
 	}
 
-	emit(ui.StepEvent{Step: 1, Message: "Initializing container..."})
+	emit(ui.StepEvent{Message: "Initializing container..."})
 	container, err := getContainer(containerOpts{
 		AppName:     opts.AppName,
 		Development: opts.Development,
@@ -91,13 +91,13 @@ func installPackage(ctx context.Context, opts installPackageOpts) error {
 		return err
 	}
 
-	emit(ui.StepEvent{Step: 2, Message: "Getting driver..."})
+	emit(ui.StepEvent{Message: "Getting driver..."})
 	driver, err := container.GetDriver()
 	if err != nil {
 		return err
 	}
 
-	emit(ui.StepEvent{Step: 3, Message: "Loading profiles..."})
+	emit(ui.StepEvent{Message: "Loading profiles..."})
 	profiles, err := driver.LoadProfiles(ctx, &types.LoadProfilesOpts{
 		Paths: []string{opts.Global.WorkingDirectory},
 	})
@@ -106,7 +106,7 @@ func installPackage(ctx context.Context, opts installPackageOpts) error {
 	}
 
 	if opts.Reference != "" {
-		emit(ui.StepEvent{Step: 4, Message: "Updating dependencies..."})
+		emit(ui.StepEvent{Message: "Updating dependencies..."})
 		configurator, err := container.GetConfigurator()
 		if err != nil {
 			return err
@@ -127,7 +127,7 @@ func installPackage(ctx context.Context, opts installPackageOpts) error {
 		})
 	}
 
-	emit(ui.StepEvent{Step: 5, Message: "Tidying profiles..."})
+	emit(ui.StepEvent{Message: "Tidying profiles..."})
 	if err := driver.TidyProfiles(ctx, &types.TidyProfilesOpts{
 		Profiles: profiles.Profiles,
 		Fetch:    opts.Pull,
@@ -135,14 +135,14 @@ func installPackage(ctx context.Context, opts installPackageOpts) error {
 		return err
 	}
 
-	emit(ui.StepEvent{Step: 6, Message: "Installing dependencies..."})
+	emit(ui.StepEvent{Message: "Installing dependencies..."})
 	if err := driver.InstallProfiles(ctx, &types.InstallProfilesOpts{
 		Profiles: profiles.Profiles,
 	}); err != nil {
 		return err
 	}
 
-	emit(ui.StepEvent{Step: 7, Message: "Saving profiles..."})
+	emit(ui.StepEvent{Message: "Saving profiles..."})
 	if err := driver.SaveProfiles(ctx, &types.SaveProfilesOpts{
 		Profiles: map[string]*types.Profile{
 			opts.Global.WorkingDirectory: profiles.Profiles[0],
