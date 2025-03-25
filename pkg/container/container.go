@@ -106,7 +106,7 @@ func New(opts ...Option) (*Container, error) {
 		return nil, fmt.Errorf("failed to setup application directory: %w", err)
 	}
 
-	options.Logger.Debug("initializing container", map[string]interface{}{
+	options.Logger.Debug("initialising container", map[string]interface{}{
 		"path":        applicationDir,
 		"development": options.Development,
 	})

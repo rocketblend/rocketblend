@@ -67,7 +67,7 @@ func runProject(ctx context.Context, opts runProjectOpts) error {
 		}
 	}
 
-	emit(ui.StepEvent{Message: "Initializing..."})
+	emit(ui.StepEvent{Message: "Initialising..."})
 	blendFilePath, err := findFilePathForExt(opts.Global.WorkingDirectory, types.BlendFileExtension)
 	if err != nil {
 		return err

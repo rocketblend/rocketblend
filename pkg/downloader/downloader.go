@@ -72,7 +72,7 @@ func New(opts ...Option) (*Downloader, error) {
 		opt(options)
 	}
 
-	options.Logger.Debug("initializing Downloader", map[string]interface{}{
+	options.Logger.Debug("initialising Downloader", map[string]interface{}{
 		"bufferSize":      options.BufferSize,
 		"updateFrequency": options.UpdateInterval,
 	})

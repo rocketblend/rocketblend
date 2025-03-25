@@ -80,7 +80,7 @@ func installPackage(ctx context.Context, opts installPackageOpts) error {
 		}
 	}
 
-	emit(ui.StepEvent{Message: "Initializing..."})
+	emit(ui.StepEvent{Message: "Initialising..."})
 	container, err := getContainer(containerOpts{
 		AppName:     opts.AppName,
 		Development: opts.Development,

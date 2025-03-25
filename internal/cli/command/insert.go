@@ -78,7 +78,7 @@ func insertPackage(ctx context.Context, opts insertPackageOpts) error {
 		}
 	}
 
-	emit(ui.StepEvent{Message: "Initializing..."})
+	emit(ui.StepEvent{Message: "Initialising..."})
 	ref, err := reference.Parse(opts.Reference)
 	if err != nil {
 		return err

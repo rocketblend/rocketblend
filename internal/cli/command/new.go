@@ -94,7 +94,7 @@ func createProject(ctx context.Context, opts createProjectOpts) error {
 		return errors.New("project already exists in directory")
 	}
 
-	emit(ui.StepEvent{Message: "Initializing..."})
+	emit(ui.StepEvent{Message: "Initialising..."})
 	container, err := getContainer(containerOpts{
 		AppName:     opts.AppName,
 		Development: opts.Development,
