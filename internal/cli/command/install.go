@@ -15,7 +15,7 @@ type installPackageOpts struct {
 	commandOpts
 	Reference    string
 	Pull         bool
-	ProgressChan chan<- ui.InstallEvent
+	ProgressChan chan<- ui.ProgressEvent
 }
 
 // newInstallCommand creates a new cobra command for installing project dependencies.
@@ -51,7 +51,7 @@ func installWithUI(ctx context.Context, opts installPackageOpts) error {
 		return installPackage(ctx, opts)
 	}
 
-	eventChan := make(chan ui.InstallEvent, 10)
+	eventChan := make(chan ui.ProgressEvent, 10)
 	opts.ProgressChan = eventChan
 	installCtx, cancelInstall := context.WithCancel(ctx)
 	defer cancelInstall()
@@ -59,11 +59,11 @@ func installWithUI(ctx context.Context, opts installPackageOpts) error {
 	go func() {
 		defer close(eventChan)
 		if err := installPackage(installCtx, opts); err != nil {
-			eventChan <- ui.InstallErrorEvent{Message: err.Error()}
+			eventChan <- ui.ErrorEvent{Message: err.Error()}
 		}
 	}()
 
-	m := ui.NewInstallProgressModel(eventChan, cancelInstall)
+	m := ui.NewProgressModel(eventChan, cancelInstall)
 	program := tea.NewProgram(&m, tea.WithContext(ctx))
 	if _, err := program.Run(); err != nil {
 		return fmt.Errorf("failed to run UI: %w", err)
@@ -74,13 +74,13 @@ func installWithUI(ctx context.Context, opts installPackageOpts) error {
 
 // installPackage performs the installation steps and sends events after each step.
 func installPackage(ctx context.Context, opts installPackageOpts) error {
-	emit := func(ev ui.InstallEvent) {
+	emit := func(ev ui.ProgressEvent) {
 		if opts.ProgressChan != nil {
 			opts.ProgressChan <- ev
 		}
 	}
 
-	emit(ui.InstallStepEvent{Step: 1, Message: "Initializing container..."})
+	emit(ui.StepEvent{Step: 1, Message: "Initializing container..."})
 	container, err := getContainer(containerOpts{
 		AppName:     opts.AppName,
 		Development: opts.Development,
@@ -91,13 +91,13 @@ func installPackage(ctx context.Context, opts installPackageOpts) error {
 		return err
 	}
 
-	emit(ui.InstallStepEvent{Step: 2, Message: "Getting driver..."})
+	emit(ui.StepEvent{Step: 2, Message: "Getting driver..."})
 	driver, err := container.GetDriver()
 	if err != nil {
 		return err
 	}
 
-	emit(ui.InstallStepEvent{Step: 3, Message: "Loading profiles..."})
+	emit(ui.StepEvent{Step: 3, Message: "Loading profiles..."})
 	profiles, err := driver.LoadProfiles(ctx, &types.LoadProfilesOpts{
 		Paths: []string{opts.Global.WorkingDirectory},
 	})
@@ -106,7 +106,7 @@ func installPackage(ctx context.Context, opts installPackageOpts) error {
 	}
 
 	if opts.Reference != "" {
-		emit(ui.InstallStepEvent{Step: 4, Message: "Updating dependencies..."})
+		emit(ui.StepEvent{Step: 4, Message: "Updating dependencies..."})
 		configurator, err := container.GetConfigurator()
 		if err != nil {
 			return err
@@ -127,7 +127,7 @@ func installPackage(ctx context.Context, opts installPackageOpts) error {
 		})
 	}
 
-	emit(ui.InstallStepEvent{Step: 5, Message: "Tidying profiles..."})
+	emit(ui.StepEvent{Step: 5, Message: "Tidying profiles..."})
 	if err := driver.TidyProfiles(ctx, &types.TidyProfilesOpts{
 		Profiles: profiles.Profiles,
 		Fetch:    opts.Pull,
@@ -135,14 +135,14 @@ func installPackage(ctx context.Context, opts installPackageOpts) error {
 		return err
 	}
 
-	emit(ui.InstallStepEvent{Step: 6, Message: "Installing dependencies..."})
+	emit(ui.StepEvent{Step: 6, Message: "Installing dependencies..."})
 	if err := driver.InstallProfiles(ctx, &types.InstallProfilesOpts{
 		Profiles: profiles.Profiles,
 	}); err != nil {
 		return err
 	}
 
-	emit(ui.InstallStepEvent{Step: 7, Message: "Saving profiles..."})
+	emit(ui.StepEvent{Step: 7, Message: "Saving profiles..."})
 	if err := driver.SaveProfiles(ctx, &types.SaveProfilesOpts{
 		Profiles: map[string]*types.Profile{
 			opts.Global.WorkingDirectory: profiles.Profiles[0],
@@ -152,6 +152,6 @@ func installPackage(ctx context.Context, opts installPackageOpts) error {
 		return err
 	}
 
-	emit(ui.InstallStepEvent{Step: 8, Message: "Dependencies installed!"})
+	emit(ui.CompletionEvent{Message: "Dependencies installed!"})
 	return nil
 }

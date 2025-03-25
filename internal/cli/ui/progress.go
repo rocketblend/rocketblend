@@ -1,4 +1,3 @@
-// ui/install_progress.go
 package ui
 
 import (
@@ -10,38 +9,43 @@ import (
 )
 
 type (
-	// InstallEvent is the interface for install progress events.
-	InstallEvent interface {
-		isInstallEvent()
+	// ProgressEvent is the interface for progress events.
+	ProgressEvent interface {
+		isProgressEvent()
 	}
 
-	// InstallStepEvent is sent when a new step is started or completed.
-	InstallStepEvent struct {
+	// StepEvent is sent when a new step is started or completed.
+	StepEvent struct {
 		Step    int
 		Message string
 	}
 
-	// InstallErrorEvent is sent when an error occurs.
-	InstallErrorEvent struct {
+	// ErrorEvent is sent when an error occurs.
+	ErrorEvent struct {
 		Message string
 	}
 
-	// installProgressModel holds state for our install progress UI.
-	installProgressModel struct {
+	// CompletionEvent is sent when progress completes successfully.
+	CompletionEvent struct {
+		Message string
+	}
+
+	// progressModel holds state for our generic progress UI.
+	progressModel struct {
 		status     status
 		spinner    spinner.Model
-		eventChan  <-chan InstallEvent
+		eventChan  <-chan ProgressEvent
 		message    string
 		steps      []string
 		cancelFunc func()
 	}
 )
 
-// NewInstallProgressModel creates a new model with a spinner.
-func NewInstallProgressModel(eventChan <-chan InstallEvent, cancel func()) installProgressModel {
+// NewProgressModel creates a new model with a spinner.
+func NewProgressModel(eventChan <-chan ProgressEvent, cancel func()) progressModel {
 	s := spinner.New()
 	s.Style = lipgloss.NewStyle().Foreground(lipgloss.Color("63"))
-	return installProgressModel{
+	return progressModel{
 		status:     statusInProgress,
 		spinner:    s,
 		eventChan:  eventChan,
@@ -51,15 +55,15 @@ func NewInstallProgressModel(eventChan <-chan InstallEvent, cancel func()) insta
 }
 
 // Init starts the spinner and waits for the first event.
-func (m *installProgressModel) Init() tea.Cmd {
+func (m *progressModel) Init() tea.Cmd {
 	return tea.Batch(
 		m.spinner.Tick,
-		waitForInstallEvent(m.eventChan),
+		waitForProgressEvent(m.eventChan),
 	)
 }
 
 // Update handles incoming messages/events.
-func (m *installProgressModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+func (m *progressModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
 		switch msg.String() {
@@ -74,16 +78,17 @@ func (m *installProgressModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.spinner, cmd = m.spinner.Update(msg)
 		return m, cmd
 
-	case InstallStepEvent:
+	case StepEvent:
 		m.message = msg.Message
 		m.steps = append(m.steps, msg.Message)
-		if msg.Step == 8 {
-			m.status = statusDone
-			return m, tea.Quit
-		}
-		return m, waitForInstallEvent(m.eventChan)
+		return m, waitForProgressEvent(m.eventChan)
 
-	case InstallErrorEvent:
+	case CompletionEvent:
+		m.message = msg.Message
+		m.status = statusDone
+		return m, tea.Quit
+
+	case ErrorEvent:
 		m.message = msg.Message
 		m.status = statusError
 		return m, tea.Quit
@@ -93,7 +98,7 @@ func (m *installProgressModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 // View renders the UI.
-func (m *installProgressModel) View() string {
+func (m *progressModel) View() string {
 	switch m.status {
 	case statusError:
 		return errorStyle.Render(fmt.Sprintf("Error: %s\n", m.message))
@@ -120,12 +125,14 @@ func (m *installProgressModel) View() string {
 	return view
 }
 
-func waitForInstallEvent(eventChan <-chan InstallEvent) tea.Cmd {
+func waitForProgressEvent(eventChan <-chan ProgressEvent) tea.Cmd {
 	return func() tea.Msg {
 		return <-eventChan
 	}
 }
 
-func (InstallStepEvent) isInstallEvent() {}
+func (StepEvent) isProgressEvent() {}
 
-func (InstallErrorEvent) isInstallEvent() {}
+func (ErrorEvent) isProgressEvent() {}
+
+func (CompletionEvent) isProgressEvent() {}
