@@ -31,7 +31,7 @@ type (
 		spinner        spinner.Model
 		eventChan      <-chan InstallEvent
 		currentMessage string
-		completedSteps []string
+		steps          []string
 		done           bool
 		errorMessage   string
 		cancelled      bool
@@ -44,10 +44,10 @@ func NewInstallProgressModel(eventChan <-chan InstallEvent, cancel func()) insta
 	s := spinner.New()
 	s.Style = lipgloss.NewStyle().Foreground(lipgloss.Color("63"))
 	return installProgressModel{
-		spinner:        s,
-		eventChan:      eventChan,
-		completedSteps: []string{},
-		cancelFunc:     cancel,
+		spinner:    s,
+		eventChan:  eventChan,
+		steps:      []string{},
+		cancelFunc: cancel,
 	}
 }
 
@@ -76,7 +76,7 @@ func (m *installProgressModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case InstallStepEvent:
 		m.currentMessage = msg.Message
-		m.completedSteps = append(m.completedSteps, msg.Message)
+		m.steps = append(m.steps, msg.Message)
 		if msg.Step == 8 {
 			m.done = true
 			return m, tea.Quit
@@ -107,14 +107,16 @@ func (m *installProgressModel) View() string {
 	}
 
 	stepsView := ""
-	for _, step := range m.completedSteps {
-		stepsView += stepStyle.Render("✓ "+step) + "\n"
+	if len(m.steps) > 1 {
+		for _, step := range m.steps[:len(m.steps)-1] {
+			stepsView += stepStyle.Render("✓ "+step) + "\n"
+		}
 	}
 
-	view := fmt.Sprintf("%s %s\n\n%s\n\n%s",
+	view := fmt.Sprintf("%s%s %s\n\n%s",
+		stepsView,
 		m.spinner.View(),
 		infoStyle.Render(m.currentMessage),
-		stepsView,
 		renderLegend(),
 	)
 
