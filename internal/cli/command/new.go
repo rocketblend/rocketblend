@@ -8,20 +8,21 @@ import (
 	"path/filepath"
 	"strings"
 
+	tea "github.com/charmbracelet/bubbletea"
+	"github.com/rocketblend/rocketblend/internal/cli/ui"
 	"github.com/rocketblend/rocketblend/pkg/types"
 	"github.com/spf13/cobra"
 )
 
-type (
-	createProjectOpts struct {
-		commandOpts
-		Name      string
-		Overwrite bool
-	}
-)
+type createProjectOpts struct {
+	commandOpts
+	Name         string
+	Overwrite    bool
+	ProgressChan chan<- ui.ProgressEvent
+}
 
-// newNewCommand creates a new cobra.Command object initialized for creating a new project.
-// It expects a single argument which is the name of the project.
+// newNewCommand creates a new cobra.Command for creating a new project.
+// It expects an optional argument which is the name of the project.
 func newNewCommand(opts commandOpts) *cobra.Command {
 	var overwrite bool
 	var name string
@@ -32,43 +33,68 @@ func newNewCommand(opts commandOpts) *cobra.Command {
 		Long:  `Creates a new project with a specified name.`,
 		Args:  cobra.MaximumNArgs(1),
 		PreRunE: func(cmd *cobra.Command, args []string) error {
+			// Default project name is derived from the current working directory.
 			name = generateProjectName(filepath.Base(opts.Global.WorkingDirectory))
 			if len(args) > 0 {
 				name = args[0]
 			}
-
 			return validateProjectName(name)
 		},
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return runWithSpinner(cmd.Context(), func(ctx context.Context) error {
-				if err := createProject(ctx, createProjectOpts{
-					commandOpts: opts,
-					Name:        name,
-					Overwrite:   overwrite,
-				}); err != nil {
-					return fmt.Errorf("failed to create project: %w", err)
-				}
-
-				return nil
-			}, &spinnerOptions{
-				Suffix:  "Creating project...",
-				Verbose: opts.Global.Verbose,
-			})
+			projOpts := createProjectOpts{
+				commandOpts: opts,
+				Name:        name,
+				Overwrite:   overwrite,
+			}
+			// Use verbose mode directly without UI.
+			if opts.Global.Verbose {
+				return createProject(cmd.Context(), projOpts)
+			}
+			return createProjectWithUI(cmd.Context(), projOpts)
 		},
 	}
 
 	cc.Flags().BoolVarP(&overwrite, "overwrite", "o", false, "overwrite the project if one already exists")
-
 	return cc
 }
 
-// createProject creates a new project with the specified name.
+// createProjectWithUI runs createProject asynchronously and displays progress via the generic progress UI.
+func createProjectWithUI(ctx context.Context, opts createProjectOpts) error {
+	eventChan := make(chan ui.ProgressEvent, 10)
+	opts.ProgressChan = eventChan
+	projCtx, cancelProj := context.WithCancel(ctx)
+	defer cancelProj()
+
+	go func() {
+		defer close(eventChan)
+		if err := createProject(projCtx, opts); err != nil {
+			eventChan <- ui.ErrorEvent{Message: err.Error()}
+		}
+	}()
+
+	m := ui.NewProgressModel(eventChan, cancelProj)
+	program := tea.NewProgram(&m, tea.WithContext(ctx))
+	if _, err := program.Run(); err != nil {
+		return fmt.Errorf("failed to run UI: %w", err)
+	}
+
+	return nil
+}
+
+// createProject creates a new project with the specified name and emits progress events.
 func createProject(ctx context.Context, opts createProjectOpts) error {
-	existingProject := existingProject(opts.Global.WorkingDirectory)
-	if !opts.Overwrite && existingProject {
+	emit := func(ev ui.ProgressEvent) {
+		if opts.ProgressChan != nil {
+			opts.ProgressChan <- ev
+		}
+	}
+
+	// Check if a project already exists.
+	if existingProject(opts.Global.WorkingDirectory) && !opts.Overwrite {
 		return errors.New("project already exists in directory")
 	}
 
+	emit(ui.StepEvent{Message: "Initializing..."})
 	container, err := getContainer(containerOpts{
 		AppName:     opts.AppName,
 		Development: opts.Development,
@@ -94,6 +120,7 @@ func createProject(ctx context.Context, opts createProjectOpts) error {
 		return err
 	}
 
+	emit(ui.StepEvent{Message: "Creating profiles..."})
 	profiles, err := driver.LoadProfiles(ctx, &types.LoadProfilesOpts{
 		Paths: []string{opts.Global.WorkingDirectory},
 		Default: &types.Profile{
@@ -115,12 +142,14 @@ func createProject(ctx context.Context, opts createProjectOpts) error {
 		return err
 	}
 
+	emit(ui.StepEvent{Message: "Installing dependencies..."})
 	if err := driver.InstallProfiles(ctx, &types.InstallProfilesOpts{
 		Profiles: profiles.Profiles,
 	}); err != nil {
 		return err
 	}
 
+	emit(ui.StepEvent{Message: "Resolving dependencies..."})
 	resolveResults, err := driver.ResolveProfiles(ctx, &types.ResolveProfilesOpts{
 		Profiles: profiles.Profiles,
 	})
@@ -128,12 +157,13 @@ func createProject(ctx context.Context, opts createProjectOpts) error {
 		return err
 	}
 
+	emit(ui.StepEvent{Message: "Creating project..."})
+	blendFilePath := filepath.Join(opts.Global.WorkingDirectory, ensureBlendExtension(opts.Name))
 	blender, err := container.GetBlender()
 	if err != nil {
 		return err
 	}
 
-	blendFilePath := filepath.Join(opts.Global.WorkingDirectory, ensureBlendExtension(opts.Name))
 	if err := blender.Create(ctx, &types.CreateOpts{
 		BlenderOpts: types.BlenderOpts{
 			BlendFile: &types.BlendFile{
@@ -150,6 +180,7 @@ func createProject(ctx context.Context, opts createProjectOpts) error {
 		}
 	}
 
+	emit(ui.StepEvent{Message: "Saving profiles..."})
 	if err := driver.SaveProfiles(ctx, &types.SaveProfilesOpts{
 		Profiles: map[string]*types.Profile{
 			filepath.Dir(blendFilePath): profiles.Profiles[0],
@@ -160,6 +191,7 @@ func createProject(ctx context.Context, opts createProjectOpts) error {
 		return err
 	}
 
+	emit(ui.CompletionEvent{Message: "Project created!"})
 	return nil
 }
 
@@ -174,14 +206,13 @@ func existingBlendFile(path string) bool {
 	return err == nil
 }
 
-// existingProfile checks if a profile already exists at the specified path.
+// existingProfileDir checks if a profile directory exists at the specified path.
 func existingProfileDir(path string) bool {
 	profilePath := filepath.Join(path, types.ProfileDirName)
 	info, err := os.Stat(profilePath)
 	if err != nil {
 		return false
 	}
-
 	return info.IsDir()
 }
 
@@ -190,11 +221,9 @@ func validateProjectName(projectName string) error {
 	if filepath.IsAbs(projectName) || strings.Contains(projectName, string(filepath.Separator)) {
 		return fmt.Errorf("%q is not a valid project name, it should not contain any path separators", projectName)
 	}
-
 	if ext := filepath.Ext(projectName); ext != "" {
 		return fmt.Errorf("%q is not a valid project name, it should not contain any file extension", projectName)
 	}
-
 	return nil
 }
 
@@ -203,7 +232,6 @@ func ensureBlendExtension(filename string) string {
 	if !strings.HasSuffix(filename, ".blend") {
 		filename += ".blend"
 	}
-
 	return filename
 }
 
