@@ -7,7 +7,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/flowshot-io/x/pkg/logger"
+	"github.com/rocketblend/rocketblend/pkg/logger"
 )
 
 const (

@@ -7,12 +7,12 @@ import (
 	"sync"
 	"time"
 
-	"github.com/flowshot-io/x/pkg/logger"
 	"github.com/rocketblend/rocketblend/pkg/blender"
 	"github.com/rocketblend/rocketblend/pkg/configurator"
 	"github.com/rocketblend/rocketblend/pkg/downloader"
 	"github.com/rocketblend/rocketblend/pkg/driver"
 	"github.com/rocketblend/rocketblend/pkg/extractor"
+	"github.com/rocketblend/rocketblend/pkg/logger"
 	"github.com/rocketblend/rocketblend/pkg/repository"
 	"github.com/rocketblend/rocketblend/pkg/types"
 	"github.com/rocketblend/rocketblend/pkg/validator"

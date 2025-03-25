@@ -4,7 +4,7 @@ import (
 	"errors"
 	"os"
 
-	"github.com/flowshot-io/x/pkg/logger"
+	"github.com/rocketblend/rocketblend/pkg/logger"
 	"github.com/rocketblend/rocketblend/pkg/runtime"
 	"github.com/rocketblend/rocketblend/pkg/types"
 	"github.com/rocketblend/rocketblend/pkg/validator"
