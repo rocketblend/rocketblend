@@ -80,7 +80,7 @@ func installPackage(ctx context.Context, opts installPackageOpts) error {
 		}
 	}
 
-	emit(ui.StepEvent{Message: "Initializing container..."})
+	emit(ui.StepEvent{Message: "Initializing..."})
 	container, err := getContainer(containerOpts{
 		AppName:     opts.AppName,
 		Development: opts.Development,
@@ -91,7 +91,6 @@ func installPackage(ctx context.Context, opts installPackageOpts) error {
 		return err
 	}
 
-	emit(ui.StepEvent{Message: "Getting driver..."})
 	driver, err := container.GetDriver()
 	if err != nil {
 		return err

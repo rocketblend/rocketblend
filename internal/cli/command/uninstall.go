@@ -70,7 +70,7 @@ func uninstallPackage(ctx context.Context, opts uninstallPackageOpts) error {
 		}
 	}
 
-	emit(ui.StepEvent{Message: "Initializing container..."})
+	emit(ui.StepEvent{Message: "Initializing..."})
 	container, err := getContainer(containerOpts{
 		AppName:     opts.AppName,
 		Development: opts.Development,
@@ -96,7 +96,6 @@ func uninstallPackage(ctx context.Context, opts uninstallPackageOpts) error {
 		return err
 	}
 
-	emit(ui.StepEvent{Message: "Getting driver..."})
 	driver, err := container.GetDriver()
 	if err != nil {
 		return err
