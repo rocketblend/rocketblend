@@ -28,14 +28,12 @@ type (
 
 	// installProgressModel holds state for our install progress UI.
 	installProgressModel struct {
-		spinner        spinner.Model
-		eventChan      <-chan InstallEvent
-		currentMessage string
-		steps          []string
-		done           bool
-		errorMessage   string
-		cancelled      bool
-		cancelFunc     func()
+		status     status
+		spinner    spinner.Model
+		eventChan  <-chan InstallEvent
+		message    string
+		steps      []string
+		cancelFunc func()
 	}
 )
 
@@ -44,6 +42,7 @@ func NewInstallProgressModel(eventChan <-chan InstallEvent, cancel func()) insta
 	s := spinner.New()
 	s.Style = lipgloss.NewStyle().Foreground(lipgloss.Color("63"))
 	return installProgressModel{
+		status:     statusInProgress,
 		spinner:    s,
 		eventChan:  eventChan,
 		steps:      []string{},
@@ -65,7 +64,8 @@ func (m *installProgressModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.KeyMsg:
 		switch msg.String() {
 		case "ctrl+c", "q", "esc":
-			m.cancel()
+			m.status = statusCancelled
+			m.cancelFunc()
 			return m, tea.Quit
 		}
 
@@ -75,17 +75,17 @@ func (m *installProgressModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, cmd
 
 	case InstallStepEvent:
-		m.currentMessage = msg.Message
+		m.message = msg.Message
 		m.steps = append(m.steps, msg.Message)
 		if msg.Step == 8 {
-			m.done = true
+			m.status = statusDone
 			return m, tea.Quit
 		}
-
 		return m, waitForInstallEvent(m.eventChan)
 
 	case InstallErrorEvent:
-		m.errorMessage = msg.Message
+		m.message = msg.Message
+		m.status = statusError
 		return m, tea.Quit
 	}
 
@@ -94,15 +94,12 @@ func (m *installProgressModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 // View renders the UI.
 func (m *installProgressModel) View() string {
-	if m.errorMessage != "" {
-		return errorStyle.Render(fmt.Sprintf("Error: %s!\n", m.errorMessage))
-	}
-
-	if m.done {
-		return successStyle.Render(m.currentMessage, "\n")
-	}
-
-	if m.cancelled {
+	switch m.status {
+	case statusError:
+		return errorStyle.Render(fmt.Sprintf("Error: %s\n", m.message))
+	case statusDone:
+		return successStyle.Render(fmt.Sprintf("%s\n", m.message))
+	case statusCancelled:
 		return warningStyle.Render("Cancelled!\n")
 	}
 
@@ -116,16 +113,11 @@ func (m *installProgressModel) View() string {
 	view := fmt.Sprintf("%s%s %s\n\n%s",
 		stepsView,
 		m.spinner.View(),
-		infoStyle.Render(m.currentMessage),
+		infoStyle.Render(m.message),
 		renderLegend(),
 	)
 
 	return view
-}
-
-func (m *installProgressModel) cancel() {
-	m.cancelled = true
-	m.cancelFunc()
 }
 
 func waitForInstallEvent(eventChan <-chan InstallEvent) tea.Cmd {

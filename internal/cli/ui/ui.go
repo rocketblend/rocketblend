@@ -2,6 +2,15 @@ package ui
 
 import "github.com/charmbracelet/lipgloss"
 
+type status int
+
+const (
+	statusInProgress status = iota
+	statusDone
+	statusCancelled
+	statusError
+)
+
 var (
 	stepStyle    = lipgloss.NewStyle().Foreground(lipgloss.Color("42")).Bold(true)
 	successStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("42"))
