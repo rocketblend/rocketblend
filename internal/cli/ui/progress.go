@@ -1,6 +1,7 @@
 package ui
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/charmbracelet/bubbles/spinner"
@@ -41,8 +42,30 @@ type (
 	}
 )
 
-// NewProgressModel creates a new model with a spinner.
-func NewProgressModel(eventChan <-chan ProgressEvent, cancel func()) progressModel {
+// Run starts the progress UI.
+func Run(ctx context.Context, work func(ctx context.Context, eventChan chan<- ProgressEvent) error) error {
+	eventChan := make(chan ProgressEvent, 10)
+	ctxWithCancel, cancel := context.WithCancel(ctx)
+	defer cancel()
+
+	go func() {
+		defer close(eventChan)
+		if err := work(ctxWithCancel, eventChan); err != nil {
+			eventChan <- ErrorEvent{Message: err.Error()}
+		}
+	}()
+
+	m := newProgressModel(eventChan, cancel)
+	program := tea.NewProgram(&m, tea.WithContext(ctx))
+	if _, err := program.Run(); err != nil {
+		return fmt.Errorf("failed to run UI: %w", err)
+	}
+
+	return nil
+}
+
+// newProgressModel creates a new model with a spinner.
+func newProgressModel(eventChan <-chan ProgressEvent, cancel func()) progressModel {
 	s := spinner.New()
 	s.Style = lipgloss.NewStyle().Foreground(lipgloss.Color("63"))
 	return progressModel{

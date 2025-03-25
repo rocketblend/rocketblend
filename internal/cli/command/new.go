@@ -8,7 +8,6 @@ import (
 	"path/filepath"
 	"strings"
 
-	tea "github.com/charmbracelet/bubbletea"
 	"github.com/rocketblend/rocketblend/internal/cli/ui"
 	"github.com/rocketblend/rocketblend/pkg/types"
 	"github.com/spf13/cobra"
@@ -33,52 +32,30 @@ func newNewCommand(opts commandOpts) *cobra.Command {
 		Long:  `Creates a new project with a specified name.`,
 		Args:  cobra.MaximumNArgs(1),
 		PreRunE: func(cmd *cobra.Command, args []string) error {
-			// Default project name is derived from the current working directory.
 			name = generateProjectName(filepath.Base(opts.Global.WorkingDirectory))
 			if len(args) > 0 {
 				name = args[0]
 			}
+
 			return validateProjectName(name)
 		},
 		RunE: func(cmd *cobra.Command, args []string) error {
-			projOpts := createProjectOpts{
-				commandOpts: opts,
-				Name:        name,
-				Overwrite:   overwrite,
-			}
-			// Use verbose mode directly without UI.
-			if opts.Global.Verbose {
-				return createProject(cmd.Context(), projOpts)
-			}
-			return createProjectWithUI(cmd.Context(), projOpts)
+			return runWithProgressUI(
+				cmd.Context(),
+				opts.Global.Verbose,
+				func(ctx context.Context, eventChan chan<- ui.ProgressEvent) error {
+					return createProject(ctx, createProjectOpts{
+						commandOpts:  opts,
+						Name:         name,
+						Overwrite:    overwrite,
+						ProgressChan: eventChan,
+					})
+				})
 		},
 	}
 
 	cc.Flags().BoolVarP(&overwrite, "overwrite", "o", false, "overwrite the project if one already exists")
 	return cc
-}
-
-// createProjectWithUI runs createProject asynchronously and displays progress via the generic progress UI.
-func createProjectWithUI(ctx context.Context, opts createProjectOpts) error {
-	eventChan := make(chan ui.ProgressEvent, 10)
-	opts.ProgressChan = eventChan
-	projCtx, cancelProj := context.WithCancel(ctx)
-	defer cancelProj()
-
-	go func() {
-		defer close(eventChan)
-		if err := createProject(projCtx, opts); err != nil {
-			eventChan <- ui.ErrorEvent{Message: err.Error()}
-		}
-	}()
-
-	m := ui.NewProgressModel(eventChan, cancelProj)
-	program := tea.NewProgram(&m, tea.WithContext(ctx))
-	if _, err := program.Run(); err != nil {
-		return fmt.Errorf("failed to run UI: %w", err)
-	}
-
-	return nil
 }
 
 // createProject creates a new project with the specified name and emits progress events.

@@ -2,9 +2,7 @@ package command
 
 import (
 	"context"
-	"fmt"
 
-	tea "github.com/charmbracelet/bubbletea"
 	"github.com/rocketblend/rocketblend/internal/cli/ui"
 	"github.com/rocketblend/rocketblend/pkg/reference"
 	"github.com/rocketblend/rocketblend/pkg/types"
@@ -33,43 +31,22 @@ func newInstallCommand(opts commandOpts) *cobra.Command {
 				ref = args[0]
 			}
 
-			return installWithUI(cmd.Context(), installPackageOpts{
-				commandOpts: opts,
-				Reference:   ref,
-				Pull:        update,
-			})
+			return runWithProgressUI(
+				cmd.Context(),
+				opts.Global.Verbose,
+				func(ctx context.Context, eventChan chan<- ui.ProgressEvent) error {
+					return installPackage(ctx, installPackageOpts{
+						commandOpts:  opts,
+						Reference:    ref,
+						Pull:         update,
+						ProgressChan: eventChan,
+					})
+				})
 		},
 	}
 
 	cc.Flags().BoolVarP(&update, "update", "u", false, "updates to the latest package definitions before installing")
 	return cc
-}
-
-// installWithUI runs installPackage asynchronously and shows a Bubble Tea UI.
-func installWithUI(ctx context.Context, opts installPackageOpts) error {
-	if opts.Global.Verbose {
-		return installPackage(ctx, opts)
-	}
-
-	eventChan := make(chan ui.ProgressEvent, 10)
-	opts.ProgressChan = eventChan
-	installCtx, cancelInstall := context.WithCancel(ctx)
-	defer cancelInstall()
-
-	go func() {
-		defer close(eventChan)
-		if err := installPackage(installCtx, opts); err != nil {
-			eventChan <- ui.ErrorEvent{Message: err.Error()}
-		}
-	}()
-
-	m := ui.NewProgressModel(eventChan, cancelInstall)
-	program := tea.NewProgram(&m, tea.WithContext(ctx))
-	if _, err := program.Run(); err != nil {
-		return fmt.Errorf("failed to run UI: %w", err)
-	}
-
-	return nil
 }
 
 // installPackage performs the installation steps and sends events after each step.

@@ -1,8 +1,11 @@
 package command
 
 import (
+	"context"
 	"fmt"
 	"path/filepath"
+
+	"github.com/rocketblend/rocketblend/internal/cli/ui"
 )
 
 func findFilePathForExt(dir string, ext string) (string, error) {
@@ -16,4 +19,14 @@ func findFilePathForExt(dir string, ext string) (string, error) {
 	}
 
 	return files[0], nil
+}
+
+// runWithProgressUI is a helper that runs the provided work function with a progress UI
+// when verbose is false, otherwise it runs the work function directly.
+func runWithProgressUI(ctx context.Context, verbose bool, work func(ctx context.Context, eventChan chan<- ui.ProgressEvent) error) error {
+	if verbose {
+		return work(ctx, nil)
+	}
+
+	return ui.Run(ctx, work)
 }

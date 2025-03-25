@@ -2,9 +2,7 @@ package command
 
 import (
 	"context"
-	"fmt"
 
-	tea "github.com/charmbracelet/bubbletea"
 	"github.com/rocketblend/rocketblend/internal/cli/ui"
 	"github.com/rocketblend/rocketblend/pkg/reference"
 	"github.com/rocketblend/rocketblend/pkg/types"
@@ -25,41 +23,20 @@ func newUninstallCommand(opts commandOpts) *cobra.Command {
 		Long:  "Removes dependencies from the current project.",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return uninstallWithUI(cmd.Context(), uninstallPackageOpts{
-				commandOpts: opts,
-				Reference:   args[0],
-			})
+			return runWithProgressUI(
+				cmd.Context(),
+				opts.Global.Verbose,
+				func(ctx context.Context, eventChan chan<- ui.ProgressEvent) error {
+					return uninstallPackage(ctx, uninstallPackageOpts{
+						commandOpts:  opts,
+						Reference:    args[0],
+						ProgressChan: eventChan,
+					})
+				})
 		},
 	}
 
 	return cc
-}
-
-// uninstallWithUI runs uninstallPackage asynchronously and shows a Bubble Tea UI.
-func uninstallWithUI(ctx context.Context, opts uninstallPackageOpts) error {
-	if opts.Global.Verbose {
-		return uninstallPackage(ctx, opts)
-	}
-
-	eventChan := make(chan ui.ProgressEvent, 10)
-	opts.ProgressChan = eventChan
-	uninstallCtx, cancelUninstall := context.WithCancel(ctx)
-	defer cancelUninstall()
-
-	go func() {
-		defer close(eventChan)
-		if err := uninstallPackage(uninstallCtx, opts); err != nil {
-			eventChan <- ui.ErrorEvent{Message: err.Error()}
-		}
-	}()
-
-	m := ui.NewProgressModel(eventChan, cancelUninstall)
-	program := tea.NewProgram(&m, tea.WithContext(ctx))
-	if _, err := program.Run(); err != nil {
-		return fmt.Errorf("failed to run UI: %w", err)
-	}
-
-	return nil
 }
 
 // uninstallPackage performs the uninstallation steps and sends events after each step.

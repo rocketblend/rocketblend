@@ -2,9 +2,7 @@ package command
 
 import (
 	"context"
-	"fmt"
 
-	tea "github.com/charmbracelet/bubbletea"
 	"github.com/rocketblend/rocketblend/internal/cli/ui"
 	"github.com/rocketblend/rocketblend/pkg/types"
 	"github.com/spf13/cobra"
@@ -23,40 +21,19 @@ func newRunCommand(opts commandOpts) *cobra.Command {
 		Long:  "Launches the project in the current working directory.",
 		Args:  cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return runProjectWithUI(cmd.Context(), runProjectOpts{
-				commandOpts: opts,
-			})
+			return runWithProgressUI(
+				cmd.Context(),
+				opts.Global.Verbose,
+				func(ctx context.Context, eventChan chan<- ui.ProgressEvent) error {
+					return runProject(ctx, runProjectOpts{
+						commandOpts:  opts,
+						ProgressChan: eventChan,
+					})
+				})
 		},
 	}
 
 	return cc
-}
-
-// runProjectWithUI runs runProject asynchronously and displays progress using the Bubble Tea UI.
-func runProjectWithUI(ctx context.Context, opts runProjectOpts) error {
-	if opts.Global.Verbose {
-		return runProject(ctx, opts)
-	}
-
-	eventChan := make(chan ui.ProgressEvent, 10)
-	opts.ProgressChan = eventChan
-	runCtx, cancelRun := context.WithCancel(ctx)
-	defer cancelRun()
-
-	go func() {
-		defer close(eventChan)
-		if err := runProject(runCtx, opts); err != nil {
-			eventChan <- ui.ErrorEvent{Message: err.Error()}
-		}
-	}()
-
-	m := ui.NewProgressModel(eventChan, cancelRun)
-	program := tea.NewProgram(&m, tea.WithContext(ctx))
-	if _, err := program.Run(); err != nil {
-		return fmt.Errorf("failed to run UI: %w", err)
-	}
-
-	return nil
 }
 
 // runProject performs the steps needed to run the project and emits progress events.

@@ -6,7 +6,6 @@ import (
 	"path/filepath"
 	"strings"
 
-	tea "github.com/charmbracelet/bubbletea"
 	"github.com/rocketblend/rocketblend/internal/cli/ui"
 	"github.com/rocketblend/rocketblend/pkg/helpers"
 	"github.com/rocketblend/rocketblend/pkg/reference"
@@ -30,44 +29,24 @@ func newInsertCommand(opts commandOpts) *cobra.Command {
 			if !strings.HasPrefix(args[0], "local/") {
 				return fmt.Errorf("local package reference must start with local/")
 			}
+
 			return nil
 		},
 		RunE: func(cmd *cobra.Command, args []string) error {
-			insOpts := insertPackageOpts{
-				commandOpts: opts,
-				Reference:   args[0],
-			}
-			if opts.Global.Verbose {
-				return insertPackage(cmd.Context(), insOpts)
-			}
-			return insertWithUI(cmd.Context(), insOpts)
+			return runWithProgressUI(
+				cmd.Context(),
+				opts.Global.Verbose,
+				func(ctx context.Context, eventChan chan<- ui.ProgressEvent) error {
+					return insertPackage(ctx, insertPackageOpts{
+						commandOpts:  opts,
+						Reference:    args[0],
+						ProgressChan: eventChan,
+					})
+				})
 		},
 	}
 
 	return cc
-}
-
-// insertWithUI runs insertPackage asynchronously and displays progress using the generic progress UI.
-func insertWithUI(ctx context.Context, opts insertPackageOpts) error {
-	eventChan := make(chan ui.ProgressEvent, 10)
-	opts.ProgressChan = eventChan
-	insCtx, cancelInsert := context.WithCancel(ctx)
-	defer cancelInsert()
-
-	go func() {
-		defer close(eventChan)
-		if err := insertPackage(insCtx, opts); err != nil {
-			eventChan <- ui.ErrorEvent{Message: err.Error()}
-		}
-	}()
-
-	m := ui.NewProgressModel(eventChan, cancelInsert)
-	program := tea.NewProgram(&m, tea.WithContext(ctx))
-	if _, err := program.Run(); err != nil {
-		return fmt.Errorf("failed to run UI: %w", err)
-	}
-
-	return nil
 }
 
 // insertPackage performs the package insertion and emits progress events for each step.
