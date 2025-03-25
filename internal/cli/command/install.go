@@ -53,12 +53,12 @@ func installWithUI(ctx context.Context, opts installPackageOpts) error {
 
 	eventChan := make(chan ui.InstallEvent, 10)
 	opts.ProgressChan = eventChan
-	ctxInstall, cancelInstall := context.WithCancel(ctx)
+	installCtx, cancelInstall := context.WithCancel(ctx)
 	defer cancelInstall()
 
 	go func() {
 		defer close(eventChan)
-		if err := installPackage(ctxInstall, opts); err != nil {
+		if err := installPackage(installCtx, opts); err != nil {
 			eventChan <- ui.InstallErrorEvent{Message: err.Error()}
 		}
 	}()
@@ -135,7 +135,7 @@ func installPackage(ctx context.Context, opts installPackageOpts) error {
 		return err
 	}
 
-	emit(ui.InstallStepEvent{Step: 6, Message: "Installing profiles..."})
+	emit(ui.InstallStepEvent{Step: 6, Message: "Installing dependencies..."})
 	if err := driver.InstallProfiles(ctx, &types.InstallProfilesOpts{
 		Profiles: profiles.Profiles,
 	}); err != nil {
@@ -152,6 +152,6 @@ func installPackage(ctx context.Context, opts installPackageOpts) error {
 		return err
 	}
 
-	emit(ui.InstallStepEvent{Step: 8, Message: "Save complete!"})
+	emit(ui.InstallStepEvent{Step: 8, Message: "Dependencies installed!"})
 	return nil
 }

@@ -34,7 +34,8 @@ type (
 		completedSteps []string
 		done           bool
 		errorMessage   string
-		cancel         func()
+		cancelled      bool
+		cancelFunc     func()
 	}
 )
 
@@ -46,12 +47,12 @@ func NewInstallProgressModel(eventChan <-chan InstallEvent, cancel func()) insta
 		spinner:        s,
 		eventChan:      eventChan,
 		completedSteps: []string{},
-		cancel:         cancel,
+		cancelFunc:     cancel,
 	}
 }
 
 // Init starts the spinner and waits for the first event.
-func (m installProgressModel) Init() tea.Cmd {
+func (m *installProgressModel) Init() tea.Cmd {
 	return tea.Batch(
 		m.spinner.Tick,
 		waitForInstallEvent(m.eventChan),
@@ -92,13 +93,17 @@ func (m *installProgressModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 // View renders the UI.
-func (m installProgressModel) View() string {
+func (m *installProgressModel) View() string {
 	if m.errorMessage != "" {
-		return errorStyle.Render(fmt.Sprintf("Error: %s\n", m.errorMessage))
+		return errorStyle.Render(fmt.Sprintf("Error: %s!\n", m.errorMessage))
 	}
 
 	if m.done {
-		return successStyle.Render("Installation complete!", "\n")
+		return successStyle.Render(m.currentMessage, "\n")
+	}
+
+	if m.cancelled {
+		return warningStyle.Render("Cancelled!\n")
 	}
 
 	stepsView := ""
@@ -114,6 +119,11 @@ func (m installProgressModel) View() string {
 	)
 
 	return view
+}
+
+func (m *installProgressModel) cancel() {
+	m.cancelled = true
+	m.cancelFunc()
 }
 
 func waitForInstallEvent(eventChan <-chan InstallEvent) tea.Cmd {
