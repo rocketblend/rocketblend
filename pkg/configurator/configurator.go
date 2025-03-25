@@ -114,6 +114,10 @@ func (c *Configurator) GetValueByString(key string) string {
 }
 
 func (c *Configurator) SetValueByString(key string, value string) error {
+	if key == "" {
+		return errors.New("key is required")
+	}
+
 	c.viper.Set(key, value)
 
 	_, err := c.Get()
@@ -164,7 +168,7 @@ func platformHookFunc() mapstructure.DecodeHookFuncType {
 }
 
 func load(path string, name string, extension string) (*viper.Viper, error) {
-	v := viper.New()
+	v := viper.NewWithOptions(viper.KeyDelimiter("::"))
 
 	platform := runtime.DetectPlatform()
 	if platform == runtime.Undefined {

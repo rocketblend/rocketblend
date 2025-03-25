@@ -2,6 +2,7 @@ package command
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"path/filepath"
 
@@ -29,4 +30,13 @@ func runWithProgressUI(ctx context.Context, verbose bool, work func(ctx context.
 	}
 
 	return ui.Run(ctx, work)
+}
+
+func displayJSON(v any) (string, error) {
+	display, err := json.MarshalIndent(v, "", "  ")
+	if err != nil {
+		return "", err
+	}
+
+	return string(display), nil
 }

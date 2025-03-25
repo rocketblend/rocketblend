@@ -19,6 +19,7 @@ type insertPackageOpts struct {
 	ProgressChan chan<- ui.ProgressEvent
 }
 
+// newInsertCommand creates a new cobra command for inserting a package into the local library.
 func newInsertCommand(opts commandOpts) *cobra.Command {
 	cc := &cobra.Command{
 		Use:   "insert",
