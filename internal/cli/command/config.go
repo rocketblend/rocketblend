@@ -2,6 +2,7 @@ package command
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/rocketblend/rocketblend/pkg/types"
 	"github.com/spf13/cobra"
@@ -32,7 +33,7 @@ Use "::" for nested keys (e.g., "example::key").`,
 
 			return manageConfig(configOpts{
 				commandOpts: opts,
-				Key:         key,
+				Key:         strings.TrimPrefix(key, "config::"),
 				Value:       value,
 			})
 		},
@@ -83,7 +84,7 @@ func getConfigValue(configurator types.Configurator, value string) (string, erro
 	if value == "" {
 		return displayJSON(map[string]interface{}{
 			"path":   configurator.Path(),
-			"values": configurator.GetAllValues(),
+			"config": configurator.GetAllValues(),
 		})
 	}
 
