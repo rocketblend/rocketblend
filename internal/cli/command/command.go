@@ -57,8 +57,7 @@ func NewRootCommand(opts *RootCommandOpts) *cobra.Command {
 		Version: opts.Version,
 		Use:     opts.Name,
 		Short:   "An improved command-line for Blender.",
-		Long: `An improved command-line for Blender. Manage versions,
-add-ons, renders and more.
+		Long: `An improved command-line for Blender. Manage versions, add-ons, renders and more.
 
 Documentation is available at https://docs.rocketblend.io/`,
 		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
