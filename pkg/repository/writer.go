@@ -1,6 +1,6 @@
 package repository
 
-import "github.com/flowshot-io/x/pkg/logger"
+import "github.com/rocketblend/rocketblend/pkg/logger"
 
 type LoggerWriter struct {
 	Logger logger.Logger
