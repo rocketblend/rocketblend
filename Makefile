@@ -42,7 +42,7 @@ play-demo:
 	@asciinema play examples/demo.cast
 
 render-demo:
-	@cat demo.cast | svg-term --out examples/demo.svg --window --no-cursor --to 60000
+	@cat examples/demo.cast | svg-term --out examples/demo.svg --window --no-cursor --to 60000
 
 dry:
 	@goreleaser release --snapshot --rm-dist
