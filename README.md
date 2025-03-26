@@ -65,11 +65,6 @@ This command will download the latest version of the `rocketblend` source code a
 - [RocketBlend Companion](https://github.com/rocketblend/rocketblend-companion) - Blender addon to aid with working with RocketBlend. **NOTE: WIP**
 - [Official Library](https://github.com/rocketblend/official-library) - Collection of builds and addons.
 
-## Roadmap
-- CI/CD pipeline for releases.
-- Companion blender addon.
-- Searchable build and addon website similar to [hub.docker.com](https://hub.docker.com/) or [pkg.go.dev](pkg.go.dev).
-
 ## Inspired By
 
 - [Blender Launcher](https://github.com/DotBow/Blender-Launcher)
