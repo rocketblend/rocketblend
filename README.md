@@ -7,7 +7,7 @@
 [![Go Report Card](https://goreportcard.com/badge/github.com/rocketblend/rocketblend)](https://goreportcard.com/report/github.com/rocketblend/rocketblend)
 [![GitHub](https://img.shields.io/github/license/rocketblend/rocketblend)](https://github.com/rocketblend/rocketblend/blob/master/LICENSE)
 
-![Hero image of RocketBlend CLI](docs/assets/rocketblend-about.svg)
+![Hero image of RocketBlend CLI](docs/examples/rocketblend-help.svg)
 
 > RocketBlend is a CLI tool that streamlines the process of managing builds and addons for [Blender](https://www.blender.org/) projects.
 
@@ -15,7 +15,7 @@
 
 See [Quick Start](https://docs.rocketblend.io/getting-started/quick-start) in our documentation.
 
-![Demo video RocketBlend CLI](examples/demo.svg)
+![Demo video RocketBlend CLI](docs/examples/rocketblend-demo.svg)
 
 ## Installation
 
