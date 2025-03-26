@@ -36,10 +36,13 @@ image:
 	@svg-term --command rocketblend --out docs/assets/rocketblend-about.svg --window --no-cursor --at 50 --width 85 --height 29
 
 record-demo:
-	@asciinema rec demo.cast
+	@asciinema rec examples/demo.cast
+
+play-demo:
+	@asciinema play examples/demo.cast
 
 render-demo:
-	@cat demo.cast | svg-term --out examples/demo.svg --window --no-cursor --height 20 --from 200 --to 39000
+	@cat demo.cast | svg-term --out examples/demo.svg --window --no-cursor --to 60000
 
 dry:
 	@goreleaser release --snapshot --rm-dist
