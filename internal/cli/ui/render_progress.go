@@ -28,7 +28,7 @@ type renderProgressModel struct {
 	earlyExit       bool
 	lastUpdate      time.Time
 	errorMessage    string
-	cancel          context.CancelFunc // Cancel function to stop the render
+	cancelFunc      context.CancelFunc
 }
 
 var (
@@ -51,7 +51,7 @@ func NewRenderProgressModel(totalFrames int, eventChan <-chan types.BlenderEvent
 		totalFrames: totalFrames,
 		startTime:   time.Now(),
 		lastUpdate:  time.Now(),
-		cancel:      cancel,
+		cancelFunc:  cancel,
 	}
 }
 
@@ -68,7 +68,7 @@ func (m *renderProgressModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		switch msg.String() {
 		case "ctrl+c", "esc", "q":
 			m.earlyExit = true
-			m.cancel()
+			m.cancelFunc()
 			return m, tea.Quit
 		}
 
@@ -98,10 +98,6 @@ func (m *renderProgressModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		if savedFileEvent, ok := msg.(*types.SavedFileEvent); ok {
 			return m.handleSavedFileEvent(savedFileEvent)
-		}
-
-		if genericEvent, ok := msg.(*types.GenericEvent); ok {
-			tea.Printf("%s %s\n", checkMark, genericEvent.Message)
 		}
 
 		if errorEvent, ok := msg.(*types.ErrorEvent); ok {
@@ -149,8 +145,8 @@ func (m *renderProgressModel) View() string {
 		return fmt.Sprintf(
 			"%s\n\n%s\n\n%s",
 			waitingMessage,
-			progressStyle.Render(m.progress.View()), // Placeholder progress bar
-			renderLegend(),                          // Legend for controls
+			progressStyle.Render(m.progress.View()),
+			renderLegend(),
 		)
 	}
 
@@ -164,7 +160,7 @@ func (m *renderProgressModel) View() string {
 		visibleFrames,
 		status,
 		prog,
-		renderLegend(), // Legend for controls
+		renderLegend(),
 	)
 }
 
@@ -229,23 +225,13 @@ func (m *renderProgressModel) handleRenderEvent(e *types.RenderingEvent) (tea.Mo
 		(float64(m.totalFrames) * float64(m.totalSamples))
 	progressCmd := m.progress.SetPercent(totalProgress)
 
-	tea.Printf(
-		"%s Frame: %s, Progress: %d/%d, Memory: %s, Peak Memory: %s\n",
-		checkMark,
-		currentFrameStyle.Render(fmt.Sprintf("%d", e.Frame)),
-		e.Current, e.Total,
-		e.Memory, e.PeakMemory,
-	)
-
 	return m, tea.Batch(progressCmd, waitForBlenderEvent(m.eventChan))
 }
 
-func (m *renderProgressModel) handleSavedFileEvent(e *types.SavedFileEvent) (tea.Model, tea.Cmd) {
-	// Only mark the current frame as complete if rendering is done
-	if m.currentSample == m.totalSamples {
-		m.completedFrames = append(m.completedFrames, m.currentFrame)
-		tea.Printf("%s Frame %d saved: %s\n", checkMark, m.currentFrame, e.Path)
-	}
+func (m *renderProgressModel) handleSavedFileEvent(_ *types.SavedFileEvent) (tea.Model, tea.Cmd) {
+	// Cycles noise threshold can cause the frame to be completed before the last sample.
+	m.currentSample = m.totalSamples
+	m.completedFrames = append(m.completedFrames, m.currentFrame)
 
 	// Calculate total progress based on completed frames and current frame's progress
 	totalProgress := (float64(len(m.completedFrames)) * float64(m.totalSamples)) /
