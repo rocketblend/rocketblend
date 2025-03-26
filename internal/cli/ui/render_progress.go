@@ -28,7 +28,7 @@ type renderProgressModel struct {
 	earlyExit       bool
 	lastUpdate      time.Time
 	errorMessage    string
-	cancel          context.CancelFunc // Cancel function to stop the render
+	cancel          context.CancelFunc
 }
 
 var (
@@ -149,8 +149,8 @@ func (m *renderProgressModel) View() string {
 		return fmt.Sprintf(
 			"%s\n\n%s\n\n%s",
 			waitingMessage,
-			progressStyle.Render(m.progress.View()), // Placeholder progress bar
-			renderLegend(),                          // Legend for controls
+			progressStyle.Render(m.progress.View()),
+			renderLegend(),
 		)
 	}
 
@@ -164,7 +164,7 @@ func (m *renderProgressModel) View() string {
 		visibleFrames,
 		status,
 		prog,
-		renderLegend(), // Legend for controls
+		renderLegend(),
 	)
 }
 
@@ -241,11 +241,10 @@ func (m *renderProgressModel) handleRenderEvent(e *types.RenderingEvent) (tea.Mo
 }
 
 func (m *renderProgressModel) handleSavedFileEvent(e *types.SavedFileEvent) (tea.Model, tea.Cmd) {
-	// Only mark the current frame as complete if rendering is done
-	if m.currentSample == m.totalSamples {
-		m.completedFrames = append(m.completedFrames, m.currentFrame)
-		tea.Printf("%s Frame %d saved: %s\n", checkMark, m.currentFrame, e.Path)
-	}
+	// Cycles noise threshold can cause the frame to be completed before the last sample.
+	m.currentSample = m.totalSamples
+	m.completedFrames = append(m.completedFrames, m.currentFrame)
+	tea.Printf("%s Frame %d saved: %s\n", checkMark, m.currentFrame, e.Path)
 
 	// Calculate total progress based on completed frames and current frame's progress
 	totalProgress := (float64(len(m.completedFrames)) * float64(m.totalSamples)) /
