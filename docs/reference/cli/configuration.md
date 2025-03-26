@@ -9,7 +9,7 @@ description: Customising RocketBlend
 {% code title="config.json" fullWidth="false" %}
 ```json
 {
-  "platform": "<windows/macos/linux>"
+  "platform": "<windows/macos/linux>",
   "defaultbuild": "github.com/rocketblend/official-library/packages/v0/builds/blender/4.2.2",
   "installationspath": "./installations",
   "packagespath": "./packages",
@@ -18,7 +18,7 @@ description: Customising RocketBlend
     "github.com/rocketblend/official-library/packages/v0/addons": "addons",
     "github.com/rocketblend/official-library/packages/v0/builds": "builds",
     "github.com/rocketblend/official-library/packages/v0/builds/blender": "blender"
-  },
+  }
 }
 ```
 {% endcode %}

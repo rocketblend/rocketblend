@@ -18,12 +18,7 @@ func New() *cobra.Command {
 	// Configure help template colours
 	cc.Init(&cc.Config{
 		RootCmd:         rootCMD,
-		Headings:        cc.Cyan + cc.Bold + cc.Underline,
-		Commands:        cc.Bold,
-		ExecName:        cc.Bold,
-		Flags:           cc.Bold,
-		Aliases:         cc.Magenta,
-		Example:         cc.Green + cc.Italic,
+		Headings:        cc.Underline,
 		NoExtraNewlines: true,
 		NoBottomNewline: true,
 	})
