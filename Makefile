@@ -35,6 +35,12 @@ build:
 image:
 	@svg-term --command rocketblend --out docs/assets/rocketblend-about.svg --window --no-cursor --at 50 --width 85 --height 29
 
+record-demo:
+	@asciinema rec demo.cast
+
+render-demo:
+	@cat demo.cast | svg-term --out examples/demo.svg --window --no-cursor --at 50 --width 85 --height 29
+
 dry:
 	@goreleaser release --snapshot --rm-dist
 
