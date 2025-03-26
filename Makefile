@@ -39,7 +39,7 @@ record-demo:
 	@asciinema rec demo.cast
 
 render-demo:
-	@cat demo.cast | svg-term --out examples/demo.svg --window --no-cursor --at 50 --width 85 --height 29
+	@cat demo.cast | svg-term --out examples/demo.svg --window --no-cursor --height 20 --from 200 --to 39000
 
 dry:
 	@goreleaser release --snapshot --rm-dist
