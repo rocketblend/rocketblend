@@ -33,7 +33,7 @@ build:
 	@go build ./cmd/rocketblend
 
 image:
-	@svg-term --command rocketblend --out docs/assets/rocketblend-about.svg --window --no-cursor --at 50 --width 85 --height 29
+	@svg-term --command rocketblend --out docs/assets/rocketblend-help.svg --window --no-cursor --at 50 --width 85 --height 29
 
 record-demo:
 	@asciinema rec docs/examples/demo.cast
