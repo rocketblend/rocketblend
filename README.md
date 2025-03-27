@@ -5,7 +5,7 @@
 [![Github tag](https://badgen.net/github/tag/rocketblend/rocketblend)](https://github.com/rocketblend/rocketblend/tags)
 [![Go Doc](https://img.shields.io/badge/go-documentation-blue.svg?style=flat-square)](https://pkg.go.dev/github.com/rocketblend/rocketblend)
 [![Go Report Card](https://goreportcard.com/badge/github.com/rocketblend/rocketblend)](https://goreportcard.com/report/github.com/rocketblend/rocketblend)
-[![GitHub](https://img.shields.io/github/license/rocketblend/rocketblend)](https://github.com/rocketblend/rocketblend/blob/master/LICENSE)
+[![GitHub](https://img.shields.io/github/license/rocketblend/rocketblend)](https://github.com/rocketblend/rocketblend/blob/master/COPUING.LESSER)
 
 ![Hero image of RocketBlend CLI](docs/examples/rocketblend-help.svg)
 
