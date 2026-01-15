@@ -2,11 +2,13 @@ package ui
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/charmbracelet/bubbles/spinner"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
+	"github.com/rocketblend/rocketblend/pkg/types"
 )
 
 type (
@@ -52,7 +54,9 @@ func Run(ctx context.Context, work func(ctx context.Context, eventChan chan<- Pr
 	go func() {
 		defer close(eventChan)
 		if err := work(ctxWithCancel, eventChan); err != nil {
-			workErr = err
+			if errors.Is(err, types.ErrUntrustedDomain) {
+				workErr = err
+			}
 			eventChan <- ErrorEvent{Message: err.Error()}
 		}
 	}()

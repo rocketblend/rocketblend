@@ -41,8 +41,8 @@ RocketBlend includes download security to help protect against downloading files
 #### Examples
 
 ```bash
-# Add a trusted domain
-rocketblend config trusteddomains::1 --set "github.com"
+# Set trusted domains (replaces entire list)
+rocketblend config trusteddomains --set '["downloads.blender.org", "github.com"]'
 
 # Block downloads from untrusted domains
 rocketblend config untrusteddomainpolicy --set "block"
