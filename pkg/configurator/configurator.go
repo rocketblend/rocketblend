@@ -181,6 +181,8 @@ func load(path string, name string, extension string) (*viper.Viper, error) {
 	v.SetDefault("installationsPath", filepath.Join(path, "installations"))
 	v.SetDefault("packagesPath", filepath.Join(path, "packages"))
 	v.SetDefault("aliases", types.DefaultAliases)
+	v.SetDefault("trustedDomains", types.DefaultTrustedDomains)
+	v.SetDefault("untrustedDomainPolicy", string(types.UntrustedDomainPolicyWarn))
 
 	v.SetConfigName(name)      // Set the name of the configuration file
 	v.AddConfigPath(path)      // Look for the configuration file at the home directory

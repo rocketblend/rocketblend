@@ -7,4 +7,6 @@ var (
 	ErrFileExists   = errors.New("file already exists")
 
 	ErrMissingBlenderBuild = errors.New("missing blender build")
+
+	ErrUnsafeDomain = errors.New("download blocked: domain not in safe list")
 )
