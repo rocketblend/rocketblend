@@ -11,9 +11,10 @@ import (
 
 type installPackageOpts struct {
 	commandOpts
-	Reference    string
-	Pull         bool
-	ProgressChan chan<- ui.ProgressEvent
+	Reference              string
+	Pull                   bool
+	BypassUntrustedDomains bool
+	ProgressChan           chan<- ui.ProgressEvent
 }
 
 // newInstallCommand creates a new cobra command for installing project dependencies.
@@ -31,15 +32,16 @@ func newInstallCommand(opts commandOpts) *cobra.Command {
 				ref = args[0]
 			}
 
-			return runWithProgressUI(
+			return runWithConfirmation(
 				cmd.Context(),
 				opts.Global.Verbose,
-				func(ctx context.Context, eventChan chan<- ui.ProgressEvent) error {
+				func(ctx context.Context, eventChan chan<- ui.ProgressEvent, bypass bool) error {
 					return installPackage(ctx, installPackageOpts{
-						commandOpts:  opts,
-						Reference:    ref,
-						Pull:         update,
-						ProgressChan: eventChan,
+						commandOpts:            opts,
+						Reference:              ref,
+						Pull:                   update,
+						BypassUntrustedDomains: bypass,
+						ProgressChan:           eventChan,
 					})
 				})
 		},
@@ -113,7 +115,8 @@ func installPackage(ctx context.Context, opts installPackageOpts) error {
 
 	emit(ui.StepEvent{Message: "Installing dependencies..."})
 	if err := driver.InstallProfiles(ctx, &types.InstallProfilesOpts{
-		Profiles: profiles.Profiles,
+		Profiles:                   profiles.Profiles,
+		BypassUntrustedDomainCheck: opts.BypassUntrustedDomains,
 	}); err != nil {
 		return err
 	}

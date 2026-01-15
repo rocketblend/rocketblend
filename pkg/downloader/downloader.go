@@ -9,6 +9,8 @@ import (
 	"path/filepath"
 	"time"
 
+	"slices"
+
 	"github.com/rocketblend/rocketblend/pkg/logger"
 	"github.com/rocketblend/rocketblend/pkg/types"
 )
@@ -108,14 +110,14 @@ func New(opts ...Option) (*Downloader, error) {
 	}, nil
 }
 
-// DownloadOpts contains the options for downloading a file
+// Download downloads a file from the given URI to the specified path.
 func (d *Downloader) Download(ctx context.Context, opts *types.DownloadOpts) error {
 	if err := ctx.Err(); err != nil {
 		return err
 	}
 
 	if opts.URI.IsRemote() {
-		if err := d.checkDomainSafety(opts.URI); err != nil {
+		if err := d.checkDomainSafety(opts.URI, opts.BypassUntrustedDomainCheck); err != nil {
 			return err
 		}
 	}
@@ -291,18 +293,16 @@ func (d *Downloader) setupLocalReader(uri *types.URI) (io.ReadCloser, int64, err
 	return file, fi.Size(), nil
 }
 
-// checkDomainSafety checks if the domain is in the trusted list and applies the configured policy
-func (d *Downloader) checkDomainSafety(uri *types.URI) error {
+// checkDomainSafety checks if the domain is trusted and applies the untrusted domain policy
+func (d *Downloader) checkDomainSafety(uri *types.URI, bypass bool) error {
 	if uri.Host == "" {
-		return nil // Local files are always trusted
+		return nil
 	}
 
-	// Check if domain is in trusted list
 	if d.isDomainTrusted(uri.Host) {
 		return nil
 	}
 
-	// Apply policy based on configuration
 	switch d.untrustedDomainPolicy {
 	case types.UntrustedDomainPolicyBlock:
 		d.logger.Error("download blocked from untrusted domain", map[string]interface{}{
@@ -312,11 +312,19 @@ func (d *Downloader) checkDomainSafety(uri *types.URI) error {
 		return fmt.Errorf("%w: %s", types.ErrUnsafeDomain, uri.Host)
 
 	case types.UntrustedDomainPolicyWarn:
-		d.logger.Warn("downloading from untrusted domain", map[string]interface{}{
+		if bypass {
+			d.logger.Warn("downloading from untrusted domain (bypassed by user)", map[string]interface{}{
+				"domain": uri.Host,
+				"uri":    uri.String(),
+			})
+			return nil
+		}
+
+		d.logger.Warn("download from untrusted domain requires confirmation", map[string]interface{}{
 			"domain": uri.Host,
 			"uri":    uri.String(),
 		})
-		return nil
+		return types.ErrUntrustedDomain
 
 	case types.UntrustedDomainPolicyAllow:
 		d.logger.Debug("downloading from untrusted domain (allowed by policy)", map[string]interface{}{
@@ -326,7 +334,6 @@ func (d *Downloader) checkDomainSafety(uri *types.URI) error {
 		return nil
 
 	default:
-		// Unknown policy, default to blocking
 		d.logger.Error("unknown untrusted domain policy, defaulting to block", map[string]interface{}{
 			"policy": d.untrustedDomainPolicy,
 			"domain": uri.Host,
@@ -337,10 +344,5 @@ func (d *Downloader) checkDomainSafety(uri *types.URI) error {
 
 // isDomainTrusted checks if the domain is in the trusted list
 func (d *Downloader) isDomainTrusted(host string) bool {
-	for _, trustedDomain := range d.trustedDomains {
-		if host == trustedDomain {
-			return true
-		}
-	}
-	return false
+	return slices.Contains(d.trustedDomains, host)
 }

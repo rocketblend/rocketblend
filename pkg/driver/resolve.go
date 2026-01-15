@@ -38,7 +38,7 @@ func (d *Driver) ResolveProfiles(ctx context.Context, opts *types.ResolveProfile
 }
 
 func (d *Driver) resolve(ctx context.Context, profile *types.Profile) ([]*types.Installation, error) {
-	installations, err := d.getInstallations(ctx, profile.Dependencies, false)
+	installations, err := d.getInstallations(ctx, profile.Dependencies, false, false)
 	if err != nil {
 		return nil, err
 	}

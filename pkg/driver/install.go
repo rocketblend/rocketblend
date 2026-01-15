@@ -14,7 +14,7 @@ func (d *Driver) InstallProfiles(ctx context.Context, opts *types.InstallProfile
 	tasks := make([]taskrunner.Task[struct{}], len(opts.Profiles))
 	for i, profile := range opts.Profiles {
 		tasks[i] = func(ctx context.Context) (struct{}, error) {
-			if err := d.installDependencies(ctx, profile); err != nil {
+			if err := d.installDependencies(ctx, profile, opts.BypassUntrustedDomainCheck); err != nil {
 				return struct{}{}, err
 			}
 
@@ -34,7 +34,7 @@ func (d *Driver) InstallProfiles(ctx context.Context, opts *types.InstallProfile
 	return nil
 }
 
-func (d *Driver) installDependencies(ctx context.Context, profile *types.Profile) error {
+func (d *Driver) installDependencies(ctx context.Context, profile *types.Profile, bypassUntrustedDomainCheck bool) error {
 	if err := ctx.Err(); err != nil {
 		return err
 	}
@@ -43,7 +43,7 @@ func (d *Driver) installDependencies(ctx context.Context, profile *types.Profile
 		"profile": profile,
 	})
 
-	_, err := d.getInstallations(ctx, profile.Dependencies, true)
+	_, err := d.getInstallations(ctx, profile.Dependencies, true, bypassUntrustedDomainCheck)
 	if err != nil {
 		return err
 	}

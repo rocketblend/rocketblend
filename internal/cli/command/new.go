@@ -15,9 +15,10 @@ import (
 
 type createProjectOpts struct {
 	commandOpts
-	Name         string
-	Overwrite    bool
-	ProgressChan chan<- ui.ProgressEvent
+	Name                   string
+	Overwrite              bool
+	BypassUntrustedDomains bool
+	ProgressChan           chan<- ui.ProgressEvent
 }
 
 // newNewCommand creates a new cobra.Command for creating a new project.
@@ -40,15 +41,16 @@ func newNewCommand(opts commandOpts) *cobra.Command {
 			return validateProjectName(name)
 		},
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return runWithProgressUI(
+			return runWithConfirmation(
 				cmd.Context(),
 				opts.Global.Verbose,
-				func(ctx context.Context, eventChan chan<- ui.ProgressEvent) error {
+				func(ctx context.Context, eventChan chan<- ui.ProgressEvent, bypass bool) error {
 					return createProject(ctx, createProjectOpts{
-						commandOpts:  opts,
-						Name:         name,
-						Overwrite:    overwrite,
-						ProgressChan: eventChan,
+						commandOpts:            opts,
+						Name:                   name,
+						Overwrite:              overwrite,
+						BypassUntrustedDomains: bypass,
+						ProgressChan:           eventChan,
 					})
 				})
 		},
@@ -121,7 +123,8 @@ func createProject(ctx context.Context, opts createProjectOpts) error {
 
 	emit(ui.StepEvent{Message: "Installing dependencies..."})
 	if err := driver.InstallProfiles(ctx, &types.InstallProfilesOpts{
-		Profiles: profiles.Profiles,
+		Profiles:                   profiles.Profiles,
+		BypassUntrustedDomainCheck: opts.BypassUntrustedDomains,
 	}); err != nil {
 		return err
 	}

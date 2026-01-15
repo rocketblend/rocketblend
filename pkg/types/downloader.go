@@ -10,9 +10,10 @@ type (
 	}
 
 	DownloadOpts struct {
-		URI          *URI            `json:"uri" validate:"required"`
-		Path         string          `json:"path" validate:"required"`
-		ProgressChan chan<- Progress `json:"-"`
+		URI                        *URI            `json:"uri" validate:"required"`
+		Path                       string          `json:"path" validate:"required"`
+		BypassUntrustedDomainCheck bool            `json:"bypassUntrustedDomainCheck"`
+		ProgressChan               chan<- Progress `json:"-"`
 	}
 
 	Downloader interface {

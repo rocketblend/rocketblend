@@ -35,7 +35,7 @@ func TestDomainSafety(t *testing.T) {
 			uri:                   "https://untrusted-site.com/file.tar.gz",
 			trustedDomains:        []string{"downloads.blender.org"},
 			untrustedDomainPolicy: types.UntrustedDomainPolicyWarn,
-			expectError:           false,
+			expectError:           true,
 		},
 		{
 			name:                  "untrusted domain with allow policy",
@@ -69,7 +69,7 @@ func TestDomainSafety(t *testing.T) {
 				t.Fatalf("failed to parse URI: %v", err)
 			}
 
-			err = d.checkDomainSafety(uri)
+			err = d.checkDomainSafety(uri, false)
 
 			if tt.expectError && err == nil {
 				t.Errorf("expected error but got none")

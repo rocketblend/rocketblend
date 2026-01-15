@@ -89,14 +89,15 @@ func New(opts ...Option) (*Driver, error) {
 	}, nil
 }
 
-func (d *Driver) getInstallations(ctx context.Context, dependencies []*types.Dependency, fetch bool) (map[reference.Reference]*types.Installation, error) {
+func (d *Driver) getInstallations(ctx context.Context, dependencies []*types.Dependency, fetch bool, bypassUntrustedDomainCheck bool) (map[reference.Reference]*types.Installation, error) {
 	if err := ctx.Err(); err != nil {
 		return nil, err
 	}
 
 	result, err := d.repository.GetInstallations(ctx, &types.GetInstallationsOpts{
-		Dependencies: dependencies,
-		Fetch:        fetch,
+		Dependencies:               dependencies,
+		Fetch:                      fetch,
+		BypassUntrustedDomainCheck: bypassUntrustedDomainCheck,
 	})
 	if err != nil {
 		return nil, err
