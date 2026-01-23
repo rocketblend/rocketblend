@@ -21,7 +21,7 @@ var (
 	}
 
 	DefaultTrustedDomains = []string{
-		"downloads.blender.org",
+		"download.blender.org",
 	}
 )
 

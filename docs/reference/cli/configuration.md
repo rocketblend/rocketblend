@@ -20,7 +20,7 @@ description: Customising RocketBlend
     "github.com/rocketblend/official-library/packages/v0/builds/blender": "blender"
   },
   "trusteddomains": [
-    "downloads.blender.org"
+    "download.blender.org"
   ],
   "untrusteddomainpolicy": "warn"
 }
@@ -31,7 +31,7 @@ description: Customising RocketBlend
 
 RocketBlend includes download security to help protect against downloading files from untrusted domains.
 
-**Trusted Domains** (`trusteddomains`): List of domains from which files can be safely downloaded. Default: `downloads.blender.org`
+**Trusted Domains** (`trusteddomains`): List of domains from which files can be safely downloaded. Default: `download.blender.org`
 
 **Untrusted Domain Policy** (`untrusteddomainpolicy`): How to handle downloads from domains not in the trusted list:
 - `block` - Prevents downloads (most secure)
@@ -42,7 +42,7 @@ RocketBlend includes download security to help protect against downloading files
 
 ```bash
 # Set trusted domains (replaces entire list)
-rocketblend config trusteddomains --set '["downloads.blender.org", "github.com"]'
+rocketblend config trusteddomains --set '["download.blender.org", "github.com"]'
 
 # Block downloads from untrusted domains
 rocketblend config untrusteddomainpolicy --set "block"

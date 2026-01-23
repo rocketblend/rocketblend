@@ -18,36 +18,36 @@ func TestDomainSafety(t *testing.T) {
 	}{
 		{
 			name:                  "trusted domain with block policy",
-			uri:                   "https://downloads.blender.org/release/file.tar.gz",
-			trustedDomains:        []string{"downloads.blender.org"},
+			uri:                   "https://download.blender.org/release/file.tar.gz",
+			trustedDomains:        []string{"download.blender.org"},
 			untrustedDomainPolicy: types.UntrustedDomainPolicyBlock,
 			expectError:           false,
 		},
 		{
 			name:                  "untrusted domain with block policy",
 			uri:                   "https://untrusted-site.com/file.tar.gz",
-			trustedDomains:        []string{"downloads.blender.org"},
+			trustedDomains:        []string{"download.blender.org"},
 			untrustedDomainPolicy: types.UntrustedDomainPolicyBlock,
 			expectError:           true,
 		},
 		{
 			name:                  "untrusted domain with warn policy",
 			uri:                   "https://untrusted-site.com/file.tar.gz",
-			trustedDomains:        []string{"downloads.blender.org"},
+			trustedDomains:        []string{"download.blender.org"},
 			untrustedDomainPolicy: types.UntrustedDomainPolicyWarn,
 			expectError:           true,
 		},
 		{
 			name:                  "untrusted domain with allow policy",
 			uri:                   "https://untrusted-site.com/file.tar.gz",
-			trustedDomains:        []string{"downloads.blender.org"},
+			trustedDomains:        []string{"download.blender.org"},
 			untrustedDomainPolicy: types.UntrustedDomainPolicyAllow,
 			expectError:           false,
 		},
 		{
 			name:                  "local file always trusted",
 			uri:                   "file:///local/path/file.tar.gz",
-			trustedDomains:        []string{"downloads.blender.org"},
+			trustedDomains:        []string{"download.blender.org"},
 			untrustedDomainPolicy: types.UntrustedDomainPolicyBlock,
 			expectError:           false,
 		},
@@ -84,7 +84,7 @@ func TestDomainSafety(t *testing.T) {
 func TestIsDomainTrusted(t *testing.T) {
 	d, err := New(
 		WithTrustedDomains([]string{
-			"downloads.blender.org",
+			"download.blender.org",
 			"github.com",
 			"gitlab.com",
 		}),
@@ -97,7 +97,7 @@ func TestIsDomainTrusted(t *testing.T) {
 		domain  string
 		trusted bool
 	}{
-		{"downloads.blender.org", true},
+		{"download.blender.org", true},
 		{"github.com", true},
 		{"gitlab.com", true},
 		{"untrusted-site.com", false},
@@ -120,7 +120,7 @@ func TestDownloadWithUntrustedDomain(t *testing.T) {
 
 	d, err := New(
 		WithLogger(logger.NoOp()),
-		WithTrustedDomains([]string{"downloads.blender.org"}),
+		WithTrustedDomains([]string{"download.blender.org"}),
 		WithUntrustedDomainPolicy(types.UntrustedDomainPolicyBlock),
 	)
 	if err != nil {
