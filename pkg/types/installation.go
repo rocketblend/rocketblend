@@ -16,8 +16,9 @@ type (
 	}
 
 	GetInstallationsOpts struct {
-		Dependencies []*Dependency `json:"dependencies"`
-		Fetch        bool          `json:"fetch"`
+		Dependencies               []*Dependency `json:"dependencies"`
+		Fetch                      bool          `json:"fetch"`
+		BypassUntrustedDomainCheck bool          `json:"bypassUntrustedDomainCheck"`
 		// Progress     chan<- Progress `json:"-"`
 	}
 

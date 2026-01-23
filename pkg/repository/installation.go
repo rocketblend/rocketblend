@@ -32,7 +32,7 @@ func (r *Repository) GetInstallations(ctx context.Context, opts *types.GetInstal
 		return nil, err
 	}
 
-	installations, err := r.getInstallations(ctx, opts.Dependencies, opts.Fetch)
+	installations, err := r.getInstallations(ctx, opts.Dependencies, opts.Fetch, opts.BypassUntrustedDomainCheck)
 	if err != nil {
 		return nil, err
 	}
@@ -54,7 +54,7 @@ func (r *Repository) RemoveInstallations(ctx context.Context, opts *types.Remove
 	return nil
 }
 
-func (r *Repository) getInstallations(ctx context.Context, dependencies []*types.Dependency, fetch bool) (map[reference.Reference]*types.Installation, error) {
+func (r *Repository) getInstallations(ctx context.Context, dependencies []*types.Dependency, fetch bool, bypassUntrustedDomainCheck bool) (map[reference.Reference]*types.Installation, error) {
 	references := make([]reference.Reference, 0, len(dependencies))
 	for _, dep := range dependencies {
 		references = append(references, dep.Reference)
@@ -78,7 +78,7 @@ func (r *Repository) getInstallations(ctx context.Context, dependencies []*types
 	tasks := make([]taskrunner.Task[*getInstallationResult], 0, len(packs))
 	for ref, pack := range packs {
 		tasks = append(tasks, func(ctx context.Context) (*getInstallationResult, error) {
-			installation, err := r.getInstallation(ctx, ref, pack, fetch)
+			installation, err := r.getInstallation(ctx, ref, pack, fetch, bypassUntrustedDomainCheck)
 			if err != nil {
 				return nil, err
 			}
@@ -102,7 +102,7 @@ func (r *Repository) getInstallations(ctx context.Context, dependencies []*types
 	return installations, nil
 }
 
-func (r *Repository) getInstallation(ctx context.Context, reference reference.Reference, pack *types.Package, fetch bool) (*types.Installation, error) {
+func (r *Repository) getInstallation(ctx context.Context, reference reference.Reference, pack *types.Package, fetch bool, bypassUntrustedDomainCheck bool) (*types.Installation, error) {
 	r.logger.Info("checking installation", map[string]interface{}{
 		"bundled":   pack.Bundled(),
 		"reference": reference.String(),
@@ -133,7 +133,7 @@ func (r *Repository) getInstallation(ctx context.Context, reference reference.Re
 					}
 				}()
 
-				err := r.downloadInstallation(ctx, source.URI, packageFilePath, installationPath)
+				err := r.downloadInstallation(ctx, source.URI, packageFilePath, installationPath, bypassUntrustedDomainCheck)
 				if err != nil {
 					return nil, err
 				}
@@ -174,7 +174,7 @@ func (r *Repository) removeInstallations(ctx context.Context, references []refer
 	return nil
 }
 
-func (r *Repository) downloadInstallation(ctx context.Context, downloadURI *types.URI, packageFilePath string, installationPath string) error {
+func (r *Repository) downloadInstallation(ctx context.Context, downloadURI *types.URI, packageFilePath string, installationPath string, bypassUntrustedDomainCheck bool) error {
 	if downloadURI == nil {
 		return fmt.Errorf("no download URI provided")
 	}
@@ -224,9 +224,10 @@ func (r *Repository) downloadInstallation(ctx context.Context, downloadURI *type
 	}()
 
 	if err := r.downloader.Download(ctx, &types.DownloadOpts{
-		URI:          downloadURI,
-		Path:         downloadedFilePath,
-		ProgressChan: progressChan,
+		URI:                        downloadURI,
+		Path:                       downloadedFilePath,
+		ProgressChan:               progressChan,
+		BypassUntrustedDomainCheck: bypassUntrustedDomainCheck,
 	}); err != nil {
 		return err
 	}

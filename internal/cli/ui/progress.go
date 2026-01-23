@@ -2,11 +2,13 @@ package ui
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/charmbracelet/bubbles/spinner"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
+	"github.com/rocketblend/rocketblend/pkg/types"
 )
 
 type (
@@ -48,9 +50,13 @@ func Run(ctx context.Context, work func(ctx context.Context, eventChan chan<- Pr
 	ctxWithCancel, cancel := context.WithCancel(ctx)
 	defer cancel()
 
+	var workErr error
 	go func() {
 		defer close(eventChan)
 		if err := work(ctxWithCancel, eventChan); err != nil {
+			if errors.Is(err, types.ErrUntrustedDomain) {
+				workErr = err
+			}
 			eventChan <- ErrorEvent{Message: err.Error()}
 		}
 	}()
@@ -61,7 +67,7 @@ func Run(ctx context.Context, work func(ctx context.Context, eventChan chan<- Pr
 		return fmt.Errorf("failed to run UI: %w", err)
 	}
 
-	return nil
+	return workErr
 }
 
 // newProgressModel creates a new model with a spinner.
@@ -124,7 +130,7 @@ func (m *progressModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 func (m *progressModel) View() string {
 	switch m.status {
 	case statusError:
-		return errorStyle.Render(fmt.Sprintf("Error: %s\n", m.message))
+		return errorStyle.Render(fmt.Sprintf("Error: '%s'\n", m.message))
 	case statusDone:
 		return successStyle.Render(fmt.Sprintf("%s\n", m.message))
 	case statusCancelled:

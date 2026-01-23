@@ -177,10 +177,24 @@ func (f *Container) getConfigurator() (*configurator.Configurator, error) {
 func (f *Container) getDownloader() (*downloader.Downloader, error) {
 	var err error
 	f.downloaderHolder.once.Do(func() {
+		config, configErr := f.GetConfigurator()
+		if configErr != nil {
+			err = fmt.Errorf("failed to get configurator: %w", configErr)
+			return
+		}
+
+		cfg, configErr := config.Get()
+		if configErr != nil {
+			err = fmt.Errorf("failed to get config: %w", configErr)
+			return
+		}
+
 		f.downloaderHolder.instance, err = downloader.New(
 			downloader.WithLogger(f.logger),
 			downloader.WithBufferSize(f.downloadBuffer),
 			downloader.WithUpdateInterval(f.progressInterval),
+			downloader.WithTrustedDomains(cfg.TrustedDomains),
+			downloader.WithUntrustedDomainPolicy(cfg.UntrustedDomainPolicy),
 		)
 	})
 	if err != nil {

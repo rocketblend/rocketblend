@@ -9,6 +9,8 @@ import (
 	"path/filepath"
 	"time"
 
+	"slices"
+
 	"github.com/rocketblend/rocketblend/pkg/logger"
 	"github.com/rocketblend/rocketblend/pkg/types"
 )
@@ -25,17 +27,21 @@ type (
 	// }
 
 	Options struct {
-		Logger         logger.Logger
-		BufferSize     int
-		UpdateInterval time.Duration
+		Logger                logger.Logger
+		BufferSize            int
+		UpdateInterval        time.Duration
+		TrustedDomains        []string
+		UntrustedDomainPolicy types.UntrustedDomainPolicy
 	}
 
 	Option func(*Options)
 
 	Downloader struct {
-		logger         logger.Logger
-		bufferSize     int
-		updateInterval time.Duration
+		logger                logger.Logger
+		bufferSize            int
+		updateInterval        time.Duration
+		trustedDomains        []string
+		untrustedDomainPolicy types.UntrustedDomainPolicy
 	}
 )
 
@@ -60,12 +66,28 @@ func WithUpdateInterval(updateInterval time.Duration) Option {
 	}
 }
 
+// WithTrustedDomains sets the list of trusted domains to download from.
+func WithTrustedDomains(trustedDomains []string) Option {
+	return func(o *Options) {
+		o.TrustedDomains = trustedDomains
+	}
+}
+
+// WithUntrustedDomainPolicy sets the policy for downloads from untrusted domains (block, warn, or allow).
+func WithUntrustedDomainPolicy(policy types.UntrustedDomainPolicy) Option {
+	return func(o *Options) {
+		o.UntrustedDomainPolicy = policy
+	}
+}
+
 // New creates a new Downloader.
 func New(opts ...Option) (*Downloader, error) {
 	options := &Options{
-		Logger:         logger.NoOp(),
-		BufferSize:     1 << 20,         // Default buffer size is 1MB
-		UpdateInterval: 5 * time.Second, // Default update interval is 5 seconds
+		Logger:                logger.NoOp(),
+		BufferSize:            1 << 20,         // Default buffer size is 1MB
+		UpdateInterval:        5 * time.Second, // Default update interval is 5 seconds
+		TrustedDomains:        types.DefaultTrustedDomains,
+		UntrustedDomainPolicy: types.UntrustedDomainPolicyWarn,
 	}
 
 	for _, opt := range opts {
@@ -73,21 +95,31 @@ func New(opts ...Option) (*Downloader, error) {
 	}
 
 	options.Logger.Debug("initialising Downloader", map[string]interface{}{
-		"bufferSize":      options.BufferSize,
-		"updateFrequency": options.UpdateInterval,
+		"bufferSize":            options.BufferSize,
+		"updateFrequency":       options.UpdateInterval,
+		"trustedDomains":        options.TrustedDomains,
+		"untrustedDomainPolicy": options.UntrustedDomainPolicy,
 	})
 
 	return &Downloader{
-		logger:         options.Logger,
-		bufferSize:     options.BufferSize,
-		updateInterval: options.UpdateInterval,
+		logger:                options.Logger,
+		bufferSize:            options.BufferSize,
+		updateInterval:        options.UpdateInterval,
+		trustedDomains:        options.TrustedDomains,
+		untrustedDomainPolicy: options.UntrustedDomainPolicy,
 	}, nil
 }
 
-// DownloadOpts contains the options for downloading a file
+// Download downloads a file from the given URI to the specified path.
 func (d *Downloader) Download(ctx context.Context, opts *types.DownloadOpts) error {
 	if err := ctx.Err(); err != nil {
 		return err
+	}
+
+	if opts.URI.IsRemote() {
+		if err := d.checkDomainSafety(opts.URI, opts.BypassUntrustedDomainCheck); err != nil {
+			return err
+		}
 	}
 
 	tempPath := opts.Path + TempFileExtension
@@ -259,4 +291,58 @@ func (d *Downloader) setupLocalReader(uri *types.URI) (io.ReadCloser, int64, err
 	}
 
 	return file, fi.Size(), nil
+}
+
+// checkDomainSafety checks if the domain is trusted and applies the untrusted domain policy
+func (d *Downloader) checkDomainSafety(uri *types.URI, bypass bool) error {
+	if uri.Host == "" {
+		return nil
+	}
+
+	if d.isDomainTrusted(uri.Host) {
+		return nil
+	}
+
+	switch d.untrustedDomainPolicy {
+	case types.UntrustedDomainPolicyBlock:
+		d.logger.Error("download blocked from untrusted domain", map[string]interface{}{
+			"domain": uri.Host,
+			"uri":    uri.String(),
+		})
+		return fmt.Errorf("%w: %s", types.ErrUnsafeDomain, uri.Host)
+
+	case types.UntrustedDomainPolicyWarn:
+		if bypass {
+			d.logger.Warn("downloading from untrusted domain (bypassed by user)", map[string]interface{}{
+				"domain": uri.Host,
+				"uri":    uri.String(),
+			})
+			return nil
+		}
+
+		d.logger.Warn("download from untrusted domain requires confirmation", map[string]interface{}{
+			"domain": uri.Host,
+			"uri":    uri.String(),
+		})
+		return types.ErrUntrustedDomain
+
+	case types.UntrustedDomainPolicyAllow:
+		d.logger.Debug("downloading from untrusted domain (allowed by policy)", map[string]interface{}{
+			"domain": uri.Host,
+			"uri":    uri.String(),
+		})
+		return nil
+
+	default:
+		d.logger.Error("unknown untrusted domain policy, defaulting to block", map[string]interface{}{
+			"policy": d.untrustedDomainPolicy,
+			"domain": uri.Host,
+		})
+		return fmt.Errorf("%w: %s (unknown policy: %s)", types.ErrUnsafeDomain, uri.Host, d.untrustedDomainPolicy)
+	}
+}
+
+// isDomainTrusted checks if the domain is in the trusted list
+func (d *Downloader) isDomainTrusted(host string) bool {
+	return slices.Contains(d.trustedDomains, host)
 }

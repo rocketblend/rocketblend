@@ -28,7 +28,8 @@ type (
 	}
 
 	InstallProfilesOpts struct {
-		Profiles []*Profile `json:"profiles" validate:"required,dive,required"`
+		Profiles                   []*Profile `json:"profiles" validate:"required,dive,required"`
+		BypassUntrustedDomainCheck bool       `json:"bypassUntrustedDomainCheck"`
 	}
 
 	SaveProfilesOpts struct {
