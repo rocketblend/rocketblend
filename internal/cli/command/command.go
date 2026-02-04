@@ -86,6 +86,8 @@ Documentation is available at https://docs.rocketblend.io/`,
 		newResolveCommand(commandOpts),
 		newDescribeCommand(commandOpts),
 		newInsertCommand(commandOpts),
+		newServeCommand(commandOpts),
+		newWorkerCommand(commandOpts),
 	)
 
 	cc.PersistentFlags().StringVarP(&global.WorkingDirectory, "directory", "d", ".", "working directory for the command")
