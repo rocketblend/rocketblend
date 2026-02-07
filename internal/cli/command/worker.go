@@ -1,7 +1,7 @@
 package command
 
 import (
-	"github.com/rocketblend/rocketblend/internal/worker"
+	"github.com/rocketblend/rocketblend/internal/orchestration/worker"
 	"github.com/spf13/cobra"
 )
 
@@ -22,16 +22,32 @@ func newWorkerCommand(commandOpts commandOpts) *cobra.Command {
 		Short: "Start a worker",
 		Long:  `Starts a worker agent that connects to a host and executes jobs by managing local Blender instances.`,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			l := getLogger(opts.Global.Level, opts.Global.Verbose)
+			logger := getLogger(opts.Global.Level, opts.Global.Verbose)
 
-			l.Info("starting worker", map[string]any{
+			container, err := getContainer(containerOpts{
+				AppName:     opts.AppName,
+				Development: opts.Development,
+				Level:       opts.Global.Level,
+				Verbose:     opts.Global.Verbose,
+			})
+			if err != nil {
+				return err
+			}
+
+			driver, err := container.GetDriver()
+			if err != nil {
+				return err
+			}
+
+			logger.Info("starting worker", map[string]any{
 				"server": opts.ServerURL,
 			})
 
 			workerOpts := []worker.Option{
 				worker.WithServerURL(opts.ServerURL),
 				worker.WithWorkingDir(opts.Global.WorkingDirectory),
-				worker.WithLogger(l),
+				worker.WithDriver(driver),
+				worker.WithLogger(logger),
 			}
 
 			if opts.Hostname != "" {
@@ -39,7 +55,6 @@ func newWorkerCommand(commandOpts commandOpts) *cobra.Command {
 			}
 
 			w := worker.New(workerOpts...)
-
 			return w.Start(cmd.Context())
 		},
 	}

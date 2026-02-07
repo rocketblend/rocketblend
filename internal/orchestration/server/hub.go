@@ -7,6 +7,7 @@ import (
 	"sync"
 
 	"github.com/gorilla/websocket"
+	"github.com/rocketblend/rocketblend/internal/orchestration"
 	"github.com/rocketblend/rocketblend/pkg/types"
 )
 
@@ -32,17 +33,17 @@ type WorkerConnection struct {
 	hub  *Hub
 	conn *websocket.Conn
 	send chan []byte
-	caps types.WorkerCapabilities
+	caps orchestration.WorkerCapabilities
 }
 
 type dispatchReq struct {
-	job *types.JobResult
-	req types.JobRequest
+	job *orchestration.JobResult
+	req orchestration.JobRequest
 }
 
 type statusUpdateReq struct {
 	jobID  string
-	status types.JobStatus
+	status orchestration.JobStatus
 	result json.RawMessage
 	error  string
 }
@@ -65,12 +66,24 @@ func (h *Hub) Run(ctx context.Context) {
 	for {
 		select {
 		case <-ctx.Done():
+			h.mu.Lock()
+			for worker := range h.workers {
+				worker.conn.WriteMessage(websocket.CloseMessage, websocket.FormatCloseMessage(websocket.CloseGoingAway, "server shutting down"))
+				close(worker.send)
+				worker.conn.Close()
+			}
+			h.mu.Unlock()
+			h.logger.Info("hub shutdown complete", nil)
 			return
 
 		case client := <-h.register:
 			h.mu.Lock()
 			h.workers[client] = true
-			h.logger.Info("worker connected", map[string]interface{}{"host": client.conn.RemoteAddr().String()})
+			h.logger.Info("worker connected", map[string]any{
+				"host":     client.conn.RemoteAddr().String(),
+				"hostname": client.caps.Hostname,
+				"projects": len(client.caps.Projects),
+			})
 			h.mu.Unlock()
 
 		case client := <-h.unregister:
@@ -78,14 +91,17 @@ func (h *Hub) Run(ctx context.Context) {
 			if _, ok := h.workers[client]; ok {
 				delete(h.workers, client)
 				close(client.send)
-				// Remove from indexes... (simplified for now)
-				h.logger.Info("worker disconnected", nil)
+				h.logger.Info("worker disconnected", map[string]any{
+					"host":     client.conn.RemoteAddr().String(),
+					"hostname": client.caps.Hostname,
+					"projects": len(client.caps.Projects),
+				})
 			}
 			h.mu.Unlock()
 
 		case update := <-h.statusUpdates:
 			h.queue.Update(update.jobID, update.status, update.result, update.error)
-			h.logger.Info("job updated", map[string]interface{}{
+			h.logger.Info("job updated", map[string]any{
 				"id":     update.jobID,
 				"status": update.status,
 			})
@@ -102,9 +118,8 @@ func (h *Hub) Run(ctx context.Context) {
 			h.mu.RUnlock()
 
 			if chosen != nil {
-				// Send Job
-				payload, _ := json.Marshal(types.JobEvent{
-					Type: "job",
+				payload, _ := json.Marshal(orchestration.JobEvent{
+					Type: orchestration.JobEventJob,
 					Payload: mustMarshal(map[string]interface{}{
 						"id":      req.job.ID,
 						"request": req.req, // Worker needs the full request
@@ -112,7 +127,7 @@ func (h *Hub) Run(ctx context.Context) {
 				})
 				chosen.send <- payload
 
-				h.queue.Update(req.job.ID, types.JobStatusAssigned, nil, "")
+				h.queue.Update(req.job.ID, orchestration.JobStatusAssigned, nil, "")
 			} else {
 				h.logger.Warn("no worker found for job", map[string]interface{}{"id": req.job.ID})
 			}
@@ -120,7 +135,7 @@ func (h *Hub) Run(ctx context.Context) {
 	}
 }
 
-func (h *Hub) Dispatch(job *types.JobResult, req types.JobRequest) {
+func (h *Hub) Dispatch(job *orchestration.JobResult, req orchestration.JobRequest) {
 	h.jobDispatch <- dispatchReq{job, req}
 }
 
@@ -133,12 +148,11 @@ func (h *Hub) WorkerCount() int {
 func (s *Server) handleWorkerWS(w http.ResponseWriter, r *http.Request) {
 	conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
-		s.config.Logger.Error("ws upgrade failed", map[string]interface{}{"err": err})
+		s.config.Logger.Error("ws upgrade failed", map[string]any{"err": err})
 		return
 	}
 
 	client := &WorkerConnection{hub: s.hub, conn: conn, send: make(chan []byte, 256)}
-	client.hub.register <- client
 
 	// Start pump loops
 	go client.writePump()
@@ -157,20 +171,20 @@ func (c *WorkerConnection) readPump() {
 			break
 		}
 
-		var event types.JobEvent
+		var event orchestration.JobEvent
 		if err := json.Unmarshal(message, &event); err != nil {
 			continue
 		}
 
 		switch event.Type {
-		case "handshake":
-			var caps types.WorkerCapabilities
+		case orchestration.JobEventHandshake:
+			var caps orchestration.WorkerCapabilities
 			json.Unmarshal(event.Payload, &caps)
 			c.caps = caps
-			// Update indexes in Hub...
+			c.hub.register <- c
 
-		case "completed", "failed":
-			var res types.JobResult // Partial result from worker
+		case orchestration.JobEventCompleted, orchestration.JobEventFailed:
+			var res orchestration.JobResult
 			json.Unmarshal(event.Payload, &res)
 			c.hub.statusUpdates <- statusUpdateReq{
 				jobID:  res.ID,
@@ -196,7 +210,7 @@ func (c *WorkerConnection) writePump() {
 	}
 }
 
-func mustMarshal(v interface{}) []byte {
+func mustMarshal(v any) []byte {
 	b, _ := json.Marshal(v)
 	return b
 }

@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/gorilla/mux"
+	"github.com/rocketblend/rocketblend/internal/orchestration"
 	"github.com/rocketblend/rocketblend/pkg/types"
 	"github.com/rs/xid"
 )
@@ -102,16 +103,16 @@ func (s *Server) routes() {
 }
 
 func (s *Server) handlePostJob(w http.ResponseWriter, r *http.Request) {
-	var req types.JobRequest
+	var req orchestration.JobRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
 	jobID := xid.New().String()
-	job := &types.JobResult{
+	job := &orchestration.JobResult{
 		ID:        jobID,
-		Status:    types.JobStatusQueued,
+		Status:    orchestration.JobStatusQueued,
 		CreatedAt: time.Now(),
 	}
 
@@ -149,41 +150,41 @@ func (s *Server) handleSystemInfo(w http.ResponseWriter, r *http.Request) {
 
 // In-Memory Queue (simplified)
 type JobQueue struct {
-	jobs sync.Map // map[string]*types.JobResult
-	reqs sync.Map // map[string]types.JobRequest
+	jobs sync.Map // map[string]*orchestration.JobResult
+	reqs sync.Map // map[string]orchestration.JobRequest
 }
 
 func NewJobQueue() *JobQueue {
 	return &JobQueue{}
 }
 
-func (q *JobQueue) Add(job *types.JobResult, req types.JobRequest) {
+func (q *JobQueue) Add(job *orchestration.JobResult, req orchestration.JobRequest) {
 	q.jobs.Store(job.ID, job)
 	q.reqs.Store(job.ID, req)
 }
 
-func (q *JobQueue) Get(id string) (*types.JobResult, bool) {
+func (q *JobQueue) Get(id string) (*orchestration.JobResult, bool) {
 	val, ok := q.jobs.Load(id)
 	if !ok {
 		return nil, false
 	}
-	return val.(*types.JobResult), true
+	return val.(*orchestration.JobResult), true
 }
 
-func (q *JobQueue) Update(id string, status types.JobStatus, result json.RawMessage, err string) {
+func (q *JobQueue) Update(id string, status orchestration.JobStatus, result json.RawMessage, err string) {
 	val, ok := q.jobs.Load(id)
 	if !ok {
 		return
 	}
-	j := val.(*types.JobResult)
+	j := val.(*orchestration.JobResult)
 	j.Status = status
 	j.Result = result
 	j.Error = err
-	if status == types.JobStatusProcessing {
+	if status == orchestration.JobStatusProcessing {
 		now := time.Now()
 		j.StartedAt = &now
 	}
-	if status == types.JobStatusCompleted || status == types.JobStatusFailed {
+	if status == orchestration.JobStatusCompleted || status == orchestration.JobStatusFailed {
 		now := time.Now()
 		j.EndedAt = &now
 	}

@@ -8,6 +8,8 @@ import (
 	"time"
 
 	"github.com/gorilla/websocket"
+	"github.com/rocketblend/rocketblend/internal/orchestration"
+	"github.com/rocketblend/rocketblend/internal/orchestration/worker/supervisor"
 	"github.com/rocketblend/rocketblend/pkg/types"
 )
 
@@ -16,22 +18,18 @@ type (
 		ServerURL  string
 		Hostname   string
 		WorkingDir string
+		Driver     types.Driver
 		Logger     types.Logger
 	}
 
 	Option func(*Config)
 
 	Worker struct {
-		config Config
-		conn   *websocket.Conn
+		config     Config
+		conn       *websocket.Conn
+		supervisor *supervisor.Supervisor
 	}
 )
-
-func WithLogger(logger types.Logger) Option {
-	return func(c *Config) {
-		c.Logger = logger
-	}
-}
 
 func WithServerURL(url string) Option {
 	return func(c *Config) {
@@ -51,6 +49,18 @@ func WithHostname(name string) Option {
 	}
 }
 
+func WithDriver(d types.Driver) Option {
+	return func(c *Config) {
+		c.Driver = d
+	}
+}
+
+func WithLogger(logger types.Logger) Option {
+	return func(c *Config) {
+		c.Logger = logger
+	}
+}
+
 func New(opts ...Option) *Worker {
 	hostname, _ := os.Hostname()
 	config := Config{
@@ -63,11 +73,16 @@ func New(opts ...Option) *Worker {
 	}
 
 	return &Worker{
-		config: config,
+		config:     config,
+		supervisor: supervisor.New(config.Logger, config.Driver),
 	}
 }
 
 func (w *Worker) Start(ctx context.Context) error {
+	if err := w.supervisor.Discover(ctx, w.config.WorkingDir); err != nil {
+		w.config.Logger.Error("failed to discover projects", map[string]any{"err": err})
+	}
+
 	url := fmt.Sprintf("%s/ws/worker", w.config.ServerURL)
 	if w.config.ServerURL[:4] == "http" {
 		url = "ws" + w.config.ServerURL[4:] + "/ws/worker"
@@ -81,12 +96,19 @@ func (w *Worker) Start(ctx context.Context) error {
 	w.conn = c
 	defer c.Close()
 
-	capsPayload, _ := json.Marshal(types.WorkerCapabilities{
+	projects := w.supervisor.Registered()
+	capsPayload, _ := json.Marshal(orchestration.WorkerCapabilities{
 		Hostname: w.config.Hostname,
+		Projects: projects,
 	})
-	if err := w.send("handshake", capsPayload); err != nil {
+	if err := w.send(orchestration.JobEventHandshake, capsPayload); err != nil {
 		return err
 	}
+
+	w.config.Logger.Info("handshake sent", map[string]any{
+		"hostname": w.config.Hostname,
+		"projects": len(projects),
+	})
 
 	w.config.Logger.Info("worker connected", nil)
 
@@ -100,6 +122,12 @@ func (w *Worker) Start(ctx context.Context) error {
 		_, message, err := c.ReadMessage()
 		if err != nil {
 			if ctx.Err() != nil {
+				w.config.Logger.Info("worker shutdown requested", nil)
+				return nil
+			}
+
+			if websocket.IsCloseError(err, websocket.CloseNormalClosure, websocket.CloseGoingAway) {
+				w.config.Logger.Info("server closed connection", nil)
 				return nil
 			}
 
@@ -107,28 +135,28 @@ func (w *Worker) Start(ctx context.Context) error {
 			return err
 		}
 
-		var event types.JobEvent
+		var event orchestration.JobEvent
 		if err := json.Unmarshal(message, &event); err != nil {
 			continue
 		}
 
 		w.config.Logger.Info("received event", map[string]any{"type": event.Type})
 
-		if event.Type == "job" {
+		if event.Type == orchestration.JobEventJob {
 			go w.handleJob(event.Payload)
 		}
 	}
 }
 
-func (w *Worker) send(typ string, payload []byte) error {
-	evt := types.JobEvent{Type: typ, Payload: payload}
+func (w *Worker) send(typ orchestration.JobEventType, payload []byte) error {
+	evt := orchestration.JobEvent{Type: typ, Payload: payload}
 	return w.conn.WriteJSON(evt)
 }
 
 func (w *Worker) handleJob(payload []byte) {
 	var wrapper struct {
-		ID      string           `json:"id"`
-		Request types.JobRequest `json:"request"`
+		ID      string                   `json:"id"`
+		Request orchestration.JobRequest `json:"request"`
 	}
 	json.Unmarshal(payload, &wrapper)
 
@@ -143,17 +171,26 @@ func (w *Worker) handleJob(payload []byte) {
 	res := map[string]string{"message": "Processed successfully by basic worker"}
 	resBytes, _ := json.Marshal(res)
 
-	w.sendResult(wrapper.ID, types.JobStatusCompleted, resBytes, "")
+	w.sendResult(wrapper.ID, orchestration.JobStatusCompleted, resBytes, "")
 }
 
-func (w *Worker) sendResult(id string, status types.JobStatus, res json.RawMessage, errStr string) {
-	result := types.JobResult{
+func (w *Worker) sendResult(id string, status orchestration.JobStatus, res json.RawMessage, errStr string) {
+	result := orchestration.JobResult{
 		ID:     id,
 		Status: status,
 		Result: res,
 		Error:  errStr,
 	}
 	p, _ := json.Marshal(result)
-	w.send(string(status), p)
+
+	// Map JobStatus to JobEventType
+	var eventType orchestration.JobEventType
+	if status == orchestration.JobStatusCompleted {
+		eventType = orchestration.JobEventCompleted
+	} else {
+		eventType = orchestration.JobEventFailed
+	}
+
+	w.send(eventType, p)
 	w.config.Logger.Info("sent result", map[string]any{"id": id, "status": status})
 }

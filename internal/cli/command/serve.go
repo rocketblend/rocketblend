@@ -1,7 +1,7 @@
 package command
 
 import (
-	"github.com/rocketblend/rocketblend/internal/server"
+	"github.com/rocketblend/rocketblend/internal/orchestration/server"
 	"github.com/spf13/cobra"
 )
 
@@ -22,7 +22,7 @@ func newServeCommand(commandOpts commandOpts) *cobra.Command {
 		Long:  `Starts the central HTTP/WebSocket server that manages the job queue and worker pool.`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			l := getLogger(opts.Global.Level, opts.Global.Verbose)
-			l.Info("starting host", map[string]interface{}{
+			l.Info("starting host", map[string]any{
 				"host": opts.Host,
 				"port": opts.Port,
 			})

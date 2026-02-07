@@ -1,4 +1,4 @@
-package types
+package orchestration
 
 import (
 	"encoding/json"
@@ -6,19 +6,18 @@ import (
 )
 
 type (
-	// JobStatus represents the current state of a job
 	JobStatus string
 
-	// JobRequest is the payload sent by clients to submit work
+	JobEventType string
+
 	JobRequest struct {
-		ProjectID    string                 `json:"project_id"`
-		Task         string                 `json:"task"`
-		Payload      map[string]interface{} `json:"payload"`
-		TimeoutSecs  int                    `json:"timeout_secs,omitempty"`
-		Dependencies []string               `json:"dependencies,omitempty"`
+		ProjectID    string         `json:"project_id"`
+		Task         string         `json:"task"`
+		Payload      map[string]any `json:"payload"`
+		TimeoutSecs  int            `json:"timeout_secs,omitempty"`
+		Dependencies []string       `json:"dependencies,omitempty"`
 	}
 
-	// JobResult represents the outcome of a job execution
 	JobResult struct {
 		ID        string          `json:"id"`
 		Status    JobStatus       `json:"status"`
@@ -30,15 +29,13 @@ type (
 		EndedAt   *time.Time      `json:"ended_at,omitempty"`
 	}
 
-	// WorkerCapabilities describes what a worker can do
 	WorkerCapabilities struct {
-		Projects []string `json:"projects"` // Project IDs (folder names) this worker manages
+		Projects []string `json:"projects"`
 		Hostname string   `json:"hostname"`
 	}
 
-	// JobEvent is pushed via WebSocket or Polling
 	JobEvent struct {
-		Type    string          `json:"type"` // "assigned", "completed", "failed"
+		Type    JobEventType    `json:"type"`
 		Payload json.RawMessage `json:"payload"`
 	}
 )
@@ -49,4 +46,9 @@ const (
 	JobStatusProcessing JobStatus = "processing"
 	JobStatusCompleted  JobStatus = "completed"
 	JobStatusFailed     JobStatus = "failed"
+
+	JobEventHandshake JobEventType = "handshake"
+	JobEventJob       JobEventType = "job"
+	JobEventCompleted JobEventType = "completed"
+	JobEventFailed    JobEventType = "failed"
 )
