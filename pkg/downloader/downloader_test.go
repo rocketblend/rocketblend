@@ -2,6 +2,7 @@ package downloader
 
 import (
 	"context"
+	"errors"
 	"testing"
 
 	"github.com/rocketblend/rocketblend/pkg/logger"
@@ -14,70 +15,85 @@ func TestDomainSafety(t *testing.T) {
 		uri                   string
 		trustedDomains        []string
 		untrustedDomainPolicy types.UntrustedDomainPolicy
-		expectError           bool
+		bypass                bool
+		wantErr               error
 	}{
 		{
 			name:                  "trusted domain with block policy",
 			uri:                   "https://download.blender.org/release/file.tar.gz",
 			trustedDomains:        []string{"download.blender.org"},
 			untrustedDomainPolicy: types.UntrustedDomainPolicyBlock,
-			expectError:           false,
 		},
 		{
 			name:                  "untrusted domain with block policy",
 			uri:                   "https://untrusted-site.com/file.tar.gz",
 			trustedDomains:        []string{"download.blender.org"},
 			untrustedDomainPolicy: types.UntrustedDomainPolicyBlock,
-			expectError:           true,
+			wantErr:               types.ErrUnsafeDomain,
+		},
+		{
+			name:                  "untrusted domain with block policy ignores bypass",
+			uri:                   "https://untrusted-site.com/file.tar.gz",
+			trustedDomains:        []string{"download.blender.org"},
+			untrustedDomainPolicy: types.UntrustedDomainPolicyBlock,
+			bypass:                true,
+			wantErr:               types.ErrUnsafeDomain,
 		},
 		{
 			name:                  "untrusted domain with warn policy",
 			uri:                   "https://untrusted-site.com/file.tar.gz",
 			trustedDomains:        []string{"download.blender.org"},
 			untrustedDomainPolicy: types.UntrustedDomainPolicyWarn,
-			expectError:           true,
+			wantErr:               types.ErrUntrustedDomain,
+		},
+		{
+			name:                  "untrusted domain with warn policy and bypass",
+			uri:                   "https://untrusted-site.com/file.tar.gz",
+			trustedDomains:        []string{"download.blender.org"},
+			untrustedDomainPolicy: types.UntrustedDomainPolicyWarn,
+			bypass:                true,
 		},
 		{
 			name:                  "untrusted domain with allow policy",
 			uri:                   "https://untrusted-site.com/file.tar.gz",
 			trustedDomains:        []string{"download.blender.org"},
 			untrustedDomainPolicy: types.UntrustedDomainPolicyAllow,
-			expectError:           false,
+		},
+		{
+			name:                  "untrusted domain with unknown policy",
+			uri:                   "https://untrusted-site.com/file.tar.gz",
+			trustedDomains:        []string{"download.blender.org"},
+			untrustedDomainPolicy: "unknown",
+			bypass:                true,
+			wantErr:               types.ErrUnsafeDomain,
 		},
 		{
 			name:                  "local file always trusted",
 			uri:                   "file:///local/path/file.tar.gz",
 			trustedDomains:        []string{"download.blender.org"},
 			untrustedDomainPolicy: types.UntrustedDomainPolicyBlock,
-			expectError:           false,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			d, err := New(
-				WithLogger(logger.NoOp()),
-				WithTrustedDomains(tt.trustedDomains),
-				WithUntrustedDomainPolicy(tt.untrustedDomainPolicy),
-			)
-			if err != nil {
-				t.Fatalf("failed to create downloader: %v", err)
-			}
-
 			uri, err := types.NewURI(tt.uri)
 			if err != nil {
 				t.Fatalf("failed to parse URI: %v", err)
 			}
 
-			err = d.checkDomainSafety(uri, false)
-
-			if tt.expectError && err == nil {
-				t.Errorf("expected error but got none")
-			}
-			if !tt.expectError && err != nil {
+			err = CheckDomain(uri, tt.trustedDomains, tt.untrustedDomainPolicy, tt.bypass)
+			if tt.wantErr == nil && err != nil {
 				t.Errorf("expected no error but got: %v", err)
 			}
+			if tt.wantErr != nil && !errors.Is(err, tt.wantErr) {
+				t.Errorf("expected %v but got: %v", tt.wantErr, err)
+			}
 		})
+	}
+
+	if err := CheckDomain(nil, nil, types.UntrustedDomainPolicyBlock, false); err != nil {
+		t.Errorf("expected nil URI to be allowed but got: %v", err)
 	}
 }
 
