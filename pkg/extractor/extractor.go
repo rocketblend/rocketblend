@@ -6,7 +6,6 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/mholt/archiver/v3"
 	"github.com/rocketblend/rocketblend/pkg/logger"
 	"github.com/rocketblend/rocketblend/pkg/types"
 )
@@ -67,7 +66,7 @@ func (e *Extractor) Extract(ctx context.Context, opts *types.ExtractOpts) error 
 
 	e.logger.Info("extracting", logContext)
 
-	// mholt/archiver doesn't support .dmg files, so we need to handle them separately.
+	// mholt/archives doesn't support .dmg files, so we need to handle them separately.
 	// This isn't a 100% golang solution, but it works for now.
 	var err error
 	switch strings.ToLower(filepath.Ext(opts.Path)) {
@@ -76,7 +75,7 @@ func (e *Extractor) Extract(ctx context.Context, opts *types.ExtractOpts) error 
 		err = e.extractDMG(ctx, opts.Path, opts.OutputPath)
 	default:
 		e.logger.Debug("extracting archive", logContext)
-		err = archiver.Unarchive(opts.Path, opts.OutputPath)
+		err = e.extractArchive(ctx, opts.Path, opts.OutputPath)
 	}
 	if err != nil {
 		logContext["error"] = err.Error()
