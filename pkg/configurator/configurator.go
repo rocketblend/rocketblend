@@ -140,14 +140,11 @@ func (c *Configurator) SetValueByString(key string, value string) error {
 
 	c.viper.Set(key, value)
 
-	_, err := c.get()
-	if err != nil {
+	if _, err := c.get(); err != nil {
 		return err
 	}
 
-	c.viper.WriteConfig()
-
-	return nil
+	return c.viper.WriteConfig()
 }
 
 func (c *Configurator) Save(config *types.Config) error {
@@ -156,12 +153,17 @@ func (c *Configurator) Save(config *types.Config) error {
 	}
 
 	var m map[string]interface{}
-	mapstructure.Decode(config, &m)
+	if err := mapstructure.Decode(config, &m); err != nil {
+		return err
+	}
 
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
-	c.viper.MergeConfigMap(m)
+	if err := c.viper.MergeConfigMap(m); err != nil {
+		return err
+	}
+
 	return c.viper.WriteConfig()
 }
 
